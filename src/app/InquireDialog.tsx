@@ -48,18 +48,18 @@ export default function InquireDialog({ property }: { property: Property }) {
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="username" className="text-right">
+                        <Label htmlFor="email" className="text-right">
                             Email
                         </Label>
                         <Input
-                            id="username"
+                            id="email"
                             defaultValue="anthony@happyhome.com"
                             className="col-span-3"
                         />
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="submit">Contact</Button>
+                    <Button type="submit" onClick={() => {}}>Contact</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
