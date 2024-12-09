@@ -1,34 +1,45 @@
-// This is the root layout component for your Next.js app.
-// Learn more: https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts#root-layout-required
-import { Inter } from 'next/font/google'
-import { cn } from '@/lib/utils'
+import { AppProvider } from "@/AppContext";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
+import { Inter } from "next/font/google";
 import "yet-another-react-lightbox/styles.css";
-import './globals.css'
+import "./globals.css";
+import Header from "./header";
 
 const fontHeading = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-heading',
-})
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-heading",
+});
 
 const fontBody = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-body',
-})
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-body",
+});
 
 export default function Layout({ children }) {
   return (
     <html lang="en">
-      <body 
+      <body
         className={cn(
-          'antialiased',
+          "antialiased",
           fontHeading.variable,
-          fontBody.variable
+          fontBody.variable,
+          "flex",
+          "flex-col",
         )}
       >
-        {children}
+        <SidebarProvider>
+          <AppProvider>
+            <AppSidebar />
+
+            <Header />
+            {children}
+          </AppProvider>
+        </SidebarProvider>
       </body>
     </html>
-  )
+  );
 }

@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    domains: ['www.shiawasehome-reuse.com']
+  },
 };
 
 export default nextConfig;

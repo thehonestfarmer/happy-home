@@ -1,16 +1,19 @@
+"use client";
 
-"use client"
-
-import Link from "next/link"
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import Link from "next/link";
+import { useMediaQuery } from "usehooks-ts";
 
 export default function Header() {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
-      <header className="bg-primary text-primary-foreground py-4 px-6">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link href="/" prefetch={false}>
-          <h1 className="text-2xl font-bold">Happy Home</h1>
-          </Link>
+    <header className="sticky top-0 bg-primary text-primary-foreground py-4 px-6 z-[1]">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link href="/" prefetch={false}>
+          <h1 className="text-2xl font-bold">Shiawase Home</h1>
+        </Link>
+        {isDesktop ? (
           <nav>
             <ul className="flex space-x-4">
               <li>
@@ -18,11 +21,6 @@ export default function Header() {
                   Listings
                 </Link>
               </li>
-              {/* <li>
-                <Link href="#" prefetch={false}>
-                  Agents
-                </Link>
-              </li> */}
               <li>
                 <Link href="#" prefetch={false}>
                   Contact
@@ -30,7 +28,10 @@ export default function Header() {
               </li>
             </ul>
           </nav>
-        </div>
-      </header>
-  )
+        ) : (
+          <SidebarTrigger />
+        )}
+      </div>
+    </header>
+  );
 }
