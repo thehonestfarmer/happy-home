@@ -4,18 +4,23 @@ import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
+import { useAppContext } from "@/AppContext";
 
 const Drawer = ({
   shouldScaleBackground = true,
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-  <DrawerPrimitive.Root
-    shouldScaleBackground={shouldScaleBackground}
-    snapPoints={[0.12, 0.24, 0.64]}
-    snapToSequentialPoint
-    {...props}
-  />
-);
+}: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
+  const { displayState } = useAppContext();
+  return (
+    <DrawerPrimitive.Root
+      open={displayState.drawerOpen}
+      shouldScaleBackground={shouldScaleBackground}
+      snapPoints={[0.24, 0.8]}
+      snapToSequentialPoint
+      {...props}
+    />
+  );
+};
 Drawer.displayName = "Drawer";
 
 const DrawerTrigger = DrawerPrimitive.Trigger;
@@ -45,7 +50,7 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col rounded-t-[10px] border bg-background",
+        "fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col flex-grow rounded-t-[10px] border bg-background",
         "overflow-y-auto",
         className,
       )}

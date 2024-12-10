@@ -61,11 +61,10 @@ export default function Page() {
 
   return (
     <div className="pointer-events-auto overflow-y-auto">
-      <div className="pointer-events-auto overflow-y-auto">
-        {property.listingImages.map((li, idx) => (
+      <div className="pointer-events-auto overflow-y-auto mt-10">
+        {property.listingImages.slice(0, 10).map((li, idx) => (
           <DetailSlide
             key={li}
-            className="mb-1"
             handleOpen={handleLightboxOpen}
             property={property}
             startIdx={idx}

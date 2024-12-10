@@ -14,7 +14,7 @@ export type FilterProps = {
 export const AppProvider = ({ children }) => {
   const [displayState, setDisplayState] = useImmer({
     lightboxListingIdx: null,
-    trayShown: false,
+    drawerOpen: false,
   });
 
   const [listingState, setListingState] = useImmer({

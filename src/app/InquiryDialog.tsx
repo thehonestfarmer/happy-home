@@ -91,24 +91,7 @@ export function DrawerDialogDemo({ property }) {
   );
 }
 
-function ProfileForm({ className }: React.ComponentProps<"form">) {
-  return (
-    <form className={cn("grid items-start gap-4", className)}>
-      <div className="grid gap-2">
-        <Label htmlFor="email">Email</Label>
-        <Input type="email" id="email" defaultValue="shadcn@example.com" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="username">Username</Label>
-        <Input id="username" defaultValue="@shadcn" />
-      </div>
-      <Button type="submit">Save changes</Button>
-    </form>
-  );
-}
-
 function ListingDetailContent({ property, handleMailto }) {
-  console.log(property, ">>>>");
   const processedTags = property.tags.split(",");
 
   return (
@@ -191,18 +174,17 @@ function ListingDetailContent({ property, handleMailto }) {
           </Badge>
         ))}
       </div>
-
-      <APIProvider apiKey={"AIzaSyDch1GvBut5KKB5iHrmayfPEGv9PHYgMLI"}>
-        <Map
-          style={{ width: "100vw", height: "45vh" }}
-          defaultCenter={{ lat: 37.782979, lng: 139.05652 }}
-          defaultZoom={6}
-          gestureHandling={"greedy"}
-          disableDefaultUI={false}
-        >
-          <Marker position={{ lat: 37.782979, lng: 139.05652 }} />
-        </Map>
-      </APIProvider>
     </div>
   );
 }
+// <APIProvider apiKey={"AIzaSyDch1GvBut5KKB5iHrmayfPEGv9PHYgMLI"}>
+//   <Map
+//     style={{ width: "100vw", height: "450px" }}
+//     defaultCenter={{ lat: 37.782979, lng: 139.05652 }}
+//     defaultZoom={6}
+//     gestureHandling={"greedy"}
+//     disableDefaultUI={false}
+//   >
+//     <Marker position={{ lat: 37.782979, lng: 139.05652 }} />
+//   </Map>
+// </APIProvider>
