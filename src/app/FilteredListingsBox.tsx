@@ -112,7 +112,10 @@ function ListingBox({ property, handleLightboxOpen }) {
         key={property.id}
         className="bg-background rounded-xl shadow-sm overflow-hidden border border-gray-200"
       >
-        <DetailCarousel property={property} handleOpen={handleLightboxOpen} />
+        <DetailCarousel
+          property={property}
+          handleOpenAction={handleLightboxOpen}
+        />
         <div className="p-4">
           <div className="flex justify-between items-center mb-2">
             <div className="flex flex-col">

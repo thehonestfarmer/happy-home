@@ -35,12 +35,12 @@ export function DetailSlide({
 
 export function DetailCarousel({
   property,
-  hanndleOpenAction,
+  handleOpenAction,
   allImages,
   startIdx = 0,
 }: {
   property: any;
-  hanndleOpenAction: (idx: number, sIdx: number) => void;
+  handleOpenAction: (idx: number, sIdx: number) => void;
   allImages?: boolean;
   startIdx?: number;
 }) {
@@ -52,7 +52,7 @@ export function DetailCarousel({
             key={index}
             onClick={(e) => {
               e.preventDefault();
-              hanndleOpenAction(property.id, index);
+              handleOpenAction(property.id, index);
             }}
           >
             <Image
