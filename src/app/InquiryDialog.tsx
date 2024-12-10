@@ -1,11 +1,10 @@
 "use client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { APIProvider, Map, Marker } from "@vis.gl/react-google-maps";
 import Link from "next/link";
 import * as React from "react";
 
-import { ChevronLeft, EyeIcon, HomeIcon, ShareIcon } from "lucide-react";
+import { ChevronLeft, ShareIcon } from "lucide-react";
 
 import {
   Dialog,
@@ -17,30 +16,22 @@ import {
 } from "@/components/ui/dialog";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
-import { MailIcon } from "lucide-react";
 import { useMediaQuery } from "usehooks-ts";
 
 export function DrawerDialogDemo({ property }) {
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const handleMailto = () => {
-    const email = "demo@demo.com";
-    const subject = "Hello";
-    const body = "This is a test email.";
+    const email = "hello@happyhome.com";
+    const subject = "Property inquiry";
+    const body = `I'm interested in learning more about this property ${property.addresses}`;
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-    // Open the mailto link in a new window
     window.location.href = mailtoUrl;
   };
 
@@ -70,10 +61,6 @@ export function DrawerDialogDemo({ property }) {
     );
   }
 
-  // React.useEffect(() => {
-  //   alert(`snap is ${snap}`);
-  // }, [snap]);
-  //
   return (
     <Drawer
       open
