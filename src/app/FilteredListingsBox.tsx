@@ -3,17 +3,26 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { DetailCarousel } from "./ListingCarousel";
-import LazyLoad from "react-lazy-load";
+import {
+  List as _List,
+  ListProps,
+  AutoSizer as _AutoSizer,
+  AutoSizerProps,
+} from "react-virtualized";
 
 import { useAppContext } from "@/AppContext";
 import NextJsImage from "@/components/ui/nextjsimage";
 import { useLoadListings } from "@/hooks";
-import { useCallback } from "react";
+import { useCallback, FC } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import { SLIDES } from "./fixtures";
 import { useMediaQuery } from "usehooks-ts";
 
+const List = _List as unknown as FC<ListProps>;
+const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
+
 export function FilteredListingsBox() {
+  console.log("LOADING");
   const listings = useLoadListings();
   const { listingState, displayState, setDisplayState } = useAppContext();
 
@@ -31,6 +40,10 @@ export function FilteredListingsBox() {
       property.priceUsd < listingState.maxPrice &&
       parseInt(property.layout) >= listingState.minLDK,
   );
+  // .map((p) => ({
+  //   ...p,
+  //   listingImages: p.listingImages.slice(0, 3),
+  // }));
 
   const [listingsIdx, listingImageIdx = 0] =
     displayState.lightboxListingIdx ?? [];
@@ -40,48 +53,54 @@ export function FilteredListingsBox() {
       ...SLIDES[idx],
       src: i,
     }))
-    .slice(0, 10);
+    .slice(0, 4);
 
-  return (
-    <LazyLoad height={800}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredListings.length ? (
-          filteredListings
-            // .slice(0, 4)
-            .map((property) => (
-              <ListingBox
-                key={property.id}
-                property={property}
-                handleLightboxOpen={handleLightboxOpen}
-              />
-            ))
-        ) : (
-          <h2>No listings. Try resetting your filters here</h2>
-        )}
-        <Lightbox
-          open={displayState.lightboxListingIdx !== null}
-          close={() =>
-            setDisplayState((draft) => {
-              draft.lightboxListingIdx = null;
-            })
-          }
-          slides={lightboxSlides}
-          render={{ slide: NextJsImage }}
-          index={listingImageIdx}
+  function rowRenderer({ index, key, style }) {
+    return (
+      <div style={style} key={key}>
+        <ListingBox
+          property={filteredListings[index]}
+          handleLightboxOpen={handleLightboxOpen}
         />
       </div>
-    </LazyLoad>
+    );
+  }
+
+  console.log("am I re-rendering?");
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <List
+        height={750}
+        rowCount={filteredListings.length}
+        rowHeight={400}
+        width={400}
+        noRowsRenderer={() => (
+          <h2>No listings. Try resetting your filters here</h2>
+        )}
+        rowRenderer={rowRenderer}
+      />
+      <Lightbox
+        open={displayState.lightboxListingIdx !== null}
+        close={() =>
+          setDisplayState((draft) => {
+            draft.lightboxListingIdx = null;
+          })
+        }
+        slides={lightboxSlides}
+        render={{ slide: NextJsImage }}
+        index={listingImageIdx}
+      />
+    </div>
   );
 }
 
 function ListingBox({ property, handleLightboxOpen }) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const newTabProps = isDesktop
-    ? {
-        rel: "noopener noreferrer",
-        target: "_blank",
-      }
-    : {};
+  const newTabProps = {
+    // rel: "noopener noreferrer",
+    // target: "_blank",
+  };
 
   return (
     <Link href={`/listings/view/${property.id}`} {...newTabProps}>

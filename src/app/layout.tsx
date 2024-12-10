@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { Inter } from "next/font/google";
 import "yet-another-react-lightbox/styles.css";
 import "./globals.css";
+import "react-virtualized/styles.css";
+
 import Header from "./header";
 
 const fontHeading = Inter({
