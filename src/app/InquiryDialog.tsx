@@ -79,7 +79,7 @@ export function DrawerDialogDemo({ property }) {
                 <div className="text-sm text-muted-foreground">{desc}</div>
               </div>
 
-              <div className="p-2 m-2 flex">
+              <div className=" flex">
                 <Link href="/">
                   <Button variant="outline">
                     <ChevronLeft />
