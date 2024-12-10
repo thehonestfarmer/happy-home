@@ -15,7 +15,7 @@ const Drawer = ({
     <DrawerPrimitive.Root
       open={displayState.drawerOpen}
       shouldScaleBackground={shouldScaleBackground}
-      snapPoints={[0.36, 0.8]}
+      snapPoints={[0.24, 0.64, 0.92]}
       dismissible={false}
       snapToSequentialPoint
       {...props}

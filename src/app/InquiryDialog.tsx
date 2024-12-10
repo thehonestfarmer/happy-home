@@ -72,8 +72,42 @@ export function DrawerDialogDemo({ property }) {
     <Drawer open={true} onOpenChange={setOpen} modal={false}>
       <DrawerContent>
         <DrawerHeader className="text-left">
-          <DrawerTitle>{title}</DrawerTitle>
-          <DrawerDescription>{desc}</DrawerDescription>
+          <DrawerTitle>
+            <div className="flex items-center justify-between">
+              <div>
+                <div>{title}</div>
+                <div className="text-sm text-muted-foreground">{desc}</div>
+              </div>
+
+              <div className="p-2 m-2 flex">
+                <Link href="/">
+                  <Button variant="outline">
+                    <ChevronLeft />
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // if (navigator.share && !isAndroid) {
+                    //   navigator
+                    //     .share({
+                    //       title: document.title,
+                    //       url: window.location.href,
+                    //       text: "Check out this property in Niigata!",
+                    //     })
+                    //     .then(() => console.log("Successful share! 🎉"))
+                    //     .catch((err) => console.error(err));
+                    // }
+                    handleMailto();
+                    // open
+                    return;
+                  }}
+                >
+                  <ShareIcon />
+                </Button>
+              </div>
+            </div>
+          </DrawerTitle>
         </DrawerHeader>
         <ListingDetailContent property={property} handleMailto={handleMailto} />
       </DrawerContent>
@@ -110,42 +144,6 @@ function ListingDetailContent({ property, handleMailto }) {
             </div>
             <div className="text-sm text-gray-500">Sq. Meters</div>
           </div>
-        </div>
-      </div>
-
-      <div className="p-2 m-2 flex justify-between">
-        <div>
-          <Link href="/">
-            <Button variant="outline">
-              <ChevronLeft />
-            </Button>
-          </Link>
-          <Button variant="outline">
-            <EyeIcon />
-          </Button>
-        </div>
-
-        <div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              // if (navigator.share && !isAndroid) {
-              //   navigator
-              //     .share({
-              //       title: document.title,
-              //       url: window.location.href,
-              //       text: "Check out this property in Niigata!",
-              //     })
-              //     .then(() => console.log("Successful share! 🎉"))
-              //     .catch((err) => console.error(err));
-              // }
-              handleMailto();
-              // open
-              return;
-            }}
-          >
-            <ShareIcon />
-          </Button>
         </div>
       </div>
 
