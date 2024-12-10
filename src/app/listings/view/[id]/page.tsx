@@ -5,15 +5,84 @@ import { DetailCarousel } from "@/app/ListingCarousel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import NextJsImage from "@/components/ui/nextjsimage";
+import {
+  Marker,
+  APIProvider,
+  Map,
+  MapControl,
+  ControlPosition,
+} from "@vis.gl/react-google-maps";
 import Link from "next/link";
-import { useCallback } from "react";
+import { useCallback, useState, useMemo } from "react";
 import Lightbox from "yet-another-react-lightbox";
 
+import { DrawerDialogDemo } from "@/app/InquiryDialog";
 import { useAppContext } from "@/AppContext";
 import { useLoadListings } from "@/hooks";
+import { ChevronLeft, EyeIcon, HeartIcon, ShareIcon } from "lucide-react";
 import { useParams } from "next/navigation";
-import { DrawerDialogDemo } from "@/app/InquiryDialog";
-import { ChevronLeft, HeartIcon, ShareIcon } from "lucide-react";
+
+/**
+ * Determine the mobile operating system.
+ * This function returns one of 'iOS', 'Android', 'Windows Phone', or 'unknown'.
+ *
+ * @returns {String}
+ */
+function getMobileOperatingSystem() {
+  var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+  // Windows Phone must come first because its UA also contains "Android"
+  if (/windows phone/i.test(userAgent)) {
+    return "Windows Phone";
+  }
+
+  if (/android/i.test(userAgent)) {
+    return "Android";
+  }
+
+  // iOS detection from: http://stackoverflow.com/a/9039885/177710
+  if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+    return "iOS";
+  }
+
+  return "unknown";
+}
+
+type CustomZoomControlProps = {
+  controlPosition: ControlPosition;
+  zoom: number;
+  onZoomChange: (zoom: number) => void;
+};
+
+const CustomZoomControl = ({
+  controlPosition,
+  zoom,
+  onZoomChange,
+}: CustomZoomControlProps) => {
+  return (
+    <MapControl position={controlPosition}>
+      <div
+        style={{
+          margin: "10px",
+          padding: "1em",
+          background: "rgba(255,255,255,0.4)",
+          display: "flex",
+          flexFlow: "column nowrap",
+        }}
+      >
+        <input
+          id={"zoom"}
+          type={"range"}
+          min={1}
+          max={18}
+          step={"any"}
+          value={zoom}
+          onChange={(ev) => onZoomChange(ev.target.valueAsNumber)}
+        />
+      </div>
+    </MapControl>
+  );
+};
 
 export default function Page() {
   const params = useParams<{ id: string }>();
@@ -37,9 +106,23 @@ export default function Page() {
     src: i,
   }));
 
+  const handleMailto = () => {
+    const email = "demo@demo.com";
+    const subject = "Hello";
+    const body = "This is a test email.";
+    const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    // Open the mailto link in a new window
+    window.location.href = mailtoUrl;
+  };
   const processedTags = property.tags.split(",");
 
-  console.log(property, "<<");
+  const isAndroid = getMobileOperatingSystem() === "Android";
+  const [controlPosition, setControlControlPosition] =
+    useState<ControlPosition>(ControlPosition.LEFT_BOTTOM);
+
+  const [zoom, setZoom] = useState(6);
+  const center = useMemo(() => ({ lat: 0, lng: 20 }), []);
 
   return (
     <div>
@@ -88,35 +171,41 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="p-2 m-2 grid grid-cols-4">
-          <Link href="/">
+        <div className="p-2 m-2 flex justify-between">
+          <div>
+            <Link href="/">
+              <Button variant="outline">
+                <ChevronLeft />
+              </Button>
+            </Link>
             <Button variant="outline">
-              <ChevronLeft />
+              <EyeIcon />
             </Button>
-          </Link>
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (navigator.share) {
-                navigator
-                  .share({
-                    title: document.title,
-                    text: "Hello World",
-                    url: window.location.href,
-                  })
-                  .then(() => console.log("Successful share! 🎉"))
-                  .catch((err) => console.error(err));
+          </div>
+
+          <div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                // if (navigator.share && !isAndroid) {
+                //   navigator
+                //     .share({
+                //       title: document.title,
+                //       url: window.location.href,
+                //       text: "Check out this property in Niigata!",
+                //     })
+                //     .then(() => console.log("Successful share! 🎉"))
+                //     .catch((err) => console.error(err));
+                // }
+                handleMailto();
+                // open
                 return;
-              }
-              console.log("ahhh non share");
-            }}
-          >
-            <ShareIcon />
-          </Button>
-          <Button variant="outline">
-            <HeartIcon />
-          </Button>
-          <DrawerDialogDemo />
+              }}
+            >
+              <ShareIcon />
+            </Button>
+            <DrawerDialogDemo />
+          </div>
         </div>
 
         <div className="p-4 bg-white rounded-b-lg">
@@ -134,7 +223,22 @@ export default function Page() {
             </Badge>
           ))}
         </div>
+
+        <APIProvider apiKey={"AIzaSyDch1GvBut5KKB5iHrmayfPEGv9PHYgMLI"}>
+          <Map
+            style={{ width: "100vw", height: "45vh" }}
+            defaultCenter={{ lat: 37.782979, lng: 139.05652 }}
+            zoom={zoom}
+            gestureHandling={"greedy"}
+            disableDefaultUI={false}
+          >
+            <Marker position={{ lat: 37.782979, lng: 139.05652 }} />
+          </Map>
+        </APIProvider>
       </div>
     </div>
   );
 }
+// <Button variant="outline">
+//   <HeartIcon />
+// </Button>
