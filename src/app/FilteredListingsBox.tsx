@@ -109,14 +109,8 @@ export function FilteredListingsBox() {
 }
 
 function ListingBox({ property, handleLightboxOpen }) {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-  const newTabProps = {
-    // rel: "noopener noreferrer",
-    // target: "_blank",
-  };
-
   return (
-    <Link href={`/listings/view/${property.id}`} {...newTabProps}>
+    <Link href={`/listings/view/${property.id}`}>
       <div
         key={property.id}
         className="bg-background rounded-xl shadow-sm overflow-hidden border border-gray-200"

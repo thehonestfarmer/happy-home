@@ -26,14 +26,14 @@ import { useMediaQuery } from "usehooks-ts";
 export function DrawerDialogDemo({ property }) {
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const handleMailto = () => {
+  const handleMailto = React.useCallback(() => {
     const email = "hello@happyhome.com";
     const subject = "Property inquiry";
     const body = `I'm interested in learning more about this property ${property.addresses}`;
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     window.location.href = mailtoUrl;
-  };
+  }, [property]);
 
   const [title, desc] = property.addresses.split(",");
   const snapPoints = [0.24, 0.68, 0.96];
