@@ -12,9 +12,12 @@ import { useMediaQuery } from "usehooks-ts";
 
 export function AppSidebar() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  if (!isDesktop) return null;
   return (
-    <Sidebar title="Find your happy home" side="right" className="z-[2]">
+    <Sidebar
+      title="Find your happy home"
+      side={isDesktop ? "left" : "right"}
+      className="z-[2]"
+    >
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Filters</SidebarGroupLabel>
