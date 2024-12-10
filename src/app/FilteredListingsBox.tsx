@@ -67,20 +67,24 @@ export function FilteredListingsBox() {
     );
   }
 
-  console.log("am I re-rendering?");
-
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <List
-        height={750}
-        rowCount={filteredListings.length}
-        rowHeight={400}
-        width={400}
-        noRowsRenderer={() => (
-          <h2>No listings. Try resetting your filters here</h2>
-        )}
-        rowRenderer={rowRenderer}
-      />
+    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <AutoSizer>
+        {({ width, height }) => {
+          return (
+            <List
+              height={height}
+              rowCount={filteredListings.length}
+              rowHeight={400}
+              width={width}
+              noRowsRenderer={() => (
+                <h2>No listings. Try resetting your filters here</h2>
+              )}
+              rowRenderer={rowRenderer}
+            />
+          );
+        }}
+      </AutoSizer>
       <Lightbox
         open={displayState.lightboxListingIdx !== null}
         close={() =>
