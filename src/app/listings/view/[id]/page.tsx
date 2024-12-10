@@ -2,13 +2,22 @@
 
 import { DetailSlide } from "@/app/ListingCarousel";
 import NextJsImage from "@/components/ui/nextjsimage";
-import { useCallback } from "react";
+import { FC, useCallback } from "react";
 import Lightbox from "yet-another-react-lightbox";
 
 import { DrawerDialogDemo } from "@/app/InquiryDialog";
 import { useAppContext } from "@/AppContext";
 import { useLoadListings } from "@/hooks";
 import { useParams } from "next/navigation";
+import {
+  List as _List,
+  ListProps,
+  AutoSizer as _AutoSizer,
+  AutoSizerProps,
+} from "react-virtualized";
+
+const List = _List as unknown as FC<ListProps>;
+const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
 
 /**
  * TODO: move to util once you can use netrw better
@@ -59,17 +68,33 @@ export default function Page() {
     src: i,
   }));
 
+  function rowRenderer({ index, key, style }) {
+    return (
+      <div style={style} key={key}>
+        <DetailSlide
+          property={property}
+          handleOpen={handleLightboxOpen}
+          startIdx={index}
+        />
+      </div>
+    );
+  }
   return (
     <div className="pointer-events-auto overflow-y-auto">
-      <div className="pointer-events-auto overflow-y-auto">
-        {property.listingImages.slice(0, 10).map((li, idx) => (
-          <DetailSlide
-            key={li}
-            handleOpen={handleLightboxOpen}
-            property={property}
-            startIdx={idx}
-          />
-        ))}
+      <div className="pointer-events-auto overflow-y-auto h-screen">
+        <AutoSizer>
+          {({ width, height }) => {
+            return (
+              <List
+                height={height}
+                rowCount={property.listingImages.length}
+                rowHeight={300}
+                width={width}
+                rowRenderer={rowRenderer}
+              />
+            );
+          }}
+        </AutoSizer>
         <Lightbox
           open={displayState.lightboxListingIdx !== null}
           close={() =>
@@ -85,7 +110,6 @@ export default function Page() {
     </div>
   );
 }
-// <DrawerDialogDemo property={property} />
 // <Button variant="outline">
 //   <HeartIcon />
 // </Button>
