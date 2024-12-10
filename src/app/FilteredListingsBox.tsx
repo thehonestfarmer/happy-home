@@ -35,15 +35,16 @@ export function FilteredListingsBox() {
     [setDisplayState],
   );
 
-  const filteredListings = listings.filter(
-    (property) =>
-      property.priceUsd < listingState.maxPrice &&
-      parseInt(property.layout) >= listingState.minLDK,
-  );
-  // .map((p) => ({
-  //   ...p,
-  //   listingImages: p.listingImages.slice(0, 3),
-  // }));
+  const filteredListings = listings
+    .filter(
+      (property) =>
+        property.priceUsd < listingState.maxPrice &&
+        parseInt(property.layout) >= listingState.minLDK,
+    )
+    .map((p) => ({
+      ...p,
+      listingImages: p.listingImages.slice(0, 3),
+    }));
 
   const [listingsIdx, listingImageIdx = 0] =
     displayState.lightboxListingIdx ?? [];
