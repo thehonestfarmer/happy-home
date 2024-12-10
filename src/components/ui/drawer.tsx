@@ -8,6 +8,9 @@ import { useAppContext } from "@/AppContext";
 
 const Drawer = ({
   shouldScaleBackground = true,
+  activeSnapPoint,
+  setActiveSnapPoint,
+  snapPoints = [],
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
   const { displayState } = useAppContext();
@@ -15,7 +18,9 @@ const Drawer = ({
     <DrawerPrimitive.Root
       open={displayState.drawerOpen}
       shouldScaleBackground={shouldScaleBackground}
-      snapPoints={[0.28, 0.6, 0.92]}
+      snapPoints={snapPoints}
+      activeSnapPoint={activeSnapPoint}
+      setActiveSnapPoint={setActiveSnapPoint}
       dismissible={false}
       snapToSequentialPoint
       {...props}

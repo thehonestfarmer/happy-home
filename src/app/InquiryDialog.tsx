@@ -45,6 +45,8 @@ export function DrawerDialogDemo({ property }) {
   };
 
   const [title, desc] = property.addresses.split(",");
+  const snapPoints = [0.12, 0.24, 0.67, 0.96];
+  const [snap, setSnap] = React.useState<number | string | null>(snapPoints[1]);
 
   if (isDesktop) {
     return (
@@ -68,8 +70,19 @@ export function DrawerDialogDemo({ property }) {
     );
   }
 
+  // React.useEffect(() => {
+  //   alert(`snap is ${snap}`);
+  // }, [snap]);
+  //
   return (
-    <Drawer open={true} onOpenChange={setOpen} modal={false}>
+    <Drawer
+      open
+      dismissible={false}
+      snapPoints={snapPoints}
+      activeSnapPoint={snap}
+      setActiveSnapPoint={setSnap}
+      modal={false}
+    >
       <DrawerContent>
         <DrawerHeader className="text-left">
           <DrawerTitle>
@@ -81,7 +94,12 @@ export function DrawerDialogDemo({ property }) {
 
               <div className=" flex">
                 <Link href="/">
-                  <Button variant="outline">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSnap(snapPoints[1]);
+                    }}
+                  >
                     <ChevronLeft />
                   </Button>
                 </Link>
@@ -109,6 +127,7 @@ export function DrawerDialogDemo({ property }) {
             </div>
           </DrawerTitle>
         </DrawerHeader>
+        <DrawerDescription></DrawerDescription>
         <ListingDetailContent property={property} handleMailto={handleMailto} />
       </DrawerContent>
     </Drawer>
