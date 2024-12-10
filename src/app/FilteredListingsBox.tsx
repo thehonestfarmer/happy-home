@@ -44,13 +44,15 @@ export function FilteredListingsBox() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {filteredListings.length ? (
-        filteredListings.map((property) => (
-          <ListingBox
-            key={property.id}
-            property={property}
-            handleLightboxOpen={handleLightboxOpen}
-          />
-        ))
+        filteredListings
+          .slice(0, 4)
+          .map((property) => (
+            <ListingBox
+              key={property.id}
+              property={property}
+              handleLightboxOpen={handleLightboxOpen}
+            />
+          ))
       ) : (
         <h2>No listings. Try resetting your filters here</h2>
       )}
