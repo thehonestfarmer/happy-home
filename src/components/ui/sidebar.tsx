@@ -220,6 +220,8 @@ const Sidebar = React.forwardRef<
       );
     }
 
+    return null;
+
     return (
       <div
         ref={ref}

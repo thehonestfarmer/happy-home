@@ -1,5 +1,5 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
-
+"use client";
+import FilterHeader from "@/app/FilterHeader";
 import {
   Sidebar,
   SidebarContent,
@@ -7,43 +7,12 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import FilterHeader from "@/app/FilterHeader";
-import { Dialog, DialogTitle } from "@radix-ui/react-dialog";
-
-// Menu items.
-const items = [
-  {
-    title: "Home",
-    url: "#",
-    icon: Home,
-  },
-  {
-    title: "Inbox",
-    url: "#",
-    icon: Inbox,
-  },
-  {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
-  },
-  {
-    title: "Search",
-    url: "#",
-    icon: Search,
-  },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
-  },
-];
+import { useMediaQuery } from "usehooks-ts";
 
 export function AppSidebar() {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  if (!isDesktop) return null;
   return (
     <Sidebar title="Find your happy home" side="right" className="z-[2]">
       <SidebarContent>

@@ -23,13 +23,7 @@ export default function Layout({ children }) {
   return (
     <html lang="en">
       <body
-        className={cn(
-          "antialiased",
-          fontHeading.variable,
-          fontBody.variable,
-          "flex",
-          "flex-col",
-        )}
+        className={cn("antialiased", fontHeading.variable, fontBody.variable)}
       >
         <SidebarProvider>
           <AppProvider>
