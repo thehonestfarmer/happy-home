@@ -45,7 +45,7 @@ export function DrawerDialogDemo({ property }) {
   };
 
   const [title, desc] = property.addresses.split(",");
-  const snapPoints = [0.12, 0.24, 0.67, 0.96];
+  const snapPoints = [0.24, 0.68, 0.96];
   const [snap, setSnap] = React.useState<number | string | null>(snapPoints[1]);
 
   if (isDesktop) {
