@@ -13,25 +13,25 @@ export default function Header() {
         <Link href="/" prefetch={false}>
           <h1 className="text-2xl font-bold">Shiawase Home</h1>
         </Link>
-        {isDesktop ? (
-          <nav>
-            <ul className="flex space-x-4">
-              <li>
-                <Link href="#" prefetch={false}>
-                  Listings
-                </Link>
-              </li>
-              <li>
-                <Link href="#" prefetch={false}>
-                  Contact
-                </Link>
-              </li>
-            </ul>
-          </nav>
-        ) : (
-          <SidebarTrigger />
-        )}
+        <SidebarTrigger />
       </div>
     </header>
   );
 }
+// {isDesktop ? (
+//   <nav>
+//     <ul className="flex space-x-4">
+//       <li>
+//         <Link href="#" prefetch={false}>
+//           Listings
+//         </Link>
+//       </li>
+//       <li>
+//         <Link href="#" prefetch={false}>
+//           Contact
+//         </Link>
+//       </li>
+//     </ul>
+//   </nav>
+// ) : (
+// )}

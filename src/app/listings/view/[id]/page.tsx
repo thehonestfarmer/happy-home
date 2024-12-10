@@ -43,7 +43,11 @@ export default function Page() {
 
   return (
     <div>
-      <DetailCarousel handleOpen={handleLightboxOpen} property={property} />
+      <DetailCarousel
+        handleOpen={handleLightboxOpen}
+        property={property}
+        allImages
+      />
       <Lightbox
         open={displayState.lightboxListingIdx !== null}
         close={() =>
