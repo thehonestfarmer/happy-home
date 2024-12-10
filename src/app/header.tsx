@@ -18,6 +18,7 @@ export default function Header() {
     </header>
   );
 }
+// TODO: make desktop compatible
 // {isDesktop ? (
 //   <nav>
 //     <ul className="flex space-x-4">

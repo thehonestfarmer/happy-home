@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { DetailCarousel } from "./ListingCarousel";
+import LazyLoad from "react-lazy-load";
 
 import { useAppContext } from "@/AppContext";
 import NextJsImage from "@/components/ui/nextjsimage";
@@ -42,32 +43,34 @@ export function FilteredListingsBox() {
     .slice(0, 10);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {filteredListings.length ? (
-        filteredListings
-          .slice(0, 4)
-          .map((property) => (
-            <ListingBox
-              key={property.id}
-              property={property}
-              handleLightboxOpen={handleLightboxOpen}
-            />
-          ))
-      ) : (
-        <h2>No listings. Try resetting your filters here</h2>
-      )}
-      <Lightbox
-        open={displayState.lightboxListingIdx !== null}
-        close={() =>
-          setDisplayState((draft) => {
-            draft.lightboxListingIdx = null;
-          })
-        }
-        slides={lightboxSlides}
-        render={{ slide: NextJsImage }}
-        index={listingImageIdx}
-      />
-    </div>
+    <LazyLoad height={800}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredListings.length ? (
+          filteredListings
+            // .slice(0, 4)
+            .map((property) => (
+              <ListingBox
+                key={property.id}
+                property={property}
+                handleLightboxOpen={handleLightboxOpen}
+              />
+            ))
+        ) : (
+          <h2>No listings. Try resetting your filters here</h2>
+        )}
+        <Lightbox
+          open={displayState.lightboxListingIdx !== null}
+          close={() =>
+            setDisplayState((draft) => {
+              draft.lightboxListingIdx = null;
+            })
+          }
+          slides={lightboxSlides}
+          render={{ slide: NextJsImage }}
+          index={listingImageIdx}
+        />
+      </div>
+    </LazyLoad>
   );
 }
 
