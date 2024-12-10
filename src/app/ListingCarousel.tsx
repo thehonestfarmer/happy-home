@@ -33,10 +33,10 @@ export function DetailSlide({
       alt={`Property ${property.id}`}
       onClick={() => handleOpen(property.id, startIdx)}
       priority
-      height={500}
-      width={500}
-      className="w-full sm:w-[300px] h-60 object-cover"
-      style={{ aspectRatio: "400/300", objectFit: "cover" }}
+      height={480}
+      width={480}
+      className="w-full sm:w-[300px] object-cover my-2"
+      style={{ objectFit: "cover" }}
     />
   );
 }

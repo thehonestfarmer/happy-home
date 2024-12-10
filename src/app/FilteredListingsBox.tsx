@@ -22,7 +22,6 @@ const List = _List as unknown as FC<ListProps>;
 const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
 
 export function FilteredListingsBox() {
-  console.log("LOADING");
   const listings = useLoadListings();
   const { listingState, displayState, setDisplayState } = useAppContext();
 

@@ -48,21 +48,22 @@ const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
 
 export default function Page() {
   const params = useParams<{ id: string }>();
+  const idNum = Number(params.id);
   const listings = useLoadListings();
-  const property = listings[params.id];
+  const property = listings[idNum];
   const { displayState, setDisplayState } = useAppContext();
   const [_, listingImageIdx = 0] = displayState.lightboxListingIdx ?? [];
 
   const handleLightboxOpen = useCallback(
     (idx: number, sIdx: number) => {
       setDisplayState((draft) => {
-        draft.lightboxListingIdx = [parseInt(idx), sIdx];
+        draft.lightboxListingIdx = [idx, sIdx];
       });
     },
     [setDisplayState],
   );
 
-  const lightboxSlides = (property.listingImages ?? []).map((i, idx) => ({
+  const lightboxSlides = (property.listingImages ?? []).map((i: string) => ({
     width: 3840,
     height: 5760,
     src: i,
@@ -70,7 +71,7 @@ export default function Page() {
 
   function rowRenderer({ index, key, style }) {
     return (
-      <div style={style} key={key}>
+      <div style={style} key={key} className="flex my-2">
         <DetailSlide
           property={property}
           handleOpen={handleLightboxOpen}
@@ -88,7 +89,7 @@ export default function Page() {
               <List
                 height={height}
                 rowCount={property.listingImages.length}
-                rowHeight={300}
+                rowHeight={360}
                 width={width}
                 rowRenderer={rowRenderer}
               />

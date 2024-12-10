@@ -45,7 +45,6 @@ export function DrawerDialogDemo({ property }) {
   };
 
   const [title, desc] = property.addresses.split(",");
-  console.log("attempting");
 
   if (isDesktop) {
     return (
@@ -76,11 +75,7 @@ export function DrawerDialogDemo({ property }) {
           <DrawerTitle>{title}</DrawerTitle>
           <DrawerDescription>{desc}</DrawerDescription>
         </DrawerHeader>
-        <ListingDetailContent
-          className="px-4"
-          property={property}
-          handleMailto={handleMailto}
-        />
+        <ListingDetailContent property={property} handleMailto={handleMailto} />
         <DrawerFooter className="pt-2">
           <DrawerClose asChild>
             <Button variant="outline">Cancel</Button>
