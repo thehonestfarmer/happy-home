@@ -15,7 +15,8 @@ const Drawer = ({
     <DrawerPrimitive.Root
       open={displayState.drawerOpen}
       shouldScaleBackground={shouldScaleBackground}
-      snapPoints={[0.24, 0.8]}
+      snapPoints={[0.36, 0.8]}
+      dismissible={false}
       snapToSequentialPoint
       {...props}
     />
@@ -35,7 +36,7 @@ const DrawerOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 bg-black/60", className)}
+    className={cn("fixed inset-0 z-50 bg-black/60", className)}
     {...props}
   />
 ));

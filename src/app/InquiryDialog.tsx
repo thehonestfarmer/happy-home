@@ -5,7 +5,7 @@ import { APIProvider, Map, Marker } from "@vis.gl/react-google-maps";
 import Link from "next/link";
 import * as React from "react";
 
-import { ChevronLeft, EyeIcon, ShareIcon } from "lucide-react";
+import { ChevronLeft, EyeIcon, HomeIcon, ShareIcon } from "lucide-react";
 
 import {
   Dialog,
@@ -76,11 +76,6 @@ export function DrawerDialogDemo({ property }) {
           <DrawerDescription>{desc}</DrawerDescription>
         </DrawerHeader>
         <ListingDetailContent property={property} handleMailto={handleMailto} />
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DrawerClose>
-        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   );
@@ -101,7 +96,7 @@ function ListingDetailContent({ property, handleMailto }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2">
+        <div className="grid grid-cols-2 gap-2">
           <div className="text-center">
             <div className="text-xl font-bold text-black">
               {parseInt(property.layout)}
@@ -111,7 +106,7 @@ function ListingDetailContent({ property, handleMailto }) {
 
           <div className="text-center">
             <div className="text-xl font-bold text-black">
-              {parseInt(property.landSqMeters)}
+              {`${parseInt(property.buildSqMeters)}`}
             </div>
             <div className="text-sm text-gray-500">Sq. Meters</div>
           </div>
