@@ -2,21 +2,20 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { DetailCarousel } from "./ListingCarousel";
 import {
-  List as _List,
-  ListProps,
   AutoSizer as _AutoSizer,
+  List as _List,
   AutoSizerProps,
+  ListProps,
 } from "react-virtualized";
+import { DetailCarousel } from "./ListingCarousel";
 
-import { useAppContext } from "@/AppContext";
+import { DisplayState, useAppContext } from "@/AppContext";
 import NextJsImage from "@/components/ui/nextjsimage";
 import { useLoadListings } from "@/hooks";
-import { useCallback, FC } from "react";
-import Lightbox from "yet-another-react-lightbox";
-import { SLIDES } from "./fixtures";
+import { CSSProperties, FC, useCallback } from "react";
 import { useMediaQuery } from "usehooks-ts";
+import Lightbox from "yet-another-react-lightbox";
 
 const List = _List as unknown as FC<ListProps>;
 const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
@@ -28,7 +27,7 @@ export function FilteredListingsBox() {
   const handleLightboxOpen = useCallback(
     (idx: number, sIdx: number) => {
       setDisplayState((draft) => {
-        draft.lightboxListingIdx = [parseInt(idx), sIdx];
+        draft.lightboxListingIdx = [idx, sIdx];
       });
     },
     [setDisplayState],
@@ -38,7 +37,8 @@ export function FilteredListingsBox() {
     .filter(
       (property) =>
         property.priceUsd < listingState.maxPrice &&
-        parseInt(property.layout) >= listingState.minLDK,
+        parseInt(property.layout) >= listingState.minLDK &&
+        !property.isDetailSoldPresent,
     )
     .map((p) => ({
       ...p,
@@ -49,13 +49,22 @@ export function FilteredListingsBox() {
     displayState.lightboxListingIdx ?? [];
 
   const lightboxSlides = (listings[listingsIdx]?.listingImages ?? [])
-    .map((i, idx) => ({
-      ...SLIDES[idx],
+    .map((i: string) => ({
       src: i,
+      width: 3840,
+      height: 5760,
     }))
     .slice(0, 4);
 
-  function rowRenderer({ index, key, style }) {
+  function rowRenderer({
+    index,
+    key,
+    style,
+  }: {
+    index: number;
+    key: string;
+    style: CSSProperties;
+  }) {
     return (
       <div style={style} key={key}>
         <ListingBox
