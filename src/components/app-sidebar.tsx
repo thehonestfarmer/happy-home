@@ -32,13 +32,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-// {items.map((item) => (
-//   <SidebarMenuItem key={item.title}>
-//     <SidebarMenuButton asChild>
-//       <a href={item.url}>
-//         <item.icon />
-//         <span>{item.title}</span>
-//       </a>
-//     </SidebarMenuButton>
-//   </SidebarMenuItem>
-// ))}

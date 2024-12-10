@@ -94,7 +94,23 @@ export default function Page() {
               <ChevronLeft />
             </Button>
           </Link>
-          <Button variant="outline">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (navigator.share) {
+                navigator
+                  .share({
+                    title: document.title,
+                    text: "Hello World",
+                    url: window.location.href,
+                  })
+                  .then(() => console.log("Successful share! 🎉"))
+                  .catch((err) => console.error(err));
+                return;
+              }
+              console.log("ahhh non share");
+            }}
+          >
             <ShareIcon />
           </Button>
           <Button variant="outline">

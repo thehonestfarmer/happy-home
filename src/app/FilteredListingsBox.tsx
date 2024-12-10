@@ -10,6 +10,7 @@ import { useLoadListings } from "@/hooks";
 import { useCallback } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import { SLIDES } from "./fixtures";
+import { useMediaQuery } from "usehooks-ts";
 
 export function FilteredListingsBox() {
   const listings = useLoadListings();
@@ -69,8 +70,16 @@ export function FilteredListingsBox() {
 }
 
 function ListingBox({ property, handleLightboxOpen }) {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const newTabProps = isDesktop
+    ? {
+        rel: "noopener noreferrer",
+        target: "_blank",
+      }
+    : {};
+
   return (
-    <Link href={`/listings/view/${property.id}`}>
+    <Link href={`/listings/view/${property.id}`} {...newTabProps}>
       <div
         key={property.id}
         className="bg-background rounded-xl shadow-sm overflow-hidden border border-gray-200"
