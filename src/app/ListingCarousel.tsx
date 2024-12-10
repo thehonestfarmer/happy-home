@@ -8,22 +8,14 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 
-function moveToFront(arr, index) {
-  if (index >= 0 && index < arr.length) {
-    const [item] = arr.splice(index, 1); // Remove the item at the specified index
-    arr.unshift(item); // Add the item to the front of the array
-  }
-  return arr;
-}
-
 export function DetailSlide({
   property,
-  handleOpen,
+  handleOpenAction,
   allImages,
   startIdx = 0,
 }: {
   property: any;
-  handleOpen: (idx: number, sIdx: number) => void;
+  handleOpenAction: (idx: number, sIdx: number) => void;
   allImages?: boolean;
   startIdx?: number;
 }) {
@@ -31,7 +23,7 @@ export function DetailSlide({
     <Image
       src={property.listingImages[startIdx]}
       alt={`Property ${property.id}`}
-      onClick={() => handleOpen(property.id, startIdx)}
+      onClick={() => handleOpenAction(property.id, startIdx)}
       priority
       height={480}
       width={480}
@@ -43,12 +35,12 @@ export function DetailSlide({
 
 export function DetailCarousel({
   property,
-  handleOpen,
+  hanndleOpenAction,
   allImages,
   startIdx = 0,
 }: {
   property: any;
-  handleOpen: (idx: number, sIdx: number) => void;
+  hanndleOpenAction: (idx: number, sIdx: number) => void;
   allImages?: boolean;
   startIdx?: number;
 }) {
@@ -60,7 +52,7 @@ export function DetailCarousel({
             key={index}
             onClick={(e) => {
               e.preventDefault();
-              handleOpen(property.id, index);
+              hanndleOpenAction(property.id, index);
             }}
           >
             <Image

@@ -5,22 +5,21 @@ import Link from "next/link";
 import { useMediaQuery } from "usehooks-ts";
 
 export default function Header() {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
-
   return (
     <header className="sticky top-0 bg-primary text-primary-foreground py-4 px-6 z-[1]">
       <div className="container mx-auto flex justify-between items-center">
         <Link href="/" prefetch={false}>
           <h1 className="text-2xl font-bold">Shiawase Home</h1>
         </Link>
-        <SidebarTrigger />
+        <div className="lg:hidden">
+          <SidebarTrigger />
+        </div>
       </div>
     </header>
   );
 }
-// TODO: make desktop compatible
-// {isDesktop ? (
-//   <nav>
+// <div className="sm:hidden">
+//   <nav className="sm:hidden">
 //     <ul className="flex space-x-4">
 //       <li>
 //         <Link href="#" prefetch={false}>
@@ -34,5 +33,4 @@ export default function Header() {
 //       </li>
 //     </ul>
 //   </nav>
-// ) : (
-// )}
+// </div>

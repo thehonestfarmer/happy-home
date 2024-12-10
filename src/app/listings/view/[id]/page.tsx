@@ -2,7 +2,7 @@
 
 import { DetailSlide } from "@/app/ListingCarousel";
 import NextJsImage from "@/components/ui/nextjsimage";
-import { FC, useCallback } from "react";
+import { CSSProperties, FC, useCallback } from "react";
 import Lightbox from "yet-another-react-lightbox";
 
 import { DrawerDialogDemo } from "@/app/InquiryDialog";
@@ -69,12 +69,20 @@ export default function Page() {
     src: i,
   }));
 
-  function rowRenderer({ index, key, style }) {
+  function rowRenderer({
+    index,
+    key,
+    style,
+  }: {
+    index: number;
+    key: string;
+    style: CSSProperties;
+  }) {
     return (
       <div style={style} key={key} className="flex my-2">
         <DetailSlide
           property={property}
-          handleOpen={handleLightboxOpen}
+          handleOpenAction={handleLightboxOpen}
           startIdx={index}
         />
       </div>
@@ -108,6 +116,7 @@ export default function Page() {
           index={listingImageIdx}
         />
       </div>
+      <DrawerDialogDemo property={property} />
     </div>
   );
 }

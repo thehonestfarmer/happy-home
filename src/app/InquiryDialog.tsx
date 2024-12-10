@@ -69,7 +69,7 @@ export function DrawerDialogDemo({ property }) {
   }
 
   return (
-    <Drawer open={true} onOpenChange={setOpen}>
+    <Drawer open={true} onOpenChange={setOpen} modal={false}>
       <DrawerContent>
         <DrawerHeader className="text-left">
           <DrawerTitle>{title}</DrawerTitle>
