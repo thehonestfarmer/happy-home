@@ -18,7 +18,7 @@ export function useLoadListings() {
       id: idx,
       priceUsd: parseInt(
         (parseFloat(item.prices.split(": million yen")[0]) * 100 * 100 * 100) /
-          155,
+          151,
       ),
     };
   });

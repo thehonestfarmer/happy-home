@@ -10,11 +10,10 @@ import {
 } from "react-virtualized";
 import { DetailCarousel } from "./ListingCarousel";
 
-import { DisplayState, useAppContext } from "@/AppContext";
+import { useAppContext } from "@/AppContext";
 import NextJsImage from "@/components/ui/nextjsimage";
 import { useLoadListings } from "@/hooks";
 import { CSSProperties, FC, useCallback } from "react";
-import { useMediaQuery } from "usehooks-ts";
 import Lightbox from "yet-another-react-lightbox";
 
 const List = _List as unknown as FC<ListProps>;
