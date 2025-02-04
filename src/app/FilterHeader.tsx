@@ -35,25 +35,25 @@ export default function FilterHeader() {
   const {
     location,
     setLocation,
-    setListingState,
-    listingState: { minLDK, minLivingSize, minPropertySize, maxPrice },
+    setFilterState,
+    filterState: { minLDK, minLivingSize, minPropertySize, maxPrice },
   } = useAppContext();
   const setMinLDK = useCallback(
     (value: string) => {
-      setListingState((draft) => {
+      setFilterState((draft) => {
         draft.minLDK = Number(value);
       });
     },
-    [setListingState],
+    [setFilterState],
   );
 
   const setMaxPrice = useCallback(
     (value: string) => {
-      setListingState((draft) => {
+      setFilterState((draft) => {
         draft.maxPrice = Number(value);
       });
     },
-    [setListingState],
+    [setFilterState],
   );
 
   return (

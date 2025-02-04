@@ -22,5 +22,6 @@ export function useLoadListings() {
       ),
     };
   });
+
   return stubbedListings;
 }

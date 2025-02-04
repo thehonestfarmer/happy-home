@@ -15,13 +15,16 @@ import NextJsImage from "@/components/ui/nextjsimage";
 import { useLoadListings } from "@/hooks";
 import { CSSProperties, FC, useCallback } from "react";
 import Lightbox from "yet-another-react-lightbox";
+import { Card } from "@/components/ui/card";
+import Image from "next/image";
+import { Currency, convertCurrency, formatPrice } from "@/lib/listing-utils";
 
 const List = _List as unknown as FC<ListProps>;
 const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
 
 export function FilteredListingsBox() {
   const listings = useLoadListings();
-  const { listingState, displayState, setDisplayState } = useAppContext();
+  const { filterState, displayState, setDisplayState } = useAppContext();
 
   const handleLightboxOpen = useCallback(
     (idx: number, sIdx: number) => {
@@ -35,8 +38,8 @@ export function FilteredListingsBox() {
   const filteredListings = listings
     .filter(
       (property) =>
-        property.priceUsd < listingState.maxPrice &&
-        parseInt(property.layout) >= listingState.minLDK &&
+        property.priceUsd < filterState.maxPrice &&
+        parseInt(property.layout) >= filterState.minLDK &&
         !property.isDetailSoldPresent,
     )
     .map((p) => ({
@@ -107,30 +110,48 @@ export function FilteredListingsBox() {
   );
 }
 
-function ListingBox({ property, handleLightboxOpen }) {
+export function ListingBox({ property, handleLightboxOpen }: { property: any, handleLightboxOpen: any }) {
+  const { filterState } = useAppContext();
+  const selectedCurrency = filterState.priceRange.currency || "USD";
+
+  // Get the secondary currency display (USD by default, or user selected currency if not USD)
+  const getSecondaryPrice = () => {
+    const priceJPY = typeof property.prices === 'string' 
+      ? parseFloat(property.prices.replace(/[^0-9.]/g, '')) * 1_000_000
+      : property.prices;
+
+    if (selectedCurrency === "USD") {
+      return `$${convertCurrency(priceJPY, "JPY", "USD").toLocaleString()}`;
+    } else {
+      const convertedPrice = convertCurrency(priceJPY, "JPY", selectedCurrency);
+      return formatPrice(convertedPrice, selectedCurrency);
+    }
+  };
+
   return (
     <Link href={`/listings/view/${property.id}`}>
-      <div
-        key={property.id}
-        className="bg-background rounded-xl shadow-sm overflow-hidden border border-gray-200"
-      >
-        <DetailCarousel
-          property={property}
-          handleOpenAction={handleLightboxOpen}
-        />
+      <Card className="overflow-hidden">
+        <div className="relative w-full aspect-[4/3]">
+          <Image
+            src={property.listingImages[0]}
+            alt={`Property ${property.id}`}
+            fill
+            priority
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover"
+            style={{ objectPosition: 'center' }}
+          />
+        </div>
         <div className="p-4">
           <div className="flex justify-between items-center mb-2">
             <div className="flex flex-col">
               <div className="text-lg font-bold">
-                ${property.priceUsd.toLocaleString()}
-              </div>
-              <div className="text-sm text-muted-foreground">
                 ¥{property.prices.toLocaleString()}
               </div>
+              <div className="text-sm text-muted-foreground">
+                {getSecondaryPrice()}
+              </div>
             </div>
-            <Button variant="outline" size="sm">
-              View
-            </Button>
           </div>
           <div className="text-sm text-muted-foreground">
             {property.layout} • {`${property.buildSqMeters} m²`}
@@ -139,7 +160,7 @@ function ListingBox({ property, handleLightboxOpen }) {
             {property.addresses}
           </div>
         </div>
-      </div>
+      </Card>
     </Link>
   );
 }

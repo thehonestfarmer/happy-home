@@ -1,15 +1,46 @@
 "use client";
 import { createContext, ReactNode, useContext } from "react";
 import { useImmer } from "use-immer";
+import { Currency } from "@/lib/listing-utils";
 
 export const AppContext = createContext<AppContextValue | undefined>(undefined);
 
 export type FilterState = {
-  minLDK: number;
-  minLivingSize: number;
-  minPropertySize: number;
-  maxPrice: number;
-  location: string;
+  showSold: boolean;
+  listingType: 'for-sale' | 'sold';
+  priceRange: {
+    min: number | null;
+    max: number | null;
+    currency: Currency;
+  };
+  layout: {
+    minLDK: number | null;
+  };
+  size: {
+    minBuildSize: number | null;
+    maxBuildSize: number | null;
+    minLandSize: number | null;
+    maxLandSize: number | null;
+  };
+};
+
+export const defaultFilterState: FilterState = {
+  showSold: false,
+  listingType: 'for-sale',
+  priceRange: {
+    min: null,
+    max: null,
+    currency: "USD"
+  },
+  layout: {
+    minLDK: null,
+  },
+  size: {
+    minBuildSize: null,
+    maxBuildSize: null,
+    minLandSize: null,
+    maxLandSize: null,
+  },
 };
 
 export type DisplayState = {
@@ -19,9 +50,9 @@ export type DisplayState = {
 
 export type AppContextValue = {
   displayState: DisplayState;
-  listingState: FilterState;
+  filterState: FilterState;
   setDisplayState: (draft: DisplayState) => void;
-  setListingState: (draft: FilterState) => void;
+  setFilterState: (draft: FilterState) => void;
 };
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -30,19 +61,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     drawerOpen: false,
   });
 
-  const [listingState, setListingState] = useImmer<FilterState>({
-    minLDK: 0,
-    minLivingSize: 0,
-    minPropertySize: 0,
-    maxPrice: Infinity,
-    location: "",
-  });
+  const [filterState, setFilterState] = useImmer<FilterState>(defaultFilterState);
 
   const value = {
     displayState,
-    listingState,
+    filterState,
     setDisplayState,
-    setListingState,
+    setFilterState: setFilterState,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
