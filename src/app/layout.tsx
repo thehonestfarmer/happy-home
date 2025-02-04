@@ -1,4 +1,5 @@
 import { AppProvider } from "@/AppContext";
+import { Analytics } from "@vercel/analytics/react"
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {children}
           </AppProvider>
         </SidebarProvider>
+        <Analytics />
       </body>
     </html>
   );
