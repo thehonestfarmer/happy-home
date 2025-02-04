@@ -58,15 +58,19 @@ export const defaultFilterState: FilterState = {
   },
 };
 
+export type SortOption = 'recommended' | 'newest' | 'price-asc' | 'price-desc' | 'sqft' | 'lot-size' | 'price-sqft';
+
 export type DisplayState = {
   lightboxListingIdx: number[] | null;
   drawerOpen: boolean;
+  sortBy: SortOption;
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [displayState, setDisplayState] = useImmer<DisplayState>({
     lightboxListingIdx: null,
     drawerOpen: false,
+    sortBy: 'newest',
   });
 
   const [filterState, setFilterState] = useImmer<FilterState>(defaultFilterState);

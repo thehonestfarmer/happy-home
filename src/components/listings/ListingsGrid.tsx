@@ -32,10 +32,10 @@ const isDefaultFilterState = (filterState: FilterState) => {
 
 export function ListingsGrid() {
   const listings = useLoadListings();
-  const { filterState, setFilterState } = useAppContext();
+  const { filterState, setFilterState, displayState } = useAppContext();
 
-  const filteredListings = useMemo(() => {
-    return listings.filter((property) => {
+  const filteredAndSortedListings = useMemo(() => {
+    let result = listings.filter((property) => {
       // Handle price filter first
       if (filterState.priceRange.min || filterState.priceRange.max) {
         const priceJPY = parsePriceJPY(property.prices);
@@ -64,12 +64,32 @@ export function ListingsGrid() {
         return !property.isDetailSoldPresent;
       }
     });
+
+    // Sort the filtered results
+    return result.sort((a, b) => {
+      switch (displayState.sortBy) {
+        case 'price-asc': {
+          const priceA = parsePriceJPY(a.prices);
+          const priceB = parsePriceJPY(b.prices);
+          return priceA - priceB;
+        }
+        case 'price-desc': {
+          const priceA = parsePriceJPY(a.prices);
+          const priceB = parsePriceJPY(b.prices);
+          return priceB - priceA;
+        }
+        // Add other sort options as needed
+        default:
+          return 0; // Keep original order for 'recommended'
+      }
+    });
   }, [
     listings,
     filterState.showSold,
     filterState.priceRange.min,
     filterState.priceRange.max,
-    filterState.layout.minLDK
+    filterState.layout.minLDK,
+    displayState.sortBy
   ]);
 
   const handleResetFilters = () => {
@@ -119,9 +139,9 @@ export function ListingsGrid() {
     <>
       <ListingsToolbar />
       <div className="p-4">
-        {filteredListings.length > 0 ? (
+        {filteredAndSortedListings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredListings.map((property) => (
+            {filteredAndSortedListings.map((property) => (
               <ListingBox 
                 key={property.id} 
                 property={property}

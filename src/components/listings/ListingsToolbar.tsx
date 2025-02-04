@@ -1,6 +1,7 @@
 import { ForSaleFilter } from "./filters/ForSaleFilter";
 import { PriceFilter } from "./filters/PriceFilter";
 import { LDKFilter } from "./filters/LDKFilter";
+import { SortSelect } from "./filters/SortSelect";
 
 export function ListingsToolbar() {
   return (
@@ -9,8 +10,8 @@ export function ListingsToolbar() {
         <ForSaleFilter />
         <PriceFilter />
         <LDKFilter />
-        {/* <Button variant="outline">Home Type</Button> */}
-        {/* <Button variant="outline">All Filters</Button> */}
+        <div className="flex-1" />
+        <SortSelect />
       </div>
     </div>
   );
