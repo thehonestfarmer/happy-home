@@ -22,6 +22,13 @@ const fontBody = Inter({
   variable: "--font-body",
 });
 
+const AnalyticsProdOnly = () => {
+  if (process.env.NODE_ENV === "production") {
+    return <Analytics />;
+  }
+  return null;
+};
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -42,7 +49,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {children}
           </AppProvider>
         </SidebarProvider>
-        <Analytics />
+        <AnalyticsProdOnly />
       </body>
     </html>
   );
