@@ -17,7 +17,12 @@ import { CSSProperties, FC, useCallback } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
-import { Currency, convertCurrency, formatPrice } from "@/lib/listing-utils";
+import { 
+  Currency, 
+  convertCurrency, 
+  formatPrice, 
+  parseJapanesePrice 
+} from "@/lib/listing-utils";
 
 const List = _List as unknown as FC<ListProps>;
 const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
@@ -114,18 +119,33 @@ export function ListingBox({ property, handleLightboxOpen }: { property: any, ha
   const { filterState } = useAppContext();
   const selectedCurrency = filterState.priceRange.currency || "USD";
 
-  // Get the secondary currency display (USD by default, or user selected currency if not USD)
-  const getSecondaryPrice = () => {
-    const priceJPY = typeof property.prices === 'string' 
-      ? parseFloat(property.prices.replace(/[^0-9.]/g, '')) * 1_000_000
-      : property.prices;
+  const PriceDisplay = ({ prices, currency }: { prices: string; currency: Currency }) => {
+    // Get the raw JPY amount
+    const priceJPY = parseJapanesePrice(prices);
+    // Convert to USD using the exchange rate
+    const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
 
-    if (selectedCurrency === "USD") {
-      return `$${convertCurrency(priceJPY, "JPY", "USD").toLocaleString()}`;
-    } else {
-      const convertedPrice = convertCurrency(priceJPY, "JPY", selectedCurrency);
-      return formatPrice(convertedPrice, selectedCurrency);
-    }
+    // Only show secondary currency if it provides new information
+    const showSecondary = currency === "JPY" || (currency !== "JPY" && currency !== "USD");
+
+    return (
+      <div className="space-y-1">
+        <div className="font-medium">
+          {formatPrice(
+            currency === "JPY" ? priceJPY : priceUSD,
+            currency
+          )}
+        </div>
+        {showSecondary && (
+          <div className="text-sm text-muted-foreground">
+            {formatPrice(
+              currency === "JPY" ? priceUSD : priceJPY,
+              currency === "JPY" ? "USD" : "JPY"
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -149,7 +169,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: any, ha
                 ¥{property.prices.toLocaleString()}
               </div>
               <div className="text-sm text-muted-foreground">
-                {getSecondaryPrice()}
+                <PriceDisplay prices={property.prices} currency={selectedCurrency} />
               </div>
             </div>
           </div>

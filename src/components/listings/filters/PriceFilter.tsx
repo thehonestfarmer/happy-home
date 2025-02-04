@@ -18,6 +18,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { FeatureFlags } from "@/lib/featureFlags";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useMediaQuery } from "usehooks-ts";
 
 // Dynamic price ranges based on currency
 const getPriceRanges = (currency: Currency) => {
@@ -60,23 +68,18 @@ const getPriceRanges = (currency: Currency) => {
   return baseRanges[currency];
 };
 
-export function PriceFilter() {
-  const { filterState, setFilterState } = useAppContext();
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency>("JPY");
-  const [selectedRangeIndex, setSelectedRangeIndex] = useState<number | null>(null);
-  const [localRange, setLocalRange] = useState([0, 100_000_000]);
-  const [open, setOpen] = useState(false);
+export function PriceFilterContent() {
+  const { filterState, setFilterState, priceFilterState, setPriceFilterState } = useAppContext();
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const priceRanges = getPriceRanges(selectedCurrency);
-
-  // Update price range when currency changes
   const handleCurrencyChange = (newCurrency: Currency) => {
-    setSelectedCurrency(newCurrency);
+    setPriceFilterState((draft) => {
+      draft.selectedCurrency = newCurrency;
+    });
     setFilterState((draft) => {
       draft.priceRange.currency = newCurrency;
-      // If we have a selected range index, update the price range to the new currency
-      if (selectedRangeIndex !== null) {
-        const newRange = getPriceRanges(newCurrency)[selectedRangeIndex];
+      if (priceFilterState.selectedRangeIndex !== null) {
+        const newRange = getPriceRanges(newCurrency)[priceFilterState.selectedRangeIndex];
         draft.priceRange.min = convertCurrency(newRange.min, newCurrency, "USD");
         draft.priceRange.max = newRange.max 
           ? convertCurrency(newRange.max, newCurrency, "USD")
@@ -85,14 +88,15 @@ export function PriceFilter() {
     });
   };
 
-  // Handle preset range selection
   const handleRangeSelect = (rangeIndex: number) => {
-    const range = priceRanges[rangeIndex];
-    setSelectedRangeIndex(rangeIndex);
+    const range = getPriceRanges(priceFilterState.selectedCurrency)[rangeIndex];
+    setPriceFilterState((draft) => {
+      draft.selectedRangeIndex = rangeIndex;
+    });
     setFilterState((draft) => {
-      draft.priceRange.min = convertCurrency(range.min, selectedCurrency, "USD");
+      draft.priceRange.min = convertCurrency(range.min, priceFilterState.selectedCurrency, "USD");
       draft.priceRange.max = range.max 
-        ? convertCurrency(range.max, selectedCurrency, "USD")
+        ? convertCurrency(range.max, priceFilterState.selectedCurrency, "USD")
         : null;
     });
   };
@@ -102,10 +106,134 @@ export function PriceFilter() {
       draft.priceRange.min = undefined;
       draft.priceRange.max = undefined;
     });
-    setSelectedCurrency("JPY");
-    setSelectedRangeIndex(null);
-    setLocalRange([0, 100_000_000]);
+    setPriceFilterState((draft) => {
+      draft.selectedCurrency = "JPY";
+      draft.selectedRangeIndex = null;
+      draft.localRange = [0, 100_000_000];
+    });
   };
+
+  const priceRanges = getPriceRanges(priceFilterState.selectedCurrency);
+
+  return (
+    <div className="space-y-6">
+      {/* Currency Selection */}
+      <div className="space-y-2">
+        <Label>Currency</Label>
+        {isMobile ? (
+          <Select
+            value={priceFilterState.selectedCurrency}
+            onValueChange={handleCurrencyChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select Currency" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(EXCHANGE_RATES).map((currency) => (
+                <SelectItem key={currency} value={currency}>
+                  {currency}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <RadioGroup
+            value={priceFilterState.selectedCurrency}
+            onValueChange={handleCurrencyChange}
+            className="flex gap-4"
+          >
+            {Object.keys(EXCHANGE_RATES).map((currency) => (
+              <div key={currency} className="flex items-center space-x-2">
+                <RadioGroupItem value={currency} id={currency} />
+                <Label htmlFor={currency}>{currency}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+        )}
+      </div>
+
+      {/* Preset Ranges */}
+      <div className="space-y-2">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start font-normal",
+            filterState.priceRange.min === undefined && "bg-primary/10 text-primary"
+          )}
+          onClick={() => {
+            setPriceFilterState((draft) => {
+              draft.selectedRangeIndex = null;
+            });
+            setFilterState((draft) => {
+              draft.priceRange.min = undefined;
+              draft.priceRange.max = undefined;
+            });
+          }}
+        >
+          Any Price
+        </Button>
+        {priceRanges.map((range, index) => (
+          <Button
+            key={range.label}
+            variant="ghost"
+            className={cn(
+              "w-full justify-start font-normal",
+              priceFilterState.selectedRangeIndex === index && "bg-primary/10 text-primary"
+            )}
+            onClick={() => handleRangeSelect(index)}
+          >
+            {range.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Custom Range Slider */}
+      {FeatureFlags.showCustomPriceRange && (
+        <div className="space-y-4">
+          <div className="flex justify-between">
+            <span>Custom Range</span>
+            <span className="text-sm text-right">
+              {formatPrice(priceFilterState.localRange[0], priceFilterState.selectedCurrency)}
+              <br />
+              {formatPrice(priceFilterState.localRange[1], priceFilterState.selectedCurrency)}
+            </span>
+          </div>
+          <Slider
+            min={0}
+            max={convertCurrency(100_000_000, "JPY", priceFilterState.selectedCurrency)}
+            step={convertCurrency(1_000_000, "JPY", priceFilterState.selectedCurrency)}
+            value={priceFilterState.localRange}
+            onValueChange={(value) => 
+              setPriceFilterState((draft) => {
+                draft.localRange = value;
+              })
+            }
+            onValueCommit={(value) =>
+              setFilterState((draft) => {
+                draft.priceRange.min = convertCurrency(value[0], priceFilterState.selectedCurrency, "USD");
+                draft.priceRange.max = convertCurrency(value[1], priceFilterState.selectedCurrency, "USD");
+              })
+            }
+          />
+        </div>
+      )}
+
+      {/* Reset Button */}
+      <div className="pt-2 border-t">
+        <Button
+          variant="ghost"
+          className="w-full text-muted-foreground hover:text-foreground"
+          onClick={handleReset}
+        >
+          Reset Filter
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function PriceFilter() {
+  const { filterState, priceFilterState } = useAppContext();
 
   const getButtonText = () => {
     if (!filterState.priceRange.min && !filterState.priceRange.max) {
@@ -113,16 +241,17 @@ export function PriceFilter() {
     }
 
     // If we have a selected range index, use its label
-    if (selectedRangeIndex !== null) {
-      return priceRanges[selectedRangeIndex].label;
+    if (priceFilterState.selectedRangeIndex !== null) {
+      const priceRanges = getPriceRanges(priceFilterState.selectedCurrency);
+      return priceRanges[priceFilterState.selectedRangeIndex].label;
     }
 
     // Otherwise show custom range
     const min = filterState.priceRange.min 
-      ? formatPrice(convertCurrency(filterState.priceRange.min, "USD", selectedCurrency), selectedCurrency)
+      ? formatPrice(convertCurrency(filterState.priceRange.min, "USD", priceFilterState.selectedCurrency), priceFilterState.selectedCurrency)
       : '0';
     const max = filterState.priceRange.max 
-      ? formatPrice(convertCurrency(filterState.priceRange.max, "USD", selectedCurrency), selectedCurrency)
+      ? formatPrice(convertCurrency(filterState.priceRange.max, "USD", priceFilterState.selectedCurrency), priceFilterState.selectedCurrency)
       : '∞';
     
     return `${min} - ${max}`;
@@ -131,13 +260,13 @@ export function PriceFilter() {
   const hasActiveFilter = filterState.priceRange.min !== null || filterState.priceRange.max !== null;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover>
       <PopoverTrigger asChild>
         <Button 
           variant="outline" 
           className={cn(
             "flex items-center gap-2 min-w-[180px]",
-            (hasActiveFilter || open) && "bg-primary/10 border-primary/20"
+            hasActiveFilter && "bg-primary/10 border-primary/20"
           )}
         >
           {getButtonText()}
@@ -145,95 +274,7 @@ export function PriceFilter() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[340px] p-4">
-        <div className="space-y-6">
-          {/* Currency Selection */}
-          <div className="space-y-2">
-            <Label>Currency</Label>
-            <RadioGroup
-              value={selectedCurrency}
-              onValueChange={handleCurrencyChange}
-              className="flex gap-4"
-            >
-              {Object.keys(EXCHANGE_RATES).map((currency) => (
-                <div key={currency} className="flex items-center space-x-2">
-                  <RadioGroupItem value={currency} id={currency} />
-                  <Label htmlFor={currency}>{currency}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-
-          {/* Preset Ranges */}
-          <div className="space-y-2">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start font-normal",
-                filterState.priceRange.min === undefined && "bg-primary/10 text-primary"
-              )}
-              onClick={() => {
-                setSelectedRangeIndex(null);
-                setFilterState((draft) => {
-                  draft.priceRange.min = undefined;
-                  draft.priceRange.max = undefined;
-                });
-              }}
-            >
-              Any Price
-            </Button>
-            {priceRanges.map((range, index) => (
-              <Button
-                key={range.label}
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start font-normal",
-                  selectedRangeIndex === index && "bg-primary/10 text-primary"
-                )}
-                onClick={() => handleRangeSelect(index)}
-              >
-                {range.label}
-              </Button>
-            ))}
-          </div>
-
-          {/* Custom Range Slider - Feature Flagged */}
-          {FeatureFlags.showCustomPriceRange && (
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span>Custom Range</span>
-                <span className="text-sm text-right">
-                  {formatPrice(localRange[0], selectedCurrency)}
-                  <br />
-                  {formatPrice(localRange[1], selectedCurrency)}
-                </span>
-              </div>
-              <Slider
-                min={0}
-                max={convertCurrency(100_000_000, "JPY", selectedCurrency)}
-                step={convertCurrency(1_000_000, "JPY", selectedCurrency)}
-                value={localRange}
-                onValueChange={setLocalRange}
-                onValueCommit={(value) =>
-                  setFilterState((draft) => {
-                    draft.priceRange.min = convertCurrency(value[0], selectedCurrency, "USD");
-                    draft.priceRange.max = convertCurrency(value[1], selectedCurrency, "USD");
-                  })
-                }
-              />
-            </div>
-          )}
-
-          {/* Reset Button */}
-          <div className="pt-2 border-t">
-            <Button
-              variant="ghost"
-              className="w-full text-muted-foreground hover:text-foreground"
-              onClick={handleReset}
-            >
-              Reset Filter
-            </Button>
-          </div>
-        </div>
+        <PriceFilterContent />
       </PopoverContent>
     </Popover>
   );

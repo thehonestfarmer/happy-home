@@ -6,8 +6,7 @@ export function parseJapanesePrice(priceStr: string): number {
   if (!match) return 0;
   
   const millionYen = parseFloat(match[1]);
-  const yen = millionYen * 1_000_000;
-  return Math.round(yen / JPY_TO_USD);
+  return millionYen * 1_000_000; // Return raw yen amount
 }
 
 export function parseLDK(layout: string): number {

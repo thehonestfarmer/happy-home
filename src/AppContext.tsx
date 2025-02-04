@@ -3,7 +3,22 @@ import { createContext, ReactNode, useContext } from "react";
 import { useImmer } from "use-immer";
 import { Currency } from "@/lib/listing-utils";
 
-export const AppContext = createContext<AppContextValue | undefined>(undefined);
+interface PriceFilterState {
+  selectedCurrency: Currency;
+  selectedRangeIndex: number | null;
+  localRange: [number, number];
+}
+
+interface AppContextType {
+  displayState: DisplayState;
+  filterState: FilterState;
+  priceFilterState: PriceFilterState;
+  setDisplayState: (draft: DisplayState) => void;
+  setFilterState: (draft: FilterState) => void;
+  setPriceFilterState: (updater: (draft: PriceFilterState) => void) => void;
+}
+
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export type FilterState = {
   showSold: boolean;
@@ -48,14 +63,7 @@ export type DisplayState = {
   drawerOpen: boolean;
 };
 
-export type AppContextValue = {
-  displayState: DisplayState;
-  filterState: FilterState;
-  setDisplayState: (draft: DisplayState) => void;
-  setFilterState: (draft: FilterState) => void;
-};
-
-export const AppProvider = ({ children }: { children: ReactNode }) => {
+export function AppProvider({ children }: { children: ReactNode }) {
   const [displayState, setDisplayState] = useImmer<DisplayState>({
     lightboxListingIdx: null,
     drawerOpen: false,
@@ -63,15 +71,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const [filterState, setFilterState] = useImmer<FilterState>(defaultFilterState);
 
+  const [priceFilterState, setPriceFilterState] = useImmer<PriceFilterState>({
+    selectedCurrency: "JPY",
+    selectedRangeIndex: null,
+    localRange: [0, 100_000_000],
+  });
+
   const value = {
     displayState,
     filterState,
+    priceFilterState,
     setDisplayState,
-    setFilterState: setFilterState,
+    setFilterState,
+    setPriceFilterState,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-};
+}
 
 export const useAppContext = () => {
   const context = useContext(AppContext);

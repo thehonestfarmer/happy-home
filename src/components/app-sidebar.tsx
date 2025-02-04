@@ -15,42 +15,6 @@ import { Button } from "@/components/ui/button";
 export function AppSidebar() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { openMobile, setOpenMobile } = useSidebar();
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Handle swipe dismiss
-  useEffect(() => {
-    let touchStart = 0;
-    let touchEnd = 0;
-    
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStart = e.changedTouches[0].screenX;
-    };
-    
-    const handleTouchEnd = (e: TouchEvent) => {
-      touchEnd = e.changedTouches[0].screenX;
-      handleSwipe();
-    };
-    
-    const handleSwipe = () => {
-      const swipeThreshold = 100;
-      const swipeDistance = touchEnd - touchStart;
-      
-      if (swipeDistance > swipeThreshold) {
-        setOpenMobile(false);
-      }
-    };
-
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('touchstart', handleTouchStart);
-      container.addEventListener('touchend', handleTouchEnd);
-      
-      return () => {
-        container.removeEventListener('touchstart', handleTouchStart);
-        container.removeEventListener('touchend', handleTouchEnd);
-      };
-    }
-  }, [setOpenMobile]);
 
   return (
     <Sidebar
@@ -61,7 +25,6 @@ export function AppSidebar() {
       <AnimatePresence mode="wait">
         {openMobile && (
           <motion.div
-            ref={containerRef}
             initial={{ x: "100%", boxShadow: "none" }}
             animate={{ 
               x: 0,

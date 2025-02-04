@@ -10,8 +10,33 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-export function ForSaleFilter() {
+export function ForSaleFilterContent() {
   const { filterState, setFilterState } = useAppContext();
+  
+  return (
+    <RadioGroup 
+      value={filterState.showSold ? "sold" : "for-sale"}
+      onValueChange={(value: string) => {
+        setFilterState((draft) => {
+          draft.showSold = value === "sold";
+        });
+      }}
+      className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-4"
+    >
+      <div className="flex items-center space-x-2">
+        <RadioGroupItem value="for-sale" id="for-sale" />
+        <Label htmlFor="for-sale">For Sale</Label>
+      </div>
+      <div className="flex items-center space-x-2">
+        <RadioGroupItem value="sold" id="sold" />
+        <Label htmlFor="sold">Sold</Label>
+      </div>
+    </RadioGroup>
+  );
+}
+
+export function ForSaleFilter() {
+  const { filterState } = useAppContext();
 
   return (
     <Popover>
@@ -28,23 +53,7 @@ export function ForSaleFilter() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-4">
-        <RadioGroup 
-          value={filterState.showSold ? "sold" : "for-sale"}
-          onValueChange={(value: string) => {
-            setFilterState((draft) => {
-              draft.showSold = value === "sold";
-            });
-          }}
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="for-sale" id="for-sale" />
-            <Label htmlFor="for-sale">For Sale</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="sold" id="sold" />
-            <Label htmlFor="sold">Sold</Label>
-          </div>
-        </RadioGroup>
+        <ForSaleFilterContent />
       </PopoverContent>
     </Popover>
   );
