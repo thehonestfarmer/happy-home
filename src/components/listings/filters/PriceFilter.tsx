@@ -237,7 +237,7 @@ export function PriceFilter() {
 
   const getButtonText = () => {
     if (!filterState.priceRange.min && !filterState.priceRange.max) {
-      return "Any Price";
+      return `Any Price (${priceFilterState.selectedCurrency})`;
     }
 
     // If we have a selected range index, use its label

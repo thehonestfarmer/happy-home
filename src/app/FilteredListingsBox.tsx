@@ -17,11 +17,11 @@ import { CSSProperties, FC, useCallback } from "react";
 import Lightbox from "yet-another-react-lightbox";
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
-import { 
-  Currency, 
-  convertCurrency, 
-  formatPrice, 
-  parseJapanesePrice 
+import {
+  Currency,
+  convertCurrency,
+  formatPrice,
+  parseJapanesePrice
 } from "@/lib/listing-utils";
 
 const List = _List as unknown as FC<ListProps>;
@@ -124,26 +124,14 @@ export function ListingBox({ property, handleLightboxOpen }: { property: any, ha
     const priceJPY = parseJapanesePrice(prices);
     // Convert to USD using the exchange rate
     const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
+    const secondaryPrice = ["USD", "JPY"].includes(currency) ? formatPrice(priceUSD, "USD") : formatPrice(convertCurrency(priceJPY, "JPY", currency), currency);
 
-    // Only show secondary currency if it provides new information
-    const showSecondary = currency === "JPY" || (currency !== "JPY" && currency !== "USD");
 
     return (
       <div className="space-y-1">
         <div className="font-medium">
-          {formatPrice(
-            currency === "JPY" ? priceJPY : priceUSD,
-            currency
-          )}
+          {secondaryPrice}
         </div>
-        {showSecondary && (
-          <div className="text-sm text-muted-foreground">
-            {formatPrice(
-              currency === "JPY" ? priceUSD : priceJPY,
-              currency === "JPY" ? "USD" : "JPY"
-            )}
-          </div>
-        )}
       </div>
     );
   };
