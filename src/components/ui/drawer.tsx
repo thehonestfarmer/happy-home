@@ -10,7 +10,7 @@ const Drawer = ({
   shouldScaleBackground = true,
   activeSnapPoint,
   setActiveSnapPoint,
-  snapPoints = [],
+  snapPoints = [0.35, 0.85],
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
   const { displayState } = useAppContext();

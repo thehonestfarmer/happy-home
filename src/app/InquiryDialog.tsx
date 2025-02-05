@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import * as React from "react";
 
-import { ChevronLeft, ShareIcon } from "lucide-react";
+import { ChevronLeft, MailIcon, ShareIcon } from "lucide-react";
 
 import {
   Dialog,
@@ -27,7 +27,7 @@ export function DrawerDialogDemo({ property }) {
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const handleMailto = React.useCallback(() => {
-    const email = "hello@happyhome.com";
+    const email = "thehonestfarmer@proton.me";
     const subject = "Property inquiry";
     const body = `I'm interested in learning more about this property ${property.addresses}`;
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -80,16 +80,6 @@ export function DrawerDialogDemo({ property }) {
               </div>
 
               <div className=" flex">
-                <Link href="/">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSnap(snapPoints[1]);
-                    }}
-                  >
-                    <ChevronLeft />
-                  </Button>
-                </Link>
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -108,7 +98,7 @@ export function DrawerDialogDemo({ property }) {
                     return;
                   }}
                 >
-                  <ShareIcon />
+                  <MailIcon />
                 </Button>
               </div>
             </div>
