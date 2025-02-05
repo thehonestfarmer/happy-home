@@ -23,6 +23,8 @@ const Drawer = ({
       setActiveSnapPoint={setActiveSnapPoint}
       dismissible={false}
       snapToSequentialPoint
+      preventScroll={false}
+      modal={false}
       {...props}
     />
   );
@@ -41,7 +43,9 @@ const DrawerOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/60", className)}
+    className={cn("fixed inset-0 z-50 bg-black/10", className)}
+    onPointerDown={(e) => e.stopPropagation()}
+    onTouchStart={(e) => e.stopPropagation()}
     {...props}
   />
 ));
@@ -50,23 +54,49 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
-    <DrawerOverlay />
-    <DrawerPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col flex-grow rounded-t-[10px] border bg-background",
-        "overflow-y-auto",
-        className,
-      )}
-      {...props}
-    >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
-      {children}
-    </DrawerPrimitive.Content>
-  </DrawerPortal>
-));
+>(({ className, children, ...props }, ref) => {
+  // Only prevent events on the content area, not the drag handle
+  const preventPropagation = (e: React.UIEvent | React.TouchEvent | React.MouseEvent) => {
+    // Don't prevent events on the drag handle
+    const target = e.target as HTMLElement;
+    const isDragHandle = target.closest('[data-drag-handle]');
+    if (!isDragHandle) {
+      e.stopPropagation();
+    }
+  };
+
+  return (
+    <DrawerPortal>
+      <DrawerOverlay />
+      <DrawerPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[10px] border bg-background",
+          "h-[85vh] overflow-hidden",
+          className,
+        )}
+        {...props}
+      >
+        {/* Add data-drag-handle to identify the draggable area */}
+        <div 
+          data-drag-handle 
+          className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted cursor-grab active:cursor-grabbing"
+        />
+        <div 
+          className="flex-1 overflow-y-auto"
+          onPointerDown={preventPropagation}
+          onTouchStart={preventPropagation}
+          onTouchMove={preventPropagation}
+          onMouseDown={preventPropagation}
+          onMouseMove={preventPropagation}
+          onClick={preventPropagation}
+        >
+          {children}
+        </div>
+      </DrawerPrimitive.Content>
+    </DrawerPortal>
+  );
+});
 DrawerContent.displayName = "DrawerContent";
 
 const DrawerHeader = ({

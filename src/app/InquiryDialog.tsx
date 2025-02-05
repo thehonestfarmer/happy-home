@@ -58,6 +58,7 @@ export function DrawerDialogDemo({ property }) {
   const [title, desc] = property.addresses.split(",");
   const snapPoints = [0.24, 0.68, 0.96];
   const [snap, setSnap] = React.useState<number | string | null>(snapPoints[1]);
+  console.log(snap, snapPoints);
 
   if (isDesktop) {
     return (
@@ -88,7 +89,6 @@ export function DrawerDialogDemo({ property }) {
       snapPoints={snapPoints}
       activeSnapPoint={snap}
       setActiveSnapPoint={setSnap}
-      modal={true}
     >
       <DrawerContent>
         <DrawerHeader className="text-left">
@@ -129,7 +129,7 @@ function ListingDetailContent({ property, handleMailto }) {
   const processedTags = property.tags.split(",");
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] md:p-4">
+    <div className="flex flex-col md:grid md:grid-cols-[240px_1fr] md:p-4">
       <div className="flex justify-between p-4 bg-white rounded-lg shadow-sm">
         <div>
           <div className="text-center">
@@ -157,20 +157,23 @@ function ListingDetailContent({ property, handleMailto }) {
         </div>
       </div>
 
-      <div className="p-4 bg-white rounded-b-lg">
-        <h2 className="text-lg font-semibold text-black mb-2">
-          About this home
-        </h2>
-        <p className="text-sm text-gray-600">
-          {property.recommendedText.join(". ")}
-        </p>
-      </div>
-      <div className="p-4">
-        {processedTags.map((p) => (
-          <Badge key={p} className="p-1 m-1" variant="outline">
-            {p}
-          </Badge>
-        ))}
+      <div className="flex flex-col flex-1">
+        <div className="p-4 bg-white">
+          <h2 className="text-lg font-semibold text-black mb-2">
+            About this home
+          </h2>
+          <p className="text-sm text-gray-600">
+            {property.recommendedText.join(". ")}
+          </p>
+        </div>
+
+        <div className="p-4 flex flex-wrap">
+          {processedTags.map((p) => (
+            <Badge key={p} className="p-1 m-1" variant="outline">
+              {p.trim()}
+            </Badge>
+          ))}
+        </div>
       </div>
     </div>
   );
