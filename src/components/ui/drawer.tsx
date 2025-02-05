@@ -14,6 +14,7 @@ const Drawer = ({
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
   const { displayState } = useAppContext();
+
   return (
     <DrawerPrimitive.Root
       open={displayState.drawerOpen}
@@ -23,6 +24,8 @@ const Drawer = ({
       setActiveSnapPoint={setActiveSnapPoint}
       dismissible={false}
       snapToSequentialPoint
+      modal={false}
+      preventScrollRestoration={false}
       {...props}
     />
   );
@@ -41,7 +44,10 @@ const DrawerOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DrawerPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/10", className)}
+    className={cn(
+      "fixed inset-0 z-50 bg-black/10 pointer-events-none select-none",
+      className
+    )}
     {...props}
   />
 ));
