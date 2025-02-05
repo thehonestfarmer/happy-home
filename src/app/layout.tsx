@@ -9,6 +9,7 @@ import "./globals.css";
 import "react-virtualized/styles.css";
 
 import Header from "./header";
+import { Toast } from "@/components/ui/toast";
 
 const fontHeading = Inter({
   subsets: ["latin"],

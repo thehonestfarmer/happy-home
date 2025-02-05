@@ -11,8 +11,9 @@ import { DrawerDialogDemo } from "@/app/InquiryDialog";
 import { useAppContext } from "@/AppContext";
 import { useLoadListings } from "@/hooks";
 import { Badge } from "@/components/ui/badge";
-import { ShareIcon } from "lucide-react";
+import { ShareIcon, Copy } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * TODO: move to util once you can use netrw better
@@ -42,6 +43,7 @@ import { Separator } from "@/components/ui/separator";
 // }
 
 export default function Page() {
+  const { toast } = useToast();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const idNum = Number(params.id);
@@ -73,6 +75,27 @@ export default function Page() {
 
     window.location.href = mailtoUrl;
   }, [property.addresses]);
+
+  const handleCopyLink = useCallback(() => {
+    // Get the current URL
+    const url = window.location.href;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(url).then(() => {
+      toast({
+        title: "Link copied!",
+        description: "The listing URL has been copied to your clipboard",
+        duration: 3000,
+      });
+    }).catch(() => {
+      toast({
+        title: "Failed to copy",
+        description: "Please try again",
+        variant: "destructive",
+        duration: 3000,
+      });
+    });
+  }, [toast]);
 
   // Mobile view
   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
@@ -127,9 +150,9 @@ export default function Page() {
           <ArrowLeft className="h-4 w-4" />
           Back to search
         </Button>
-        <Button variant="outline" onClick={handleMailto}>
-          <ShareIcon className="h-4 w-4 mr-2" />
-          Share
+        <Button variant="outline" onClick={handleCopyLink}>
+          <Copy className="h-4 w-4 mr-2" />
+          Copy Link
         </Button>
       </div>
 
@@ -241,9 +264,15 @@ export default function Page() {
             <div className="p-6 border rounded-lg">
               <h3 className="font-semibold mb-4">Listed By</h3>
               <div className="space-y-2">
-                <p>Roxann Taylor</p>
-                <p className="text-sm text-muted-foreground">Engel&Volkers Dallas Southlake</p>
-                <p className="text-sm text-muted-foreground">Contact: 817-312-7100</p>
+                <p>Shiawase Home Reuse</p>
+                <a 
+                  href={property.listingDetail}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  View Original Listing →
+                </a>
               </div>
             </div>
           </div>
