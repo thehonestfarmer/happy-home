@@ -2,7 +2,7 @@ export const JPY_TO_USD = 155;
 
 export function parseJapanesePrice(priceStr: string): number {
   // Handle "18.8 million yen" format
-  const match = priceStr.match(/(\d+\.?\d*)\s*million/);
+  const match = priceStr.match(/(\d+\.?\d*)\s*Million/);
   if (!match) return 0;
   
   const millionYen = parseFloat(match[1]);

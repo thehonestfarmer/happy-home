@@ -10,6 +10,9 @@ import NextJsImage from "@/components/ui/nextjsimage";
 import { DrawerDialogDemo } from "@/app/InquiryDialog";
 import { useAppContext } from "@/AppContext";
 import { useLoadListings } from "@/hooks";
+import { Badge } from "@/components/ui/badge";
+import { ShareIcon } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * TODO: move to util once you can use netrw better
@@ -62,6 +65,15 @@ export default function Page() {
     src: i,
   }));
 
+  const handleMailto = useCallback(() => {
+    const email = "hello@happyhome.com";
+    const subject = "Property inquiry";
+    const body = `I'm interested in learning more about this property ${property.addresses}`;
+    const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    window.location.href = mailtoUrl;
+  }, [property.addresses]);
+
   // Mobile view
   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
     return (
@@ -106,7 +118,7 @@ export default function Page() {
   return (
     <div className="w-full">
       {/* Navigation Toolbar */}
-      <div className="flex items-center h-14 px-4 border-b">
+      <div className="flex items-center justify-between h-14 px-4 border-b">
         <Button 
           variant="ghost" 
           onClick={() => router.back()}
@@ -114,6 +126,10 @@ export default function Page() {
         >
           <ArrowLeft className="h-4 w-4" />
           Back to search
+        </Button>
+        <Button variant="outline" onClick={handleMailto}>
+          <ShareIcon className="h-4 w-4 mr-2" />
+          Share
         </Button>
       </div>
 
@@ -134,10 +150,7 @@ export default function Page() {
         {/* Right side grid */}
         <div className="col-span-4 grid grid-rows-2 gap-1">
           {property.listingImages.slice(1, 5).map((image: string, index: number) => (
-            <div 
-              key={index} 
-              className="relative"
-            >
+            <div key={index} className="relative">
               <Image
                 src={image}
                 alt={`Property view ${index + 2}`}
@@ -159,6 +172,84 @@ export default function Page() {
         </div>
       </div>
 
+      {/* Content Section */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="col-span-2 space-y-6">
+            {/* Header */}
+            <div>
+              <h1 className="text-2xl font-semibold">{property.addresses.split(",")[0]}</h1>
+              <p className="text-muted-foreground">{property.addresses.split(",")[1]}</p>
+            </div>
+
+            {/* Key Features */}
+            <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="text-center">
+                <div className="font-semibold">{parseInt(property.layout)}</div>
+                <div className="text-sm text-muted-foreground">LDK</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold">{property.buildSqMeters}</div>
+                <div className="text-sm text-muted-foreground">Build m²</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold">{property.landSqMeters}</div>
+                <div className="text-sm text-muted-foreground">Land m²</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold">3</div>
+                <div className="text-sm text-muted-foreground">Parking</div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <h2 className="text-lg font-semibold mb-2">About this home</h2>
+              <p className="text-muted-foreground">
+                {property.recommendedText.join(". ")}
+              </p>
+            </div>
+
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2">
+              {property.tags.split(",").map((tag: string) => (
+                <Badge key={tag} variant="outline" className="px-2 py-1">
+                  {tag.trim()}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Price Card */}
+            <div className="p-6 border rounded-lg shadow-sm">
+              <div className="text-3xl font-bold mb-2">
+                ¥{(parseFloat(property.prices) * 1_000_000).toLocaleString()}
+              </div>
+              <div className="text-sm text-muted-foreground mb-6">
+                Est. ${Math.round(property.priceUsd).toLocaleString()} USD
+              </div>
+              <Button className="w-full mb-2">Contact Agent</Button>
+              <Button variant="outline" className="w-full" onClick={handleMailto}>
+                Email
+              </Button>
+            </div>
+
+            {/* Agent Card */}
+            <div className="p-6 border rounded-lg">
+              <h3 className="font-semibold mb-4">Listed By</h3>
+              <div className="space-y-2">
+                <p>Roxann Taylor</p>
+                <p className="text-sm text-muted-foreground">Engel&Volkers Dallas Southlake</p>
+                <p className="text-sm text-muted-foreground">Contact: 817-312-7100</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <Lightbox
         open={displayState.lightboxListingIdx !== null}
         close={() => setDisplayState((draft) => { draft.lightboxListingIdx = null; })}
@@ -166,7 +257,6 @@ export default function Page() {
         render={{ slide: NextJsImage }}
         index={listingImageIdx}
       />
-      <DrawerDialogDemo property={property} />
     </div>
   );
 }

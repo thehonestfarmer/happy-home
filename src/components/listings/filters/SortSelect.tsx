@@ -24,7 +24,6 @@ export function SortSelect() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-
         <Button variant="outline" className="w-[200px] justify-between">
           Sort by {sortOptions.find(opt => opt.value === displayState.sortBy)?.label}
           <ChevronDown className="ml-2 h-4 w-4" />
