@@ -88,7 +88,7 @@ export function DrawerDialogDemo({ property }) {
       snapPoints={snapPoints}
       activeSnapPoint={snap}
       setActiveSnapPoint={setSnap}
-      modal={false}
+      modal={true}
     >
       <DrawerContent>
         <DrawerHeader className="text-left">
