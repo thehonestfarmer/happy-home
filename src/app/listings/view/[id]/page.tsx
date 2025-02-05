@@ -254,10 +254,10 @@ export default function Page() {
               <div className="text-sm text-muted-foreground mb-6">
                 Est. ${Math.round(property.priceUsd).toLocaleString()} USD
               </div>
-              <Button className="w-full mb-2">Contact Agent</Button>
-              <Button variant="outline" className="w-full" onClick={handleMailto}>
+              <Button className="w-full mb-2" onClick={handleMailto}>Contact Agent</Button>
+              {/* <Button variant="outline" className="w-full" onClick={handleMailto}>
                 Email
-              </Button>
+              </Button> */}
             </div>
 
             {/* Agent Card */}
