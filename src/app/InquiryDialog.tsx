@@ -24,6 +24,31 @@ import {
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "usehooks-ts";
 
+function ActionButtons({ onCopy, onEmail }: { 
+  onCopy: () => void;
+  onEmail: () => void;
+}) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-[60] p-4 bg-background border-t flex gap-2 md:hidden">
+      <Button
+        variant="outline"
+        className="flex-1"
+        onClick={onCopy}
+      >
+        <Copy className="h-4 w-4 mr-2" />
+        Share
+      </Button>
+      <Button
+        className="flex-1"
+        onClick={onEmail}
+      >
+        <MailIcon className="h-4 w-4 mr-2" />
+        Contact Agent
+      </Button>
+    </div>
+  );
+}
+
 export function DrawerDialogDemo({ property }) {
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
@@ -56,9 +81,8 @@ export function DrawerDialogDemo({ property }) {
   }, [toast]);
 
   const [title, desc] = property.addresses.split(",");
-  const snapPoints = [0.24, 0.68, 0.96];
-  const [snap, setSnap] = React.useState<number | string | null>(snapPoints[1]);
-  console.log(snap, snapPoints);
+  const snapPoints = [0.6, 0.96];
+  const [snap, setSnap] = React.useState<number | string | null>(snapPoints[0]);
 
   if (isDesktop) {
     return (
@@ -83,45 +107,35 @@ export function DrawerDialogDemo({ property }) {
   }
 
   return (
-    <Drawer
-      open
-      dismissible={false}
-      snapPoints={snapPoints}
-      activeSnapPoint={snap}
-      setActiveSnapPoint={setSnap}
-    >
-      <DrawerContent>
-        <DrawerHeader className="text-left">
-          <DrawerTitle>
-            <div className="flex items-center justify-between">
+    <>
+      <Drawer
+        open
+        dismissible={false}
+        snapPoints={snapPoints}
+        activeSnapPoint={snap}
+        setActiveSnapPoint={setSnap}
+      >
+        <DrawerContent className="pb-[72px]">
+          <DrawerHeader className="text-left">
+            <DrawerTitle>
               <div>
-                <div>{title}</div>
+                <div className="text-lg font-semibold">{title}</div>
                 <div className="text-sm text-muted-foreground">{desc}</div>
               </div>
+            </DrawerTitle>
+          </DrawerHeader>
+          
+          <div className="flex-1 overflow-y-auto">
+            <ListingDetailContent property={property} handleMailto={handleMailto} />
+          </div>
+        </DrawerContent>
+      </Drawer>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopyLink}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleMailto}
-                >
-                  <MailIcon className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </DrawerTitle>
-        </DrawerHeader>
-        <DrawerDescription></DrawerDescription>
-        <ListingDetailContent property={property} handleMailto={handleMailto} />
-      </DrawerContent>
-    </Drawer>
+      <ActionButtons 
+        onCopy={handleCopyLink}
+        onEmail={handleMailto}
+      />
+    </>
   );
 }
 
