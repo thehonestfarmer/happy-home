@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import * as React from "react";
 
-import { ChevronLeft, MailIcon, ShareIcon } from "lucide-react";
+import { ChevronLeft, MailIcon, ShareIcon, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   Dialog,
@@ -24,6 +25,7 @@ import {
 import { useMediaQuery } from "usehooks-ts";
 
 export function DrawerDialogDemo({ property }) {
+  const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const handleMailto = React.useCallback(() => {
@@ -34,6 +36,24 @@ export function DrawerDialogDemo({ property }) {
 
     window.location.href = mailtoUrl;
   }, [property]);
+
+  const handleCopyLink = React.useCallback(() => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      toast({
+        title: "Link copied!",
+        description: "The listing URL has been copied to your clipboard",
+        duration: 3000,
+      });
+    }).catch(() => {
+      toast({
+        title: "Failed to copy",
+        description: "Please try again",
+        variant: "destructive",
+        duration: 3000,
+      });
+    });
+  }, [toast]);
 
   const [title, desc] = property.addresses.split(",");
   const snapPoints = [0.24, 0.68, 0.96];
@@ -79,26 +99,20 @@ export function DrawerDialogDemo({ property }) {
                 <div className="text-sm text-muted-foreground">{desc}</div>
               </div>
 
-              <div className=" flex">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    // if (navigator.share && !isAndroid) {
-                    //   navigator
-                    //     .share({
-                    //       title: document.title,
-                    //       url: window.location.href,
-                    //       text: "Check out this property in Niigata!",
-                    //     })
-                    //     .then(() => console.log("Successful share! 🎉"))
-                    //     .catch((err) => console.error(err));
-                    // }
-                    handleMailto();
-                    // open
-                    return;
-                  }}
+                  size="icon"
+                  onClick={handleCopyLink}
                 >
-                  <MailIcon />
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleMailto}
+                >
+                  <MailIcon className="h-4 w-4" />
                 </Button>
               </div>
             </div>

@@ -68,7 +68,7 @@ export default function Page() {
   }));
 
   const handleMailto = useCallback(() => {
-    const email = "hello@happyhome.com";
+    const email = "thehonestfarmer@proton.me";
     const subject = "Property inquiry";
     const body = `I'm interested in learning more about this property ${property.addresses}`;
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
