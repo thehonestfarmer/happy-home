@@ -114,6 +114,8 @@ export function DrawerDialogDemo({ property }) {
         snapPoints={snapPoints}
         activeSnapPoint={snap}
         setActiveSnapPoint={setSnap}
+        modal={snap === 0.96}
+        preventScrollRestoration={snap === 0.96}
       >
         <DrawerContent className="pb-[72px]">
           <DrawerHeader className="text-left">

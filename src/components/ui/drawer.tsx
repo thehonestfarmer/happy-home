@@ -23,6 +23,9 @@ const Drawer = ({
       activeSnapPoint={activeSnapPoint}
       setActiveSnapPoint={setActiveSnapPoint}
       dismissible={false}
+      onDrag={(event, percentageDragged) => {
+        console.log(event, percentageDragged);
+      }}
       snapToSequentialPoint
       modal={false}
       preventScrollRestoration={false}
