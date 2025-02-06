@@ -68,14 +68,14 @@ export const metadata: Metadata = {
         type: 'image/png',
       },
       {
-        url: '/icon-512.png',
-        sizes: '512x512',
+        url: '/favicon-16x16.png',
+        sizes: '16x16',
         type: 'image/png',
       },
     ],
     apple: [
       {
-        url: '/apple-icon.png',
+        url: '/apple-touch-icon.png',
         sizes: '180x180',
         type: 'image/png',
       },
