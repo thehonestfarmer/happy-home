@@ -17,7 +17,7 @@ export default function Header() {
       <header className="sticky top-0 bg-primary text-primary-foreground py-4 z-[1]">
         <div className="flex justify-between items-center px-4">
           <Link href="/" prefetch={false}>
-            <h1 className="text-2xl font-bold">Happy Homes Japan</h1>
+            <h1 className="text-2xl font-bold">Happy Home Japan</h1>
           </Link>
 
           {/* Desktop Menu */}
