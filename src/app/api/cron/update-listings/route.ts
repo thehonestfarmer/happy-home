@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import { put } from '@vercel/blob';
 import { scrapePage } from './scrape-listings';
-import type { ScrapedData } from './types';
+import type { ScrapedData, ListingsData } from './types';
 import { readListings, mergeListings } from './listings-manager';
 
 function validateScrapedData(data: any): data is ScrapedData {
@@ -21,6 +22,37 @@ function validateScrapedData(data: any): data is ScrapedData {
     Array.isArray(data.buildSqMeters) &&
     Array.isArray(data.landSqMeters)
   );
+}
+
+function hasListingsChanged(oldListings: ListingsData, newListings: ListingsData): boolean {
+  if (Object.keys(oldListings.newListings).length !== Object.keys(newListings.newListings).length) {
+    console.log('Number of listings changed');
+    return true;
+  }
+
+  // Deep comparison of each listing
+  for (const [id, newListing] of Object.entries(newListings.newListings)) {
+    const oldListing = oldListings.newListings[id];
+    
+    // If listing doesn't exist in old data
+    if (!oldListing) {
+      console.log(`New listing found: ${id}`);
+      return true;
+    }
+
+    // Compare each property
+    for (const [key, value] of Object.entries(newListing)) {
+      if (JSON.stringify(value) !== JSON.stringify(oldListing[key])) {
+        console.log(`Changes detected in listing ${id}, property: ${key}`);
+        console.log('Old:', oldListing[key]);
+        console.log('New:', value);
+        return true;
+      }
+    }
+  }
+
+  console.log('No changes detected in listings');
+  return false;
 }
 
 export async function POST(request: Request) {
@@ -54,13 +86,44 @@ export async function POST(request: Request) {
 
     // Merge listings
     const mergedListings = await mergeListings(existingListings, newListingsWithIds);
-    console.log(existingListings.newListings.length, newListingsWithIds.ids.length);
-    console.log(mergedListings.newListings.length);
+    
+    // Log counts using Object.keys().length instead of .length
+    console.log(
+      'Existing:', Object.keys(existingListings.newListings).length,
+      'New:', newListingsWithIds.addresses.length
+    );
+
+    // Check if there were any changes
+    if (hasListingsChanged(existingListings, mergedListings)) {
+      console.log('Uploading new listings to blob storage...');
+      
+      // Upload to blob storage
+      const { url } = await put(
+        `listings.json`,
+        JSON.stringify(mergedListings, null, 2),
+        {
+          access: 'public',
+          addRandomSuffix: false, // Overwrite the existing file
+          contentType: 'application/json',
+        }
+      );
+
+      console.log('Successfully uploaded new listings to:', url);
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Listings updated successfully',
+        data: mergedListings,
+        updated: true,
+        url
+      });
+    }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Listings updated successfully',
-      data: mergedListings
+      message: 'No updates needed',
+      data: existingListings,
+      updated: false
     });
 
   } catch (error) {

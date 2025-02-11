@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import fs from "fs/promises"; // If using ES modules
 
-function sleep(ms) {
+function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -14,55 +14,86 @@ async function runSerially(tasks) {
   return results;
 }
 
-async function scrapeListingPage(listingUrl) {
+export async function scrapeListingPage(listingUrl: string) {
+  const startTime = Date.now();
+  console.log(`\n🔍 Starting to scrape: ${listingUrl}`);
+  
   try {
-    console.log("loading ...", listingUrl);
-    const browser = await puppeteer.launch({ headless: true }); // Set to false if you want to see the browser
+    console.log('📱 Launching browser...');
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
-    // Navigate to the page
-    await page.goto(listingUrl, { waitUntil: "networkidle0" }); // Ensure the page is fully loaded
-    console.log("loaded ...", listingUrl);
+    // Set a reasonable timeout
+    page.setDefaultNavigationTimeout(30000); // 30 seconds
 
-    const listingImages = await page.$$eval(".slick-track", (elements) =>
-      elements
+    // Navigate to the page
+    console.log('🌐 Navigating to page...');
+    await page.goto(listingUrl, { waitUntil: "networkidle0" });
+    console.log('✅ Page loaded successfully');
+
+    // Scrape images
+    console.log('📸 Scraping listing images...');
+    const listingImages = await page.$$eval(".slick-track", (elements) => {
+      const images = elements
         .map((el) => {
           const list = el.querySelectorAll("li > a > img") ?? [];
-          return Array.from(list).map((li) => {
-            return li.src;
-          });
+          return Array.from(list).map((li) => li.src);
         })
-        .flat(),
-    );
+        .flat();
+      return images;
+    });
+    console.log(`Found ${listingImages.length} images`);
 
+    // Scrape recommended text
+    console.log('📝 Scraping recommended text...');
     const recommendedText = await page.$$eval(
       "section.detail_txt.recommend_txt p",
       (items) =>
         items
-          .map((el) => {
-            return el.textContent.trim();
-          })
+          .map((el) => el.textContent.trim())
           .flat(),
     );
+    
+    const formattedRecommendedText = recommendedText[0]
+      .split("\n")
+      .join("")
+      .split("★")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    console.log(`Found ${formattedRecommendedText.length} recommended text items`);
+
+    // Check if sold
+    console.log('🏷️ Checking sold status...');
     const isDetailSoldPresent = await page
       .$eval(
         "div.detail_sold",
-        () => true, // If the element is found, return true
+        () => true,
       )
       .catch(() => false);
+    console.log(`Sold status: ${isDetailSoldPresent ? 'SOLD' : 'Available'}`);
+
+    // Clean up
+    await browser.close();
+    
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✨ Scraping completed in ${duration}s`);
 
     return {
       listingImages,
-      recommendedText: recommendedText[0]
-        .split("\n")
-        .join("")
-        .split("★")
-        .map((s) => s.trim()),
+      recommendedText: formattedRecommendedText,
       isDetailSoldPresent,
     };
-  } catch (e) {
-    console.error(e);
-    return e;
+  } catch (error) {
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.error(`❌ Scraping failed after ${duration}s:`, error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+    return error;
   }
 }
 
@@ -113,4 +144,3 @@ async function init(index = 0) {
   return;
 }
 
-init(0);

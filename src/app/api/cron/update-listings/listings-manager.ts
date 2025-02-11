@@ -1,14 +1,95 @@
-import fs from 'fs/promises';
+import { list } from '@vercel/blob';
+import { scrapeListingPage } from './process-listings';
 import type { ListingsData, ScrapedData, Listing } from './types';
+
+interface FailedScrape {
+  id: string;
+  url: string;
+  error: Error | unknown;
+  attempts: number;
+}
+
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY = 2000; // 2 seconds
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function retryFailedScrapes(
+  failedScrapes: FailedScrape[], 
+  mergedListings: ListingsData
+): Promise<void> {
+  console.log('\n=== Retrying Failed Scrapes ===');
+  
+  for (const failed of failedScrapes) {
+    if (failed.attempts >= MAX_RETRY_ATTEMPTS) {
+      console.log(`❌ Max retries exceeded for ${failed.id}, skipping...`);
+      continue;
+    }
+
+    console.log(`🔄 Retry attempt ${failed.attempts + 1} for ${failed.id}`);
+    try {
+      await sleep(RETRY_DELAY * failed.attempts); // Exponential backoff
+      const additionalDetails = await scrapeListingPage(failed.url);
+      
+      if (additionalDetails && !(additionalDetails instanceof Error)) {
+        const listing = mergedListings.newListings[failed.id];
+        if (listing) {
+          listing.listingImages = additionalDetails.listingImages;
+          listing.recommendedText = additionalDetails.recommendedText;
+          listing.isDetailSoldPresent = additionalDetails.isDetailSoldPresent;
+          console.log(`✅ Retry successful for ${failed.id}`);
+          console.log(`📸 Found ${additionalDetails.listingImages?.length || 0} images`);
+        }
+      } else {
+        failed.attempts++;
+        console.warn(`⚠️ Retry failed for ${failed.id}`);
+      }
+    } catch (error) {
+      failed.attempts++;
+      failed.error = error;
+      console.error(`❌ Error during retry for ${failed.id}:`, error);
+    }
+  }
+
+  // Log final retry results
+  const remainingFailed = failedScrapes.filter(f => f.attempts >= MAX_RETRY_ATTEMPTS);
+  if (remainingFailed.length > 0) {
+    console.log('\n=== Failed Scrapes After Retries ===');
+    remainingFailed.forEach(f => {
+      console.log(`❌ ${f.id} (${f.url}): Failed after ${f.attempts} attempts`);
+    });
+  }
+}
 
 export async function readListings(): Promise<ListingsData> {
   try {
-    const data = await fs.readFile('./public/listings.json', 'utf8');
-    const listings = JSON.parse(data);
-    console.log(`Read ${Object.keys(listings.newListings).length} existing listings`);
+    // List blobs to find the most recent listings.json
+    const { blobs } = await list();
+    const listingsBlob = blobs
+      .filter(blob => blob.pathname.endsWith('listings.json'))
+      .sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())[0];
+
+    if (!listingsBlob) {
+      console.log('No existing listings blob found, creating new data');
+      return { newListings: {} };
+    }
+
+    // Get the blob content
+    const response = await fetch(listingsBlob.url);
+    if (!response.ok) {
+      throw new Error('Failed to fetch blob');
+    }
+
+    const listings = await response.json() as ListingsData;
+    console.log(`Read ${Object.keys(listings.newListings).length} existing listings from blob`);
+    console.log(`Blob URL: ${listingsBlob.url}`);
+    console.log(`Last updated: ${listingsBlob.uploadedAt}`);
+    
     return listings;
   } catch (error) {
-    console.log('No existing listings found, creating new file');
+    console.error('Error reading listings from blob:', error);
     return { newListings: {} };
   }
 }
@@ -24,6 +105,9 @@ export async function mergeListings(
   const mergedListings: ListingsData = { 
     newListings: { ...existingListings.newListings } 
   };
+
+  // Track failed scrapes for retry
+  const failedScrapes: FailedScrape[] = [];
 
   // Create map of existing addresses for quick lookup
   const addressMap = new Map(
@@ -59,14 +143,15 @@ export async function mergeListings(
   seenAddresses.clear();
 
   // Process each scraped listing
-  scrapedData.addresses.forEach((address, index) => {
+  for (let index = 0; index < scrapedData.addresses.length; index++) {
     try {
+      const address = scrapedData.addresses[index];
       const normalizedAddress = address.toLowerCase();
 
       // Skip if we've already processed this address in this batch
       if (seenAddresses.has(normalizedAddress)) {
         console.log(`🔄 Skipping duplicate address: ${address}`);
-        return;
+        continue;
       }
       seenAddresses.set(normalizedAddress, index);
 
@@ -104,16 +189,40 @@ export async function mergeListings(
         landSqMeters: scrapedData.landSqMeters[index],
       };
 
-      if (existingId) {
+      // If this is a new listing, scrape additional details
+      if (!existingId) {
+        console.log(`✨ Scraping details for new listing: ${newId}`);
+        try {
+          const additionalDetails = await scrapeListingPage(scrapedData.listingDetail[index]);
+          if (additionalDetails && !(additionalDetails instanceof Error)) {
+            newListing.listingImages = additionalDetails.listingImages;
+            newListing.recommendedText = additionalDetails.recommendedText;
+            newListing.isDetailSoldPresent = additionalDetails.isDetailSoldPresent;
+            console.log(`📸 Found ${additionalDetails.listingImages?.length || 0} images`);
+          } else {
+            console.warn(`⚠️ Failed to scrape additional details for ${newId}`);
+            failedScrapes.push({
+              id: newId,
+              url: scrapedData.listingDetail[index],
+              error: additionalDetails,
+              attempts: 1
+            });
+          }
+        } catch (error) {
+          console.error(`❌ Error scraping additional details for ${newId}:`, error);
+          failedScrapes.push({
+            id: newId,
+            url: scrapedData.listingDetail[index],
+            error,
+            attempts: 1
+          });
+        }
+        newCount++;
+      } else {
         console.log(`📝 Updating existing listing: ${existingId}`);
         updatedCount++;
-      } else {
-        console.log(`✨ Adding new listing: ${newId}`);
-        newCount++;
       }
 
-      // If address exists, update the existing listing
-      // If new, add as new listing
       mergedListings.newListings[newListing.id] = {
         ...mergedListings.newListings[newListing.id],
         ...newListing
@@ -122,22 +231,21 @@ export async function mergeListings(
       console.error(`❌ Error processing listing ${index}:`, error);
       errorCount++;
     }
-  });
+  }
+
+  // Retry failed scrapes
+  if (failedScrapes.length > 0) {
+    console.log(`\n🔄 Found ${failedScrapes.length} failed scrapes to retry`);
+    await retryFailedScrapes(failedScrapes, mergedListings);
+  }
 
   console.log('\n=== Merge Summary ===');
   console.log(`Updated listings: ${updatedCount}`);
   console.log(`New listings: ${newCount}`);
   console.log(`Duplicate addresses skipped: ${duplicateCount}`);
   console.log(`Errors: ${errorCount}`);
+  console.log(`Failed scrapes: ${failedScrapes.filter(f => f.attempts >= MAX_RETRY_ATTEMPTS).length}`);
   console.log(`Total listings after merge: ${Object.keys(mergedListings.newListings).length}`);
-
-  // Write merged listings back to file
-  await fs.writeFile(
-    './public/listings.json',
-    JSON.stringify(mergedListings, null, 2),
-    'utf8'
-  );
-  console.log('✅ Successfully wrote merged listings to file\n');
 
   return mergedListings;
 } 
