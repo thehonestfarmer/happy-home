@@ -11,6 +11,7 @@ import { Metadata } from 'next';
 
 import Header from "./header";
 import { Toast } from "@/components/ui/toast";
+import { ListingsProvider } from "@/contexts/ListingsContext";
 
 const fontHeading = Inter({
   subsets: ["latin"],
@@ -53,17 +54,17 @@ export const metadata: Metadata = {
     title: 'Happy Home Japan',
     description: 'Happy Home Japan is a real estate company that helps you find the perfect home in Japan.',
     images: ['/sample-1.jpeg'],
-    creator: '@yourtwitterhandle',
+    creator: '@anhonestfarmer',
   },
   icons: {
     icon: [
       {
         url: '/favicon.ico',
-        sizes: '32x32',
+        sizes: 'any',
         type: 'image/x-icon',
       },
       {
-        url: '/icon.png',
+        url: '/icon-192.png',
         sizes: '192x192',
         type: 'image/png',
       },
@@ -72,6 +73,11 @@ export const metadata: Metadata = {
         sizes: '16x16',
         type: 'image/png',
       },
+      {
+        url: '/favicon-32x32.png',
+        sizes: '32x32',
+        type: 'image/png',
+      }
     ],
     apple: [
       {
@@ -80,6 +86,7 @@ export const metadata: Metadata = {
         type: 'image/png',
       },
     ],
+    shortcut: [{ url: '/favicon.ico' }],
     other: [
       {
         rel: 'mask-icon',
@@ -91,7 +98,11 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
 };
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <head>
@@ -108,10 +119,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       >
         <SidebarProvider>
           <AppProvider>
-            <AppSidebar />
+            <ListingsProvider>
+              <AppSidebar />
 
-            <Header />
-            {children}
+              <Header />
+              {children}
+            </ListingsProvider>
           </AppProvider>
         </SidebarProvider>
         <AnalyticsProdOnly />

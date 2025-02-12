@@ -1,5 +1,5 @@
 "use client";
-import { useLoadListings } from "@/hooks";
+import { useListings } from "@/contexts/ListingsContext";
 import { ListingsToolbar } from "./ListingsToolbar";
 import { useAppContext } from "@/AppContext";
 import { ListingBox } from "@/app/FilteredListingsBox";
@@ -7,6 +7,20 @@ import { convertCurrency } from "@/lib/listing-utils";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
+import { ListingCard } from "./ListingCard";
+import { LoadingListingCard } from "./LoadingListingCard";
+import { ErrorDisplay } from "../ui/ErrorDisplay";
+
+interface FilterState {
+  showSold: boolean;
+  priceRange: {
+    min: number | null;
+    max: number | null;
+  };
+  layout: {
+    minLDK: number | null;
+  };
+}
 
 const parsePriceJPY = (priceStr: string): number => {
   // Extract number from strings like "18.8 million yen"
@@ -24,23 +38,26 @@ const parseLayout = (layout: string): number => {
 
 // Helper to check if filters are at default state
 const isDefaultFilterState = (filterState: FilterState) => {
-  return !filterState.showSold && 
-    !filterState.priceRange.min && 
-    !filterState.priceRange.max && 
+  return !filterState.showSold &&
+    !filterState.priceRange.min &&
+    !filterState.priceRange.max &&
     !filterState.layout.minLDK;
 };
 
 export function ListingsGrid() {
-  const listings = useLoadListings();
+  const { listings, isLoading, error } = useListings();
   const { filterState, setFilterState, displayState } = useAppContext();
 
+  // Move useMemo to the top level of the component
   const filteredAndSortedListings = useMemo(() => {
+    if (!listings) return [];
+
     let result = listings.filter((property) => {
       // Handle price filter first
       if (filterState.priceRange.min || filterState.priceRange.max) {
         const priceJPY = parsePriceJPY(property.prices);
         const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
-        
+
         if (filterState.priceRange.min && priceUSD < filterState.priceRange.min) {
           return false;
         }
@@ -101,39 +118,71 @@ export function ListingsGrid() {
     });
   };
 
-  const NoResults = () => {
-    if (!isDefaultFilterState(filterState)) {
+  // Extract NoResults into a memoized component outside of the render logic
+  const NoResults = useMemo(() => {
+    return () => {
+      if (!isDefaultFilterState(filterState)) {
+        return (
+          <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+            <p className="text-lg font-medium">
+              Hmm... We couldn't find any properties matching your criteria 🤔
+            </p>
+            <p className="text-muted-foreground">
+              Try adjusting your filters - we're adding new properties regularly!
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleResetFilters}
+              className="mt-4"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset All Filters
+            </Button>
+          </div>
+        );
+      }
+
       return (
-        <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+        <div className="flex flex-col items-center justify-center p-8 text-center">
           <p className="text-lg font-medium">
-            Hmm... We couldn't find any properties matching your criteria 🤔
+            No properties available at the moment
           </p>
           <p className="text-muted-foreground">
-            Try adjusting your filters - we're adding new properties regularly!
+            Check back soon - we're adding new listings regularly!
           </p>
-          <Button 
-            variant="outline" 
-            onClick={handleResetFilters}
-            className="mt-4"
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset All Filters
-          </Button>
         </div>
       );
-    }
-    
+    };
+  }, [filterState, handleResetFilters]);
+
+  if (error) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <p className="text-lg font-medium">
-          No properties available at the moment
-        </p>
-        <p className="text-muted-foreground">
-          Check back soon - we're adding new listings regularly!
-        </p>
+      <div className="grid place-items-center min-h-[50vh]">
+        <ErrorDisplay
+          title="Failed to load listings"
+          message={error.message}
+        />
       </div>
     );
-  };
+  }
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <LoadingListingCard key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  if (listings.length === 0) {
+    return (
+      <div className="grid place-items-center min-h-[50vh]">
+        <p className="text-muted-foreground">No listings found</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -142,10 +191,8 @@ export function ListingsGrid() {
         {filteredAndSortedListings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredAndSortedListings.map((property) => (
-              <ListingBox 
-                key={property.id} 
-                property={property}
-                handleLightboxOpen={() => {}} 
+              <ListingBox key={property.id} property={property}
+                handleLightboxOpen={() => { }}
               />
             ))}
           </div>

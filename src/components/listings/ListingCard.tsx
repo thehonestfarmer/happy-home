@@ -8,7 +8,7 @@ interface ListingCardProps {
     baths: number;
     sqft: number;
     address: string;
-    images: string[];
+    listingImages: string[];
   };
 }
 
@@ -17,7 +17,7 @@ export function ListingCard({ listing }: ListingCardProps) {
     <div className="rounded-lg border bg-card shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
       <div className="relative aspect-[4/3]">
         <Image
-          src={listing.images[0]}
+          src={listing.listingImages[0]}
           alt={`Property at ${listing.address}`}
           fill
           className="object-cover"
@@ -30,7 +30,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         </div>
         
         <div className="text-sm text-muted-foreground">
-          {listing.beds} beds • {listing.baths} baths • {listing.sqft.toLocaleString()} sqft
+          {listing.beds} beds • {listing.baths} baths • {listing.buildSqMeters.toLocaleString()} sq m
         </div>
         
         <p className="text-sm text-muted-foreground mt-2">

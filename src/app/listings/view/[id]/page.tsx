@@ -9,7 +9,7 @@ import Lightbox from "yet-another-react-lightbox";
 import NextJsImage from "@/components/ui/nextjsimage";
 import { DrawerDialogDemo } from "@/app/InquiryDialog";
 import { useAppContext } from "@/AppContext";
-import { useLoadListings } from "@/hooks";
+import { useListings } from "@/contexts/ListingsContext";
 import { Badge } from "@/components/ui/badge";
 import { ShareIcon, Copy } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -45,10 +45,26 @@ import { useToast } from "@/hooks/use-toast";
 export default function Page() {
   const { toast } = useToast();
   const router = useRouter();
+  const { listingsById } = useListings();
   const params = useParams<{ id: string }>();
-  const idNum = Number(params.id);
-  const listings = useLoadListings();
-  const property = listings[idNum];
+  const property = listingsById[params.id];
+  
+  // Add error handling for when property is not found
+  if (!property) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+          <h1 className="text-2xl font-bold">Property Not Found</h1>
+          <p className="text-muted-foreground">The property you're looking for doesn't exist or has been removed.</p>
+          <Button variant="outline" onClick={() => router.push('/listings')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Listings
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const { displayState, setDisplayState } = useAppContext();
   const [_, listingImageIdx = 0] = displayState.lightboxListingIdx ?? [];
 
@@ -120,7 +136,7 @@ export default function Page() {
                 fill
                 priority={index < 2}
                 className="object-cover"
-                onClick={() => handleLightboxOpen(idNum, index)}
+                onClick={() => handleLightboxOpen(params.id, index)}
               />
             </div>
           ))}
@@ -166,7 +182,7 @@ export default function Page() {
             fill
             priority
             className="object-cover cursor-pointer"
-            onClick={() => handleLightboxOpen(idNum, 0)}
+            onClick={() => handleLightboxOpen(params.id, 0)}
           />
         </div>
 
@@ -180,12 +196,12 @@ export default function Page() {
                 fill
                 priority
                 className="object-cover cursor-pointer"
-                onClick={() => handleLightboxOpen(idNum, index + 1)}
+                onClick={() => handleLightboxOpen(params.id, index + 1)}
               />
               {index === 3 && property.listingImages.length > 5 && (
                 <div 
                   className="absolute inset-0 bg-black/50 flex items-center justify-center text-white cursor-pointer"
-                  onClick={() => handleLightboxOpen(idNum, 4)}
+                  onClick={() => handleLightboxOpen(params.id, 4)}
                 >
                   <span className="text-xl font-semibold">+{property.listingImages.length - 5} more</span>
                 </div>

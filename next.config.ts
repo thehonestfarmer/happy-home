@@ -12,7 +12,14 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ['www.shiawasehome-reuse.com']
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'www.shiawasehome-reuse.com',
+        pathname: '/wp-content/uploads/**',
+        port: '',
+      },
+    ],
   },
 };
 

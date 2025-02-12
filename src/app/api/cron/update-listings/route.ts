@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         success: true, 
         message: 'Listings updated successfully',
-        data: mergedListings,
+        data: newListingsWithIds,
         updated: true,
         url
       });

@@ -4,7 +4,6 @@ import { readListings } from '../cron/update-listings/listings-manager';
 export async function GET() {
   try {
     const listings = await readListings();
-    console.log(Object.keys(listings.newListings).length, "<<<<<");
     
     return NextResponse.json({ 
       success: true,

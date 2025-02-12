@@ -1,27 +1,76 @@
 import { PROPERTIES, SLIDES } from "@/app/fixtures";
-import listings from "../public/listings.json";
+import { useEffect, useState } from "react";
+import type { ListingsData } from "./app/api/cron/update-listings/types";
+import { convertCurrency } from "./lib/listing-utils";
+import { parseJapanesePrice } from "./lib/listing-utils";
+
+interface ProcessedListing {
+  id: string;
+  addresses: string;
+  tags: string;
+  listingDetail: string;
+  prices: string;
+  layout: string;
+  buildSqMeters: string;
+  landSqMeters: string;
+  listingImages?: string[];
+  recommendedText?: string[];
+  isDetailSoldPresent?: boolean;
+  priceUsd: number;
+  // Include any other properties from PROPERTIES that you need
+  [key: string]: any;
+}
 
 export function useLoadListings() {
-  // here we want to load/read the same json as the other root page
-  const { newListings = [] } = listings;
-  const listingKeys = Object.keys(newListings);
-  const stubbedListings = listingKeys.map((idx) => {
-    const item = newListings[String(idx)];
-    if (item.links === "link") {
-      item.links = {};
-      item.links.listingImages = SLIDES.map((i) => i.src);
+  const [listings, setListings] = useState<ProcessedListing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    async function fetchListings() {
+      try {
+        const response = await fetch('/api/listings');
+        if (!response.ok) {
+          throw new Error('Failed to fetch listings');
+        }
+        
+        const data = await response.json();
+        const { newListings } = data.data as ListingsData;
+        
+        // Process listings similar to before
+        const processedListings = Object.entries(newListings).map(([id, item]) => {
+          const listingImages = item.listingImages;
+
+          // Calculate full price in JPY
+          const price = parseJapanesePrice(item.prices);
+
+          // Convert JPY to USD using exchange rate utility
+          const priceUsd = convertCurrency(price, "JPY", "USD");
+
+
+          return {
+            ...item,
+            id,
+            listingImages,
+            price,
+            priceUsd,
+          };
+        });
+
+        setListings(processedListings);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('An error occurred'));
+      } finally {
+        setIsLoading(false);
+      }
     }
 
-    return {
-      ...item,
-      ...PROPERTIES[listingKeys.length % PROPERTIES.length],
-      id: idx,
-      priceUsd: parseInt(
-        (parseFloat(item.prices.split(": million yen")[0]) * 100 * 100 * 100) /
-          151,
-      ),
-    };
-  });
+    fetchListings();
+  }, []);
 
-  return stubbedListings;
+  return {
+    listings,
+    isLoading,
+    error
+  };
 }
