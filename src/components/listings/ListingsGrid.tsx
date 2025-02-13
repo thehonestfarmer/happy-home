@@ -22,6 +22,21 @@ interface FilterState {
   };
 }
 
+interface ListingData {
+  id: string;
+  addresses: string;
+  isDuplicate?: boolean;
+  tags: string;
+  listingDetail: string;
+  prices: string;
+  layout: string;
+  buildSqMeters: string;
+  landSqMeters: string;
+  listingImages?: string[];
+  recommendedText?: string[];
+  isDetailSoldPresent?: boolean;
+}
+
 const parsePriceJPY = (priceStr: string): number => {
   // Extract number from strings like "18.8 million yen"
   const match = priceStr.match(/(\d+\.?\d*)/);
@@ -48,42 +63,51 @@ export function ListingsGrid() {
   const { listings, isLoading, error } = useListings();
   const { filterState, setFilterState, displayState } = useAppContext();
 
-  // Move useMemo to the top level of the component
+  console.log(listings);
+
   const filteredAndSortedListings = useMemo(() => {
     if (!listings) return [];
-
-    let result = listings.filter((property) => {
+    
+    // First filter
+    const filteredListings = listings 
+      // Filter out duplicates
+      .filter((listing: ListingData) => !listing.isDuplicate)
       // Handle price filter first
-      if (filterState.priceRange.min || filterState.priceRange.max) {
-        const priceJPY = parsePriceJPY(property.prices);
-        const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
+      .filter((property: ListingData) => {
+        if (filterState.priceRange.min || filterState.priceRange.max) {
+          const priceJPY = parsePriceJPY(property.prices);
+          const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
 
-        if (filterState.priceRange.min && priceUSD < filterState.priceRange.min) {
-          return false;
+          if (filterState.priceRange.min && priceUSD < filterState.priceRange.min) {
+            return false;
+          }
+          if (filterState.priceRange.max && priceUSD > filterState.priceRange.max) {
+            return false;
+          }
         }
-        if (filterState.priceRange.max && priceUSD > filterState.priceRange.max) {
-          return false;
-        }
-      }
-
+        return true;
+      })
       // Handle layout filter
-      if (filterState.layout.minLDK) {
-        const layoutNumber = parseLayout(property.layout);
-        if (layoutNumber < filterState.layout.minLDK) {
-          return false;
+      .filter((property: ListingData) => {
+        if (filterState.layout.minLDK) {
+          const layoutNumber = parseLayout(property.layout);
+          if (layoutNumber < filterState.layout.minLDK) {
+            return false;
+          }
         }
-      }
-
+        return true;
+      })
       // Handle sold filter last
-      if (filterState.showSold) {
-        return property.isDetailSoldPresent;
-      } else {
-        return !property.isDetailSoldPresent;
-      }
-    });
+      .filter((property: ListingData) => {
+        if (filterState.showSold) {
+          return property.isDetailSoldPresent;
+        } else {
+          return !property.isDetailSoldPresent;
+        }
+      });
 
-    // Sort the filtered results
-    return result.sort((a, b) => {
+    // Then sort
+    return filteredListings.sort((a, b) => {
       switch (displayState.sortBy) {
         case 'price-asc': {
           const priceA = parsePriceJPY(a.prices);
@@ -106,7 +130,7 @@ export function ListingsGrid() {
     filterState.priceRange.min,
     filterState.priceRange.max,
     filterState.layout.minLDK,
-    displayState.sortBy
+    displayState.sortBy // Add this back to dependencies
   ]);
 
   const handleResetFilters = () => {

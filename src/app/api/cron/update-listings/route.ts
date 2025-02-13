@@ -133,4 +133,37 @@ export async function POST(request: Request) {
       error: error instanceof Error ? error.message : 'Failed to update listings'
     }, { status: 500 });
   }
+}
+
+export async function GET() {
+  try {
+    const currentListings = await getCurrentListings();
+    const newListings = await fetchNewListings();
+
+    // Filter out duplicates when comparing
+    const nonDuplicateCurrentListings = currentListings.filter(
+      listing => !listing.isDuplicate
+    );
+
+    // Compare only with non-duplicate listings
+    const updatedListings = compareAndUpdateListings(
+      nonDuplicateCurrentListings, 
+      newListings
+    );
+
+    // Preserve duplicate flags in final listing set
+    const finalListings = updatedListings.map(listing => {
+      const existingListing = currentListings.find(l => l.id === listing.id);
+      if (existingListing?.isDuplicate) {
+        return { ...listing, isDuplicate: true };
+      }
+      return listing;
+    });
+
+    await saveListings(finalListings);
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 } 
