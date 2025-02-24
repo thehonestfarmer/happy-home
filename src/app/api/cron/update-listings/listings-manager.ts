@@ -64,6 +64,23 @@ async function retryFailedScrapes(
 }
 
 export async function readListings(): Promise<ListingsData> {
+  // Check if in development mode
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      // Import local file system module
+      const fs = require('fs');
+      const path = require('path');
+      
+      const filePath = path.join(process.cwd(), 'all-listings.json');
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      console.log(`Read ${Object.keys(data.newListings).length} listings from local file`);
+      return data;
+    } catch (error) {
+      console.error('Error reading local listings file:', error);
+      return { newListings: {} };
+    }
+  }
+
   try {
     // List blobs to find the most recent listings.json
     const { blobs } = await list();

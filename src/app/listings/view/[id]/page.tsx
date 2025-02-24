@@ -256,8 +256,8 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           <div className="col-span-2 space-y-6">
             {/* Header */}
             <div>
-              <h1 className="text-2xl font-semibold">{property.addresses.split(",")[0]}</h1>
-              <p className="text-muted-foreground">{property.addresses.split(",")[1]}</p>
+              <h1 className="text-2xl font-semibold">{property.address.split(",")[0]}</h1>
+              <p className="text-muted-foreground">{property.address.split(",")[1]}</p>
             </div>
 
             {/* Key Features */}
@@ -284,18 +284,18 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             <div>
               <h2 className="text-lg font-semibold mb-2">About this home</h2>
               <p className="text-muted-foreground">
-                {property.recommendedText.join(". ")}
+                {property.recommendedText}
               </p>
             </div>
 
             {/* Tags */}
-            <div className="flex flex-wrap gap-2">
-              {property.tags.split(",").map((tag: string) => (
+            {/* <div className="flex flex-wrap gap-2">
+              {(property.tags ?? []).split(",").map((tag: string) => (
                 <Badge key={tag} variant="outline" className="px-2 py-1">
                   {tag.trim()}
                 </Badge>
               ))}
-            </div>
+            </div> */}
           </div>
 
           {/* Sidebar */}

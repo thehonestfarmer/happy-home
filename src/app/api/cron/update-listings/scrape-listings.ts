@@ -41,7 +41,7 @@ function formatListingData(result: ScrapedResult): ScrapedResult {
   return result;
 }
 
-async function translateText(text: string): Promise<string> {
+export async function translateText(text: string): Promise<string> {
   return await translate(text, { from: "ja", to: "en" });
 }
 

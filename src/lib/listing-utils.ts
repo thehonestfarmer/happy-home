@@ -9,10 +9,45 @@ export function parseJapanesePrice(priceStr: string): number {
   return millionYen * 1_000_000; // Return raw yen amount
 }
 
-export function parseLDK(layout: string): number {
-  // Handle formats like "3LDK", "2DK", etc.
-  const match = layout.match(/(\d+)[LD]?K/);
-  return match ? parseInt(match[1], 10) : 0;
+export interface Listing {
+    listingUrl: string;
+    address: string;
+    floorPlan?: string;
+    layout?: string;
+    price: string;
+    landArea: string;
+    buildArea: string;
+    englishAddress?: string;
+    originalAddress?: string;
+    details?: string[];
+    listingImages?: string[];
+    scrapedAt?: string;
+    isDetailSoldPresent?: boolean;
+    isDuplicate?: boolean;
+}
+
+export function parseLayout(layoutStr: string | undefined): number {
+    if (!layoutStr) return 0;
+    
+    // Look for LDK pattern
+    const ldkMatch = layoutStr.match(/(\d+)LDK/i);
+    if (ldkMatch) {
+        return parseInt(ldkMatch[1], 10);
+    }
+
+    // Look for DK pattern
+    const dkMatch = layoutStr.match(/(\d+)DK/i);
+    if (dkMatch) {
+        return parseInt(dkMatch[1], 10);
+    }
+
+    // Look for K pattern
+    const kMatch = layoutStr.match(/(\d+)K/i);
+    if (kMatch) {
+        return parseInt(kMatch[1], 10);
+    }
+
+    return 0; // Return 0 if no valid pattern is found
 }
 
 export const SIZES = {

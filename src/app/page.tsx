@@ -6,6 +6,7 @@ import { FaqSection } from "@/components/home/FaqSection";
 import { CtaSection } from "@/components/home/CtaSection";
 
 export default function HomePage() {
+  
   return (
     <main>
       <HeroSection />

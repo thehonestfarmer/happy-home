@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  serverExternalPackages: ['bull'],
   experimental: {
     scrollRestoration: true,
   },
@@ -26,6 +27,12 @@ const nextConfig: NextConfig = {
         port: '',
       },
     ],
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'bull'];
+    }
+    return config;
   },
 };
 

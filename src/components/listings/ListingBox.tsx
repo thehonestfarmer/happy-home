@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+<<<<<<< HEAD
 
 
 import { useAppContext } from "@/AppContext";
@@ -12,20 +13,25 @@ import {
   parseJapanesePrice
 } from "@/lib/listing-utils";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
+=======
+import Image from "next/image";
+import { DetailCarousel } from "@/app/ListingCarousel";
+>>>>>>> d3fb97d (wip)
 
 interface ListingBoxProps {
   property: {
     id: string;
     priceUsd: number;
-    prices: string;
+    price: string;
     layout: string;
     buildSqMeters: string;
-    addresses: string;
+    address: string;
     listingImages: string[];
   };
   handleLightboxOpen: (idx: number, sIdx: number) => void;
 }
 
+<<<<<<< HEAD
 export function ListingBox({ property, handleLightboxOpen }: { property: any, handleLightboxOpen: any }) {
   const { filterState } = useAppContext();
   const selectedCurrency = filterState.priceRange.currency || "USD";
@@ -75,12 +81,33 @@ export function ListingBox({ property, handleLightboxOpen }: { property: any, ha
               variant="ghost"
               size="sm"
             />
+=======
+export function ListingBox({ property, handleLightboxOpen }: ListingBoxProps) {
+  console.log(property);
+  return (
+    <Link href={`/listings/view/${property.id}`}>
+      <div className="bg-background rounded-xl shadow-sm overflow-hidden border border-gray-100">
+        <DetailCarousel
+          property={property}
+          handleOpenAction={handleLightboxOpen}
+        />
+        <div className="p-4 space-y-3">
+          <div>
+            <div className="text-2xl font-bold">
+              ¥{property.price?.toLocaleString()}
+            </div>
+            <div className="text-gray-500">
+              ${property.priceUsd.toLocaleString()}
+            </div>
+>>>>>>> d3fb97d (wip)
           </div>
-          <div className="text-sm text-muted-foreground">
-            {property.layout} • {`${property.buildSqMeters} m²`}
+
+          <div className="text-gray-600">
+            {property.floorPlan} • {property.landArea} • {property.buildArea}
           </div>
-          <div className="text-sm text-muted-foreground mt-2">
-            {property.addresses}
+
+          <div className="text-gray-500">
+            {property.englishAddress}
           </div>
         </div>
       </Card>

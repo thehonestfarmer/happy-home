@@ -42,7 +42,7 @@ export function useLoadListings() {
           const listingImages = item.listingImages;
 
           // Calculate full price in JPY
-          const price = parseJapanesePrice(item.prices);
+          const price = parseJapanesePrice(item.price);
 
           // Convert JPY to USD using exchange rate utility
           const priceUsd = convertCurrency(price, "JPY", "USD");
