@@ -12,6 +12,8 @@ import { Metadata } from 'next';
 import Header from "./header";
 import { Toast } from "@/components/ui/toast";
 import { ListingsProvider } from "@/contexts/ListingsContext";
+import { Toaster } from "@/components/ui/toaster";
+import { BottomNav } from "@/components/navigation/BottomNav";
 
 const fontHeading = Inter({
   subsets: ["latin"],
@@ -123,10 +125,14 @@ export default function RootLayout({
               <AppSidebar />
 
               <Header />
-              {children}
+              <div className="min-h-screen pb-16 lg:pb-0">
+                {children}
+                <BottomNav />
+              </div>
             </ListingsProvider>
           </AppProvider>
         </SidebarProvider>
+        <Toaster />
         <AnalyticsProdOnly />
       </body>
     </html>

@@ -4,16 +4,19 @@ import { useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Copy } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import NextJsImage from "@/components/ui/nextjsimage";
 import { DrawerDialogDemo } from "@/app/InquiryDialog";
 import { useAppContext } from "@/AppContext";
 import { useListings } from "@/contexts/ListingsContext";
 import { Badge } from "@/components/ui/badge";
-import { ShareIcon, Copy } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { FavoriteButton } from "@/components/listings/FavoriteButton";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { DisplayState } from "@/AppContext";
+import type { Listing } from "@/app/api/cron/update-listings/types";
+import type { Draft } from "immer";
 
 /**
  * TODO: move to util once you can use netrw better
@@ -42,39 +45,76 @@ import { useToast } from "@/hooks/use-toast";
 //   return "unknown";
 // }
 
-export default function Page() {
-  const { toast } = useToast();
-  const router = useRouter();
-  const { listingsById } = useListings();
-  const params = useParams<{ id: string }>();
-  const property = listingsById[params.id];
-  
-  // Add error handling for when property is not found
-  if (!property) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-          <h1 className="text-2xl font-bold">Property Not Found</h1>
-          <p className="text-muted-foreground">The property you're looking for doesn't exist or has been removed.</p>
-          <Button variant="outline" onClick={() => router.push('/listings')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Listings
-          </Button>
+function ListingPageSkeleton() {
+  return (
+    <div className="w-full">
+      {/* Navigation Toolbar Skeleton */}
+      <div className="flex items-center justify-between h-14 px-4 border-b">
+        <Skeleton className="h-10 w-24" />
+        <Skeleton className="h-10 w-24" />
+      </div>
+
+      {/* Image Gallery Skeleton */}
+      <div className="grid grid-cols-12 gap-1 h-[480px]">
+        <div className="col-span-8">
+          <Skeleton className="h-full w-full" />
+        </div>
+        <div className="col-span-4 grid grid-rows-2 gap-1">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-full w-full" />
+          ))}
         </div>
       </div>
-    );
-  }
 
+      {/* Content Section Skeleton */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-3 gap-8">
+          <div className="col-span-2 space-y-6">
+            <div>
+              <Skeleton className="h-8 w-3/4 mb-2" />
+              <Skeleton className="h-6 w-1/2" />
+            </div>
+            <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="text-center">
+                  <Skeleton className="h-6 w-16 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-24 mx-auto" />
+                </div>
+              ))}
+            </div>
+            <div>
+              <Skeleton className="h-6 w-40 mb-4" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface PropertyViewProps {
+  property: Listing;
+  listingId: string;
+}
+
+function PropertyView({ property, listingId }: PropertyViewProps) {
+  const { toast } = useToast();
+  const router = useRouter();
   const { displayState, setDisplayState } = useAppContext();
   const [_, listingImageIdx = 0] = displayState.lightboxListingIdx ?? [];
 
   const handleLightboxOpen = useCallback(
-    (idx: number, sIdx: number) => {
-      setDisplayState((draft) => {
-        draft.lightboxListingIdx = [idx, sIdx];
+    (sIdx: number) => {
+      setDisplayState((draft: Draft<DisplayState>) => {
+        draft.lightboxListingIdx = [parseInt(listingId), sIdx];
       });
     },
-    [setDisplayState],
+    [setDisplayState, listingId],
   );
 
   const lightboxSlides = (property.listingImages ?? []).map((i: string) => ({
@@ -86,17 +126,13 @@ export default function Page() {
   const handleMailto = useCallback(() => {
     const email = "thehonestfarmer@proton.me";
     const subject = "Property inquiry";
-    const body = `I'm interested in learning more about this property ${property.addresses}`;
+    const body = `I'm interested in learning more about this property ${property.address}`;
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
     window.location.href = mailtoUrl;
-  }, [property.addresses]);
+  }, [property.address]);
 
   const handleCopyLink = useCallback(() => {
-    // Get the current URL
     const url = window.location.href;
-    
-    // Copy to clipboard
     navigator.clipboard.writeText(url).then(() => {
       toast({
         title: "Link copied!",
@@ -136,14 +172,16 @@ export default function Page() {
                 fill
                 priority={index < 2}
                 className="object-cover"
-                onClick={() => handleLightboxOpen(params.id, index)}
+                onClick={() => handleLightboxOpen(index)}
               />
             </div>
           ))}
         </div>
         <Lightbox
           open={displayState.lightboxListingIdx !== null}
-          close={() => setDisplayState((draft) => { draft.lightboxListingIdx = null; })}
+          close={() => setDisplayState((draft: Draft<DisplayState>) => { 
+            draft.lightboxListingIdx = null; 
+          })}
           slides={lightboxSlides}
           render={{ slide: NextJsImage }}
           index={listingImageIdx}
@@ -182,7 +220,7 @@ export default function Page() {
             fill
             priority
             className="object-cover cursor-pointer"
-            onClick={() => handleLightboxOpen(params.id, 0)}
+            onClick={() => handleLightboxOpen(0)}
           />
         </div>
 
@@ -196,12 +234,12 @@ export default function Page() {
                 fill
                 priority
                 className="object-cover cursor-pointer"
-                onClick={() => handleLightboxOpen(params.id, index + 1)}
+                onClick={() => handleLightboxOpen(index + 1)}
               />
               {index === 3 && property.listingImages.length > 5 && (
                 <div 
                   className="absolute inset-0 bg-black/50 flex items-center justify-center text-white cursor-pointer"
-                  onClick={() => handleLightboxOpen(params.id, 4)}
+                  onClick={() => handleLightboxOpen(4)}
                 >
                   <span className="text-xl font-semibold">+{property.listingImages.length - 5} more</span>
                 </div>
@@ -264,16 +302,20 @@ export default function Page() {
           <div className="space-y-6">
             {/* Price Card */}
             <div className="p-6 border rounded-lg shadow-sm">
-              <div className="text-3xl font-bold mb-2">
-                ¥{(parseFloat(property.prices) * 1_000_000).toLocaleString()}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-3xl font-bold">
+                    ¥{(parseFloat(property.prices) * 1_000_000).toLocaleString()}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Est. ${Math.round(property.priceUsd).toLocaleString()} USD
+                  </div>
+                </div>
+                <FavoriteButton listingId={listingId} />
               </div>
-              <div className="text-sm text-muted-foreground mb-6">
-                Est. ${Math.round(property.priceUsd).toLocaleString()} USD
-              </div>
-              <Button className="w-full mb-2" onClick={handleMailto}>Contact Agent</Button>
-              {/* <Button variant="outline" className="w-full" onClick={handleMailto}>
-                Email
-              </Button> */}
+              <Button className="w-full mb-2" onClick={handleMailto}>
+                Contact Agent
+              </Button>
             </div>
 
             {/* Agent Card */}
@@ -297,13 +339,44 @@ export default function Page() {
 
       <Lightbox
         open={displayState.lightboxListingIdx !== null}
-        close={() => setDisplayState((draft) => { draft.lightboxListingIdx = null; })}
+        close={() => setDisplayState((draft: Draft<DisplayState>) => { 
+          draft.lightboxListingIdx = null; 
+        })}
         slides={lightboxSlides}
         render={{ slide: NextJsImage }}
         index={listingImageIdx}
       />
     </div>
   );
+}
+
+export default function Page() {
+  const router = useRouter();
+  const { listingsById, isLoading } = useListings();
+  const params = useParams<{ id: string }>();
+  
+  if (isLoading) {
+    return <ListingPageSkeleton />;
+  }
+
+  const property = listingsById[params.id];
+
+  if (!property) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+          <h1 className="text-2xl font-bold">Property Not Found</h1>
+          <p className="text-muted-foreground">The property you're looking for doesn't exist or has been removed.</p>
+          <Button variant="outline" onClick={() => router.push('/listings')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Listings
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return <PropertyView property={property} listingId={params.id} />;
 }
 // <Button variant="outline">
 //   <HeartIcon />

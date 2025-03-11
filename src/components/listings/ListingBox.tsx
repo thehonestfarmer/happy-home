@@ -4,7 +4,7 @@ import { DetailCarousel } from "@/app/ListingCarousel";
 
 interface ListingBoxProps {
   property: {
-    id: number;
+    id: string;
     priceUsd: number;
     prices: string;
     layout: string;
@@ -18,13 +18,13 @@ interface ListingBoxProps {
 export function ListingBox({ property, handleLightboxOpen }: ListingBoxProps) {
   return (
     <Link href={`/listings/view/${property.id}`}>
-      <div
-        className="bg-background rounded-xl shadow-sm overflow-hidden border border-gray-200"
-      >
-        <DetailCarousel
-          property={property}
-          handleOpenAction={handleLightboxOpen}
-        />
+      <div className="bg-background rounded-xl shadow-sm overflow-hidden border border-gray-200">
+        <div className="relative aspect-[4/3] w-full">
+          <DetailCarousel
+            property={property}
+            handleOpenAction={handleLightboxOpen}
+          />
+        </div>
         <div className="p-4">
           <div className="flex justify-between items-center mb-2">
             <div className="flex flex-col">

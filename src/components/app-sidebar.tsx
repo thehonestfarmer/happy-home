@@ -11,10 +11,13 @@ import { useEffect, useRef } from "react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePathname } from 'next/navigation';
 
 export function AppSidebar() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { openMobile, setOpenMobile } = useSidebar();
+  const pathname = usePathname();
+  const isHomePage = pathname === '/' || pathname === '/listings';
 
   return (
     <Sidebar
@@ -48,7 +51,9 @@ export function AppSidebar() {
             className="fixed inset-y-0 right-0 w-[300px] bg-white border-l border-transparent"
           >
             <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Filters</h2>
+              <h2 className="text-lg font-semibold">
+                {isHomePage ? "Filters" : "Menu"}
+              </h2>
               <Button
                 variant="ghost"
                 size="icon"
@@ -61,9 +66,12 @@ export function AppSidebar() {
             </div>
 
             <SidebarContent className="h-[calc(100%-theme(spacing.16))] overflow-auto">
-              <div className="lg:hidden">
-                <MobileFilters />
-              </div>
+              {isHomePage && (
+                <div className="lg:hidden">
+                  <MobileFilters />
+                </div>
+              )}
+              {/* Add other menu items here for non-home pages */}
             </SidebarContent>
             <SidebarFooter className="border-t bg-white p-4">
               <p className="text-sm text-muted-foreground text-center">

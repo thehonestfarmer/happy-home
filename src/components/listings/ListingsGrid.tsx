@@ -7,7 +7,6 @@ import { convertCurrency } from "@/lib/listing-utils";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
-import { ListingCard } from "./ListingCard";
 import { LoadingListingCard } from "./LoadingListingCard";
 import { ErrorDisplay } from "../ui/ErrorDisplay";
 

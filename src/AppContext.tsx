@@ -1,7 +1,8 @@
 "use client";
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import { useImmer } from "use-immer";
 import { Currency } from "@/lib/listing-utils";
+import { createClientComponentClient, type User as SupabaseUser } from '@supabase/auth-helpers-nextjs';
 
 interface PriceFilterState {
   selectedCurrency: Currency;
@@ -13,9 +14,13 @@ interface AppContextType {
   displayState: DisplayState;
   filterState: FilterState;
   priceFilterState: PriceFilterState;
+  user: SupabaseUser | null;
+  favorites: string[];
   setDisplayState: (draft: DisplayState) => void;
   setFilterState: (draft: FilterState) => void;
   setPriceFilterState: (updater: (draft: PriceFilterState) => void) => void;
+  setUser: (user: SupabaseUser | null) => void;
+  setFavorites: (favorites: string[]) => void;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -81,13 +86,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localRange: [0, 100_000_000],
   });
 
+  const [user, setUser] = useImmer<SupabaseUser | null>(null);
+  const [favorites, setFavorites] = useImmer<string[]>([]);
+
+  // Handle Supabase auth state
+  useEffect(() => {
+    const supabase = createClientComponentClient();
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Add effect to load favorites when user changes
+  useEffect(() => {
+    const loadFavorites = async () => {
+      if (!user) {
+        setFavorites([]);
+        return;
+      }
+
+      const supabase = createClientComponentClient();
+      const { data, error } = await supabase
+        .from('user_favorites')
+        .select('listing_id')
+        .eq('user_id', user.id);
+
+      if (data && !error) {
+        setFavorites(data.map(f => f.listing_id));
+      }
+    };
+
+    loadFavorites();
+  }, [user]);
+
   const value = {
     displayState,
     filterState,
     priceFilterState,
+    user,
+    favorites,
     setDisplayState,
     setFilterState,
     setPriceFilterState,
+    setUser,
+    setFavorites,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

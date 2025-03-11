@@ -1,10 +1,11 @@
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
-  // Only protect /admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    const authHeader = request.headers.get('authorization')
+export async function middleware(req: NextRequest) {
+  // Handle admin routes with basic auth
+  if (req.nextUrl.pathname.startsWith('/admin')) {
+    const authHeader = req.headers.get('authorization')
     
     if (!authHeader || !isValidAuth(authHeader)) {
       return new NextResponse(null, {
@@ -15,8 +16,12 @@ export function middleware(request: NextRequest) {
       })
     }
   }
-  
-  return NextResponse.next()
+
+  // Handle Supabase auth
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient({ req, res });
+  await supabase.auth.getSession();
+  return res;
 }
 
 function isValidAuth(authHeader: string): boolean {
@@ -29,5 +34,8 @@ function isValidAuth(authHeader: string): boolean {
 }
 
 export const config = {
-  matcher: '/admin/:path*',
+  matcher: [
+    '/admin/:path*',
+    '/auth/callback(.*)'
+  ]
 } 

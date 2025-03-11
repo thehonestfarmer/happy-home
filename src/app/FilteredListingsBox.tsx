@@ -23,6 +23,7 @@ import {
   formatPrice,
   parseJapanesePrice
 } from "@/lib/listing-utils";
+import { FavoriteButton } from "@/components/listings/FavoriteButton";
 
 const List = _List as unknown as FC<ListProps>;
 const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
@@ -126,7 +127,6 @@ export function ListingBox({ property, handleLightboxOpen }: { property: any, ha
     const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
     const secondaryPrice = ["USD", "JPY"].includes(currency) ? formatPrice(priceUSD, "USD") : formatPrice(convertCurrency(priceJPY, "JPY", currency), currency);
 
-
     return (
       <div className="space-y-1">
         <div className="font-medium">
@@ -160,6 +160,11 @@ export function ListingBox({ property, handleLightboxOpen }: { property: any, ha
                 <PriceDisplay prices={property.prices} currency={selectedCurrency} />
               </div>
             </div>
+            <FavoriteButton 
+              listingId={property.id} 
+              variant="ghost"
+              size="sm"
+            />
           </div>
           <div className="text-sm text-muted-foreground">
             {property.layout} • {`${property.buildSqMeters} m²`}
