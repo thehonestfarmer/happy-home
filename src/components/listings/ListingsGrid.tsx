@@ -2,14 +2,13 @@
 import { useListings } from "@/contexts/ListingsContext";
 import { ListingsToolbar } from "./ListingsToolbar";
 import { useAppContext } from "@/AppContext";
-import { ListingBox } from "@/app/FilteredListingsBox";
 import { convertCurrency } from "@/lib/listing-utils";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { LoadingListingCard } from "./LoadingListingCard";
 import { ErrorDisplay } from "../ui/ErrorDisplay";
-
+import { ListingBox } from "./ListingBox";
 interface FilterState {
   showSold: boolean;
   priceRange: {
