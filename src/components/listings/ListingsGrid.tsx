@@ -9,6 +9,7 @@ import { RotateCcw } from "lucide-react";
 import { LoadingListingCard } from "./LoadingListingCard";
 import { ErrorDisplay } from "../ui/ErrorDisplay";
 import { ListingBox } from "./ListingBox";
+
 interface FilterState {
   showSold: boolean;
   priceRange: {
