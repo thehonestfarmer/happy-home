@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface NotificationSettings {
   marketing: boolean;
@@ -67,14 +68,41 @@ export default function AccountPage() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error logging in with Google:', error);
+    }
+  };
+
   if (!user) {
     return (
       <div className="container max-w-2xl py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Not Signed In</CardTitle>
-            <CardDescription>Please sign in to view your account settings.</CardDescription>
+            <CardTitle>Account Settings</CardTitle>
+            <CardDescription>Please sign in to view and manage your account settings</CardDescription>
           </CardHeader>
+          <CardContent className="flex flex-col items-center py-8">
+            <p className="mb-6 text-center text-muted-foreground">
+              Sign in to access your profile information and notification preferences
+            </p>
+            <Button
+              variant="outline"
+              className="bg-black text-primary border-black hover:bg-primary hover:text-black transition-colors"
+              onClick={handleGoogleLogin}
+            >
+              Sign in with Google
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );

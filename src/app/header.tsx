@@ -49,7 +49,7 @@ export default function Header() {
       return (
         <Button
           variant="outline"
-          className="bg-black text-primary border-black hover:bg-primary hover:text-black transition-colors"
+          className="bg-white/90 text-primary border-primary/20 hover:bg-accent-blue/10 hover:text-primary hover:border-primary transition-colors"
           onClick={handleGoogleLogin}
         >
           Sign in with Google
@@ -111,7 +111,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 bg-primary text-primary-foreground py-4 z-[1]">
+      <header className="sticky top-0 bg-primary text-primary-foreground py-4 z-50">
         <div className="flex justify-between items-center px-4">
           <Link href="/" prefetch={false}>
             <h1 className="text-2xl font-bold">Happy Home Japan</h1>

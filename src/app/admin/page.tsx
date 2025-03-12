@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UndoIcon, SaveIcon, EyeIcon, ArrowUpDown } from "lucide-react";
+import { Loader2, UndoIcon, SaveIcon, EyeIcon, ArrowUpDown, InstagramIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Link from "next/link";
 
 interface ListingData {
   id: string;
@@ -264,8 +265,14 @@ export default function AdminPage() {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Listings Admin</h1>
+        <h1 className="text-3xl font-bold">Listing Administration</h1>
         <div className="flex gap-2">
+          <Link href="/admin/posts">
+            <Button variant="outline" className="flex items-center gap-2">
+              <InstagramIcon className="h-4 w-4" />
+              Instagram Posts
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"

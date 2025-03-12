@@ -1,0 +1,39 @@
+[
+	{
+		"__TYPE__": "SharedSliceContent",
+		"variation": "default",
+		"primary": {
+			"title": {
+				"__TYPE__": "StructuredTextContent",
+				"value": [
+					{
+						"type": "paragraph",
+						"content": {
+							"text": "How to Purchase a Home in Japan",
+							"spans": [
+								{
+									"type": "strong",
+									"start": 0,
+									"end": 31
+								}
+							]
+						},
+						"direction": "ltr"
+					}
+				]
+			},
+			"subtitle": {
+				"__TYPE__": "StructuredTextContent",
+				"value": [
+					{
+						"type": "paragraph",
+						"content": {
+							"text": "Exercitation eiusmod et sunt ad non do. Aute commodo aute ad officia qui velit commodo eiusmod anim in culpa est voluptate."
+						}
+					}
+				]
+			}
+		},
+		"items": []
+	}
+]
