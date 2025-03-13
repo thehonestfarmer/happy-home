@@ -79,6 +79,7 @@ export default function InstagramPostsPage() {
   const [caption, setCaption] = useState<string>("");
   const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isGeneratingCaption, setIsGeneratingCaption] = useState<boolean>(false);
   
   // Confirmation modal and publishing state
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
@@ -512,6 +513,55 @@ export default function InstagramPostsPage() {
     }
   };
 
+  // Handle auto-generation of caption and hashtags
+  const handleGenerateCaption = async () => {
+    if (!selectedListingId) {
+      toast({
+        title: "Error",
+        description: "Please select a listing first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingCaption(true);
+    try {
+      const response = await fetch('/api/admin/generate-caption', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          listingId: selectedListingId,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate caption');
+      }
+
+      // Update the caption and tags with the generated content
+      setCaption(result.data.caption);
+      setTags(result.data.hashtags);
+
+      toast({
+        title: "Success",
+        description: "Caption and hashtags generated successfully",
+      });
+    } catch (error) {
+      console.error('Error generating caption:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate caption",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingCaption(false);
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -642,14 +692,34 @@ export default function InstagramPostsPage() {
                         {caption.length}/2200 characters
                       </span>
                     </div>
-                    <Textarea
-                      placeholder="Write a detailed caption for your Instagram post. Describe the property's key features, location benefits, and unique selling points."
-                      className="min-h-[150px]"
-                      value={caption}
-                      onChange={(e) => setCaption(e.target.value)}
-                      disabled={isSubmitting}
-                      maxLength={2200}
-                    />
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mb-2" 
+                          onClick={handleGenerateCaption}
+                          disabled={isGeneratingCaption || !selectedListingId}
+                        >
+                          {isGeneratingCaption ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>Auto-generate caption & hashtags</>
+                          )}
+                        </Button>
+                      </div>
+                      <Textarea
+                        placeholder="Write a detailed caption for your Instagram post. Describe the property's key features, location benefits, and unique selling points."
+                        className="min-h-[150px]"
+                        value={caption}
+                        onChange={(e) => setCaption(e.target.value)}
+                        disabled={isSubmitting || isGeneratingCaption}
+                        maxLength={2200}
+                      />
+                    </div>
                   </div>
 
                   {/* Tags */}

@@ -111,6 +111,11 @@ export default function Header() {
 
   return (
     <>
+      {/* Construction Banner */}
+      <div className="w-full bg-amber-500 text-black py-1.5 text-center text-sm font-medium">
+        🚧 This site is currently under construction. There might be some rough edges, but we're working on it! 🚧
+      </div>
+      
       <header className="sticky top-0 bg-primary text-primary-foreground py-4 z-50">
         <div className="flex justify-between items-center px-4">
           <Link href="/" prefetch={false}>

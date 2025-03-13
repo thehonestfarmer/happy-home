@@ -112,16 +112,6 @@ export default function PostConfirmationModal({
   
   // Determine if button should be disabled
   const isButtonDisabled = () => {
-    // For debugging purposes
-    console.log('Button state debug:', {
-      currentStep,
-      isPublishing,
-      hasFailedUploads,
-      allMediaContainersCreated,
-      carouselContainerId,
-      uploadStatuses: uploadStatuses.map(s => s.status)
-    });
-    
     if (hasFailedUploads) return false; // Allow retry
     if (isPublishing) return true; // Disabled during any publishing action
     
