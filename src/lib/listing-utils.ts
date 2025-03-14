@@ -1,15 +1,137 @@
 export const JPY_TO_USD = 155;
 
-export function parseJapanesePrice(priceStr: string): number {
-  // Handle "18.8 million yen" format
-  const match = priceStr.match(/(\d+\.?\d*)\s*Million/);
-  if (!match) return 0;
+// Exchange rates against JPY - This will be refactored to support dynamic updates
+export const EXCHANGE_RATES = {
+  JPY: 1,
+  USD: 155,
+  AUD: 96,
+  EUR: 160,
+} as const;
+
+/**
+ * Interface for currency exchange rate service
+ * This allows us to easily switch between static rates and third-party services
+ */
+export interface ExchangeRateService {
+  getRate: (from: Currency, to: Currency) => number;
+}
+
+/**
+ * Static implementation of exchange rate service using predefined rates
+ */
+export class StaticExchangeRateService implements ExchangeRateService {
+  private rates: Record<Currency, number>;
   
-  const millionYen = parseFloat(match[1]);
-  return millionYen * 1_000_000; // Return raw yen amount
+  constructor(rates: Record<Currency, number> = EXCHANGE_RATES) {
+    this.rates = rates;
+  }
+  
+  getRate(from: Currency, to: Currency): number {
+    return this.rates[from] / this.rates[to];
+  }
+}
+
+// Default exchange rate service instance
+// This can be replaced with a different implementation (e.g., API-based)
+// without changing the consuming code
+let exchangeRateService: ExchangeRateService = new StaticExchangeRateService();
+
+/**
+ * Set a new exchange rate service implementation
+ * @param service The new exchange rate service to use
+ */
+export function setExchangeRateService(service: ExchangeRateService): void {
+  exchangeRateService = service;
+}
+
+export type Currency = keyof typeof EXCHANGE_RATES;
+
+/**
+ * Parse Japanese price notation into JPY numeric value
+ * Handles formats like:
+ * - "693万円" (6.93 million yen)
+ * - "1億2000万円" (120 million yen)
+ * - "18.8 Million" (18.8 million yen)
+ * - "5,000万円" (50 million yen)
+ * 
+ * @param priceStr The price string in Japanese notation
+ * @returns The price in JPY (as a number)
+ */
+export function parseJapanesePrice(priceStr: string | number): number {
+  if (!priceStr) return 0;
+  
+  // If price is already a number, return it
+  if (typeof priceStr === 'number') return priceStr;
+  
+  // Convert to string and remove commas and spaces
+  const normalized = String(priceStr).replace(/,|\s+/g, '');
+  
+  // Handle "18.8 Million" format (English)
+  const millionMatch = normalized.match(/(\d+\.?\d*)Million/i);
+  if (millionMatch) {
+    const millionYen = parseFloat(millionMatch[1]);
+    return millionYen * 1_000_000;
+  }
+  
+  // Handle "693万円" format (Japanese)
+  const manYenMatch = normalized.match(/(\d+\.?\d*)万円?/);
+  if (manYenMatch) {
+    const manYen = parseFloat(manYenMatch[1]);
+    return manYen * 10_000;
+  }
+  
+  // Handle "1億2000万円" format (Japanese)
+  const okuYenMatch = normalized.match(/(\d+\.?\d*)億(?:(\d+\.?\d*)万)?円?/);
+  if (okuYenMatch) {
+    const oku = parseFloat(okuYenMatch[1] || '0');
+    const man = parseFloat(okuYenMatch[2] || '0');
+    return oku * 100_000_000 + man * 10_000;
+  }
+  
+  // Try to extract just numbers as a fallback
+  const numericMatch = normalized.match(/(\d+\.?\d*)/);
+  if (numericMatch) {
+    return parseFloat(numericMatch[1]);
+  }
+  
+  return 0;
+}
+
+/**
+ * Helper to convert between currencies using the current exchange rate service
+ * @param amount The amount to convert
+ * @param from Source currency
+ * @param to Target currency
+ * @returns The converted amount
+ */
+export function convertCurrency(amount: number, from: Currency, to: Currency): number {
+  if (from === to) return amount;
+  
+  // Apply the exchange rate to convert from the source currency to the target currency
+  return Math.round(amount * exchangeRateService.getRate(from, to));
+}
+
+export const CURRENCY_SYMBOLS = {
+  JPY: "¥",
+  USD: "$",
+  AUD: "A$",
+  EUR: "€",
+} as const;
+
+export function formatPrice(amount: number, currency: Currency): string {
+  const symbol = CURRENCY_SYMBOLS[currency];
+  
+  if (currency === "JPY") {
+    // Format JPY in millions with one decimal place
+    return `${symbol}${(amount / 1_000_000).toFixed(1)}M`;
+  }
+  
+  // Format other currencies with thousands separator
+  return `${symbol}${Math.round(amount).toLocaleString()}`;
 }
 
 export interface Listing {
+    id: string;
     listingUrl: string;
     address: string;
     floorPlan?: string;
@@ -53,39 +175,4 @@ export function parseLayout(layoutStr: string | undefined): number {
 export const SIZES = {
   build: [50, 100, 150, 200, 250, 300],
   land: [100, 250, 500, 750, 1000, 1500, 2000],
-};
-
-// Exchange rates against JPY
-export const EXCHANGE_RATES = {
-  JPY: 1,
-  USD: 155,
-  AUD: 96,
-  EUR: 160,
-} as const;
-
-export type Currency = keyof typeof EXCHANGE_RATES;
-
-// Helper to convert between currencies
-export function convertCurrency(amount: number, from: Currency, to: Currency): number {
-  const inJPY = amount * EXCHANGE_RATES[from];
-  return Math.round(inJPY / EXCHANGE_RATES[to]);
-}
-
-const CURRENCY_SYMBOLS = {
-  JPY: "¥",
-  USD: "$",
-  AUD: "A$",
-  EUR: "€",
-} as const;
-
-export function formatPrice(amount: number, currency: Currency): string {
-  const symbol = CURRENCY_SYMBOLS[currency];
-  
-  if (currency === "JPY") {
-    // Format JPY in millions with one decimal place
-    return `${symbol}${(amount / 1_000_000).toFixed(1)}M`;
-  }
-  
-  // Format other currencies with thousands separator
-  return `${symbol}${Math.round(amount).toLocaleString()}`;
-} 
+}; 

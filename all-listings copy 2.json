@@ -503,16 +503,14 @@
       "scrapedAt": "2025-02-18T07:02:28.648Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "Misawa Home was built in 1995! A 4LDK Western-style home with good convenience",
-        "Mortgage tax reduction applied",
-        "4LDK (LDK 14 tatami mats)",
-        "Approximately 6.0m road on the north side",
-        "Parking available 3 cars",
-        "R7.2 renovated / Main features New construction in February 2015 Home loan tax reduction applied Floor plan 4LDK (LDK 14 tatami mats) Interfacing road Approx. 6.0m road on the north side 3 parking spaces available Fixed asset tax amount 40,400 yen / Reiwa 4 R7.2 renovated Partially new water area (toilets and washbasin) Exterior and interior paint Partially reupholstered cross floors New tatami mats etc. Nearby facilities JR Shirashin Line \"Hayadori Station\" approx. 1.3km Niigata City Hayadori Minami Elementary School approx. 600m (walking: approx. 8 minutes) Niigata City Hayadori Junior High School approx. 650m (walking: approx. 9 minutes) Cupid Hayadori Store approx. 1"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:45:09.467Z"
+      "lastUpdated": "2025-03-14T09:33:25.425Z",
+      "latLong": {
+        "lat": 37.916915,
+        "long": 139.190463
+      },
+      "latLongString": "37.916915,139.190463"
     },
     "1992-7_Wano_Nishikan-ku_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/nishikan-ku/niigatashinishikannkuwanouC.z",
@@ -1039,16 +1037,14 @@
       "scrapedAt": "2025-02-18T07:03:17.558Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "Within an 8 minute walk from the station and hospital! A bright and spacious interior 7LDK residence",
-        "7LDK (LDK 12 tatami mats)",
-        "Approx. 6.5m on the southwest side x 5.5m on the northwest side",
-        "Parking available 3 cars",
-        "Stations and hospitals are within 550m",
-        "R7.1 renovated / Main features New construction in December 51 S extension in March 60 Floor plan 7LDK (LDK 12 tatami mats) Interfacing road Approx. 6.5m on the southwest side x 5.5m on the northwest side Road corner area 3 parking spaces available Fixed asset tax amount 41,400 yen / Reiwa 4 R7.1 renovated Kitchen and bathroom coating New gas stove Exterior and interior part painted Cross and floor part replacement Tatami table replacement Parking space etc. Nearby facilities JR Echigo Line \"Yoshida Station\" approx. 550m (walking: approx. 8 minutes) Tsubame City Yoshida Elementary School approx. 1.2km Tsubame City Yoshida Junior High School approx. 1"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:45:08.828Z"
+      "lastUpdated": "2025-03-14T09:39:10.408Z",
+      "latLong": {
+        "lat": 37.689491,
+        "long": 138.883122
+      },
+      "latLongString": "37.689491,138.883122"
     },
     "203_Kusui_Agano_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/agano-shi/aganoshikusouzu.z",
@@ -1167,16 +1163,14 @@
       "scrapedAt": "2025-02-18T07:03:25.437Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "Living environment surrounded by nature! 7LD+K residential with spacious grounds and modern Western-style rooms",
-        "Mortgage tax reduction applied",
-        "7LD+K (LD+K21 tatami mats)",
-        "Approx. 4.0m on the southwest side x 3.5m on the northwest side",
-        "Parking available for 4 cars",
-        "R6.12 renovated / Main features New construction in August 1960 S63 and H8 extension Applied to tax reduction Approximately 7LD+K (LD+K 21 tatami mats) Interfacing road Approximately 4.0m on the southwest side x 3.5m on the northwest side Parking available Fixed asset tax amount 54,500 yen / Renovated in FY2024 R6.12 renovated New water area (Gas stove, bath, toilet, washbasin) Exterior wall painting Exterior and interior painting Replacement of crosses New tatami mats New parking lot construction etc. Nearby facilities JR Banetsu Nishi Line \"Mashita Station\" approx. 2.4km Agano City Yasuda Elementary School Approximately 4"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:45:09.595Z"
+      "lastUpdated": "2025-03-14T09:33:42.240Z",
+      "latLong": {
+        "lat": 37.747075,
+        "long": 139.260127
+      },
+      "latLongString": "37.747075,139.260127"
     },
     "1830-3_Furutsu_Akiba_Ward_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/akiba-ku/niigatashiakihakuhurutu.z",
@@ -1273,7 +1267,7 @@
       "englishAddress": "1830-3 Furutsu, Akiba Ward, Niigata City, Niigata Prefecture",
       "originalAddress": "新潟県新潟市秋葉区              古津1830番地3",
       "scrapedAt": "2025-02-18T07:03:31.892Z",
-      "isDetailSoldPresent": true,
+      "isDetailSoldPresent": false,
       "isDuplicate": false,
       "tags": [
         "Approximately a 3-minute walk to Furutsu Station! All-electric 3LDK Western-style home built in 1990",
@@ -1284,8 +1278,7 @@
         "R6.12 renovated / Main features New construction in December 2010. Approximately electrified floor plan 3LDK (LDK 14.5 tatami mats) Road on the southeast side Approximately 4.2m road Parking available Fixed asset tax amount 42,200 yen / Renovated in 2024 R6.12 renovated Partially new water area (toilets and washbasins) Kitchen and bathroom coating Exterior wall painting Partially painted Interior replacement Cross replacement Parking etc. Nearby facilities JR Shinetsu Main Line Furutsu Station approx. 240m (walking: approx. 3 minutes) Niigata City Kanazu Elementary School approx. 700m (walking: approx. 10 minutes)"
       ],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:14:20.234Z",
-      "latLongString": ""
+      "lastUpdated": "2025-03-14T14:14:20.234Z"
     },
     "11-3_Shirane_Suidocho_Minami-ku_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/minami-ku/niigatashiminamikushironesuidoutyou.z",
@@ -5122,16 +5115,14 @@
       "scrapedAt": "2025-02-18T07:07:23.413Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "A good natural environment is adjacent to Ines Shibata! 4LDK renovation home with good sunlight",
-        "Mortgage tax reduction applied",
-        "4LDK (LDK 19.5 tatami mats)",
-        "7.5m road on the east side",
-        "Parking available 2 cars",
-        "R6.3 renovated / Main features New construction in July 1961 Mortgage tax reduction applied Floor plan 4LDK (LDK 19.5 tatami mats) Road on the east side 7.5m road 2 parking spaces allowed Fixed asset tax amount 44,800 yen / Reiwa 3 R6.3 renovated New water area (kitchen, bath, toilet, washbasin) Repair of roof and exterior walls Exterior and interior painting New tatami mats New car park construction etc. Nearby facilities JR Uetsu Main Line \"Shibata Station\" approx. 1.5km Shibata Municipal Sotogawa Elementary School approx. 350m (walking: approx. 5 minutes) Shibata Municipal Honmaru Junior High School approx. 1"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:29:40.868Z"
+      "lastUpdated": "2025-03-14T09:35:02.968Z",
+      "latLong": {
+        "lat": 37.95409,
+        "long": 139.3273693
+      },
+      "latLongString": "37.95409,139.3273693"
     },
     "4-5-19_Toyomachi_Shibata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/shibata-shi/shibatashiyutakatyou4.z",
@@ -5360,16 +5351,14 @@
       "scrapedAt": "2025-02-18T07:07:31.656Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "There is less monthly repayment burden! 4LDK Smart House with good convenience",
-        "Mortgage tax reduction applied",
-        "4LDK (LDK 12 tatami mats)",
-        "Approximately 4.0m road on the northwest side",
-        "One car park possible",
-        "R6.3 renovated / Main features New construction in February 1958 R6 extension March 1965 Mortgage tax reduction applied Floor plan 4LDK (LDK 12 tatami mats) Interfacing road Approximately 4.0m road on the northwest side One car parkable Fixed asset tax amount 40,600 yen / Reiwa 3 R6.3 renovated New water area (kitchen, bath, toilet, washbasin) Partial exterior wall replacement Exterior and interior paint Cross floor replacement New tatami mats etc. Nearby facilities JR Echigo Line \"Kobari Station\" approx. 2.3km Niigata Municipal Masago Elementary School approx. 750m (walking: approx. 10 minutes) Niigata Municipal Igarashi Junior High School approx. 1.5km"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:29:44.846Z"
+      "lastUpdated": "2025-03-14T09:35:04.481Z",
+      "latLong": {
+        "lat": 37.8904943,
+        "long": 138.974104
+      },
+      "latLongString": "37.8904943,138.974104"
     },
     "17-17_Higashihonmachi_Tainai_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/tainai-shi/tainaishihigashihonntyou.z",
@@ -7475,7 +7464,7 @@
       "englishAddress": "38-16 Midorioka, Agano City, Niigata Prefecture",
       "originalAddress": "新潟県阿賀野市              緑岡38番地16",
       "scrapedAt": "2025-02-18T07:11:56.328Z",
-      "isDetailSoldPresent": true,
+      "isDetailSoldPresent": false,
       "isDuplicate": false,
       "tags": [
         "The site area is approximately 150 tsubo! A spacious 6LDK high-grade Japanese-style house",
@@ -7486,8 +7475,7 @@
         "R5.10 renovated / Main features New construction in December 1958 Changed in October 2023 Mortgage tax reduction applied Floor plan 6LDK (LDK 17.4 tatami mats) Road on the southeast side Approximately 12.0m road Parking available Fixed asset tax amount 80,000 yen / Renovated in FY2023 R5.10 new water area (kitchen, bath, toilet, washbasin) Partial exterior and interior paint Exterior and interior paint Cross, floor, CF replacement New tatami mats etc. Nearby facilities JR Uetsu Main Line \"Mizuhara Station\" approx. 4.2 km Agano City Kyogase Elementary School approx. 700m (walking: approx. 10 minutes)"
       ],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:14:29.469Z",
-      "latLongString": ""
+      "lastUpdated": "2025-03-14T14:14:29.469Z"
     },
     "401_Nakanoguchi_Nishikan_Ward_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/nishikan-ku/niigatashinishikannkunakanokutib.z",
@@ -8384,7 +8372,7 @@
       "englishAddress": "1205-1 Teramari Owada, Nagaoka City, Niigata Prefecture",
       "originalAddress": "新潟県長岡市              寺泊大和田1205番地1",
       "scrapedAt": "2025-02-18T07:12:34.696Z",
-      "isDetailSoldPresent": true,
+      "isDetailSoldPresent": false,
       "isDuplicate": false,
       "tags": [
         "Resort apartment with panoramic views of the Sea of ​​Japan",
@@ -8392,8 +8380,7 @@
         "Pets allowed (limited) / Main features Newly built in April 2011 Pets allowed (limited) With indoor pool (shared) Floor plan 3K (46 tatami mats in the living room) Road on the east side Approximately 12.0m road Parking space available Nearby facilities JR Echigo Line \"Teramomi Station\" Approximately 7km Uo no Machi Street Approximately 3.7km Teratomo Elementary School Approximately 3.5km Teratomo Junior High School Approximately 5.1km / For real estate sales and brokerage, head to Happiness Home."
       ],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:14:15.437Z",
-      "latLongString": ""
+      "lastUpdated": "2025-03-14T14:14:15.437Z"
     },
     "Uchinoyamate_1-5-2_Nishi-ku_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/nishi-ku/niigatashinishikuutinoyamate1.z",
@@ -9186,17 +9173,14 @@
       "scrapedAt": "2025-02-18T07:13:12.958Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "125 years old! An old house built in the Meiji era",
-        "9LDK (LDK 22 tatami mats)",
-        "Approximately 5.0m road on the west",
-        "Parking available 8 cars",
-        "Garage, warehouse and storehouse included",
-        "Large lot (approx. 750 tsubo)",
-        "R5.2 renovated / Main features New construction in M31 (depending on tax details) With garage, warehouse and storehouse Large lot (approx. 750 tsubo) Floor plan 9LDK (LDK 22 tatami mats) Other attached buildings: Home Wooden cement tiled roofing single-story building 41.83m2 x 4 buildings Warehouse 66.24m2 Warehouse 51.64m2 Warehouse 3.08m2 Garage 44.04m2 Garage 34.78m2 There are separate 1354m2 (ground: fields), 77m2 (ground: fields), 615m2 (ground: reservoir) road Approx. 5.0m on the west side Parking available 8 cars R5.2 renovated partially new water"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:30:05.224Z"
+      "lastUpdated": "2025-03-14T08:56:28.184Z",
+      "latLong": {
+        "lat": 37.6451888,
+        "long": 138.9902039
+      },
+      "latLongString": "37.6451888,138.9902039"
     },
     "Kameda_Higashimachi_4-2-23_Konan-ku_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/konan-ku/niigatashikounannkukamedaazumatyou4.z",
@@ -10495,7 +10479,7 @@
       "englishAddress": "Takaihigashi 2-10-8 Minami-ku, Niigata City, Niigata Prefecture",
       "originalAddress": "新潟県新潟市南区              高井東二丁目10番8号",
       "scrapedAt": "2025-02-18T07:14:47.299Z",
-      "isDetailSoldPresent": true,
+      "isDetailSoldPresent": false,
       "isDuplicate": false,
       "tags": [
         "Easy access to the area! 6D+K residential with a wide range of rooms",
@@ -10505,8 +10489,7 @@
         "H5 and H28 Renovated / Main features New construction in June 2016 S1 S1 S1 S1 S1 Floor plan 6D+K (9 dining rooms) Interfacing road Approx. 7.0m road on the west side One car park possible H5 renovation Kitchen, toilet, bathroom, changing rooms H28 renovation Renovation work, roof repair, indoor ceiling painting Cross replacement, Fusuma replacement etc. Neighborhood facilities JR Echigo Line \"Kobari Station\" approx. 11.6km Niigata City Negishi Elementary School approx. 1.8km Niigata City Shirane Kita Junior High School approx. 3km Wooloku Shirane Odori Store approx. 2.4km Lawson Shirane Takai Danchi Store approx. 400m Shirane Odori Hospital approx. 2.9km (car approx. 5 minutes)"
       ],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:14:27.560Z",
-      "latLongString": ""
+      "lastUpdated": "2025-03-14T14:14:27.560Z"
     },
     "369_Jiromaru_Agano_City_Niigata_Prefecture_1291-369": {
       "listingUrl": "https://www.shiawasehome-reuse.com/agano-shi/aganoshijiroumarushinnkoujiB.z",
@@ -12592,16 +12575,14 @@
       "scrapedAt": "2025-02-18T07:16:37.141Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "A smart home built in 1993 in the central city of Sanjo City",
-        "Mortgage tax reduction applied",
-        "5DK (DK8.75 tatami mats)",
-        "Approx. 18.1m on the west x 4.0m on the north side",
-        "Parking available 2 cars",
-        "R5.2 renovated / Main features New construction in January 2015 Home loan tax reduction applied Floor plan 5DK (DK8.75 tatami mats) Interfacing road Approx. 18.1m on the west x 4.0m on the north side Two parking spaces available Fixed asset tax amount 47,600 yen / Reiwa 3 R5.2 renovated New water area (kitchen, bath, toilet, washbasin) Exterior wall repair Exterior and interior paint Cross and floor replacement New tatami New parking lot New sewer change construction etc. Nearby facilities JR Yahiko Line \"Kitasanjo Station\" approx. 550m Sanjo City Urakan Elementary School approx. 1.4km Sanjo City Daisan Junior High School approx. 1"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:45:34.477Z"
+      "lastUpdated": "2025-03-14T08:57:50.880Z",
+      "latLong": {
+        "lat": 37.6356313,
+        "long": 138.9621572
+      },
+      "latLongString": "37.6356313,138.9621572"
     },
     "2-2-17_Yoshida_Asahicho_Tsubame_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/tsubame-shi/tubameshiyoshidaasahityou2.z",
@@ -13546,16 +13527,14 @@
       "scrapedAt": "2025-02-18T07:24:29.835Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "A spacious, indoor 4LDK Western-style house built in 1996",
-        "Mortgage tax reduction applied",
-        "4LDK (LDK 14.75 tatami mats)",
-        "Parking available 3 cars",
-        "Approx. 5.1m on the east x 4.1m on the north side",
-        "R4.11 remodeled / Main features New construction in November 2016. Mortgage tax reduction applied Floor plan 4LDK (LDK 14.75 tatami mats) Interfacing road Approx. 5.1m on the east x 4.1m on the north side 3 parking spaces available Fixed asset tax amount 46,400 yen / Renovated in 2023 R4.11 partially painted roof partially cloth/CF replacement Tatami new tatami New parking lot etc. Nearby facilities JR Shinetsu Main Line \"Sanjo Station\" approx. 1.2km (walking: approx. 17 minutes) JR Joetsu Shinkansen \"Tsubame Sanjo Station\" approx. 3.9km (walking: approx. 10 minutes) Sanjo Municipal Arashi Minami Elementary School approx. 950m (walking: approx. 13 minutes)"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:30:06.549Z"
+      "lastUpdated": "2025-03-14T08:57:56.743Z",
+      "latLong": {
+        "lat": 37.620072,
+        "long": 138.9494182
+      },
+      "latLongString": "37.620072,138.9494182"
     },
     "1180_Usui_Minami-ku_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/minami-ku/niigatashiminamikuusuib.z",
@@ -14120,7 +14099,8 @@
       "isDuplicate": false,
       "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:29:59.901Z"
+      "lastUpdated": "2025-03-14T08:58:08.631Z",
+      "latLongString": ""
     },
     "382_Toishi_Minami-ku_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/minami-ku/niigatashiminamikutoishi.z",
@@ -14898,15 +14878,14 @@
       "scrapedAt": "2025-02-18T07:25:17.143Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "There are elementary schools, supermarkets and ward offices nearby! A 6LDK home that gives you a sense of Japanese style",
-        "6LDK (LDK 10.5 tatami mats)",
-        "Parking available 5 cars",
-        "Good convenience in living",
-        "R5.12 renovated / Main features New construction in June 2018 Floor plan 6LDK (LDK 10.5 tatami mats) Road on the east side Approximately 3.3m road Parking available 5 cars Fixed asset tax: 35,500 yen / Reiwa 3 R5.12 renovated New water area (kitchen, bath, toilet, washbasin) Partial exterior wall replacement Exterior and interior paint Cross and floor replacement Tatami new car park new sewage change construction etc. Nearby facilities JR Echigo Line \"Maki Station\" approx. 1km Niigata Municipal Makikita Elementary School approx. 900m (walking: approx. 12 minutes) Niigata Municipal Makinishi Junior High School approx. 1.9km"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:30:21.457Z"
+      "lastUpdated": "2025-03-14T08:58:38.593Z",
+      "latLong": {
+        "lat": 37.7621355,
+        "long": 138.8838661
+      },
+      "latLongString": "37.7621355,138.8838661"
     },
     "Akiba_1-14-3_Akiba_Ward_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/akiba-ku/niigatashiakihakuakiha1b.z",
@@ -15027,16 +15006,14 @@
       "scrapedAt": "2025-02-18T07:25:18.860Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "You can buy it from around 20,000 yen a month! 6LDK housing with good views and sunlight, high-level views.",
-        "6LDK (LDK 13.5 tatami mats)",
-        "Approximately 3.8m road on the west side (excluding waterways)",
-        "Parking available 2 cars",
-        "Elementary school/supermarket: within 1km",
-        "R6.7 Renovated / Main features New construction in August 49 S September 58 Expansion changed in December 2010, partially demolished in July 2010 Floor plan 6LDK (LDK 13.5 tatami mats) Interfacing road Approximately 3.8m road on the west side (excluding waterways) Parking available Fixed asset tax amount 53,500 yen / Reiwa 3 R6.7 Renovated partially new water area (kitchen, bath, partially toilet, washbasin vanity) Partially reupholstered exterior and interior painted cross and floor replacement New tatami mats New parking lot construction etc. Nearby facilities Approximately 1 JR Banetsu Nishi Line Higashi-Shintsu Station"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:45:32.374Z"
+      "lastUpdated": "2025-03-14T09:43:43.879Z",
+      "latLong": {
+        "lat": 37.790878,
+        "long": 139.131441
+      },
+      "latLongString": "37.790878,139.131441"
     },
     "Nakamura_8-2_Akiba_Ward_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/akiba-ku/niigatashiakihakunakamura.z",
@@ -15135,16 +15112,14 @@
       "scrapedAt": "2025-02-18T07:25:20.779Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "A large-scale renovation was completed in 2008! High grade 6LDK residential home with a luxurious stone garden",
-        "6LDK (LDK 18.4 tatami mats)",
-        "6.0m road on the west side",
-        "Parking available 2 cars",
-        "Site approximately 138 tsubo",
-        "R5.12 renovated / Main features New construction in October 51, extension in 2010 Floor plan 6LDK (LDK 18.4 tatami mats) Interfacing road 6.0m road on the west side Two parking spaces allowed Fixed asset tax amount 96,500 yen / Reiwa 3, R5.12 renovated Partially new water area (kitchen, toilet, washbasin) Exterior and interior paint Cloth and floor replacement New tatami mats New parking lot construction etc. Nearby facilities JR Shinetsu Main Line \"Furutsu Station\" approx. 2km Niigata City Kanazu Elementary School approx. 1.7km Niigata City Kanazu Junior High School approx. 1.7km Hara Shin Niitsu Store approx. 2.2km"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:45:27.236Z"
+      "lastUpdated": "2025-03-14T08:58:37.005Z",
+      "latLong": {
+        "lat": 37.7793585,
+        "long": 139.1233611
+      },
+      "latLongString": "37.7793585,139.1233611"
     },
     "1-3-4_Ajigata_Minami-ku_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/minami-ku/niigatashiminamikuajigata1B.z",
@@ -15239,16 +15214,14 @@
       "scrapedAt": "2025-02-18T07:25:24.314Z",
       "isDetailSoldPresent": false,
       "isDuplicate": false,
-      "tags": [
-        "A 5K home with a garden with good sunlight that can be purchased from around 20,000 yen a month",
-        "5K (K7 tatami mats)",
-        "Approximately 4.0m road on the northeast side",
-        "Parking available 2 cars",
-        "Monthly payment from 27,000 yen",
-        "R6.6 renovated / Main features New construction in March 2014 Floor plan 5K (K7 tatami mats) Interfacing road Approximately 4.0m road on the northeast side Two parking spaces allowed Fixed asset tax: 34,100 yen / Reiwa 3 R6.6 renovated Partially new water area (kitchen, bath, washbasin) Exterior and interior paint Partially renovated cross floors Tatami table replacement Parking lots etc. Nearby facilities JR Shinetsu Main Line \"Yashirota Station\" approx. 10.3km Niigata City Shirane Elementary School approx. 1.5km Niigata City Shirane Daiichi Junior High School approx. 3km Uoei National Highway Store approx. 650m (walking: approx. 9 minutes)"
-      ],
+      "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:29:56.538Z"
+      "lastUpdated": "2025-03-14T08:58:42.887Z",
+      "latLong": {
+        "lat": 37.7767175,
+        "long": 139.0126401
+      },
+      "latLongString": "37.7767175,139.0126401"
     },
     "1-104-54_Momoyamacho_Higashi-ku_Niigata_City_Niigata_Prefecture": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/higashi-ku/niigatashihigashikumomoyamachou1.z",
@@ -15512,7 +15485,12 @@
       "isDuplicate": false,
       "tags": [],
       "translatedTags": {},
-      "lastUpdated": "2025-03-14T14:30:17.014Z"
+      "lastUpdated": "2025-03-14T08:58:46.773Z",
+      "latLong": {
+        "lat": 37.6038112,
+        "long": 138.7766179
+      },
+      "latLongString": "37.6038112,138.7766179"
     },
     "Urayama_4-5-27_Nishi-ku_Niigata_City_Niigata_Prefecture_Urayama_4-chome_5-27": {
       "listingUrl": "https://www.shiawasehome-reuse.com/niigata-shi/nishi-ku/niigatashinishikuurayama4b.z",

@@ -4,7 +4,8 @@ import fs from "fs";
 
 interface ScrapedResult {
   addresses: string[];
-  tags: string[][];
+  englishAddress: string[];
+  tags: string[];
   listingDetail: string[];
   prices: string[];
   layout: string[];
@@ -161,6 +162,17 @@ export async function scrapePage(): Promise<ScrapedResult | null> {
 
     const result = {
       addresses: translations.map(
+        (i) =>
+          i.split("Address: ")[1] ||
+          i.split("Address display: ")[1] ||
+          i.split("Address information: ")[1] ||
+          i.toLowerCase().split("housing display: ")[1] ||
+          i.toLowerCase().split("residential display: ")[1] ||
+          i.toLowerCase().split("residential information: near ")[1] ||
+          i.toLowerCase().split("residential information: ")[1] ||
+          i.toLowerCase().split("residence: ")[1] || i
+      ),
+      englishAddress: translations.map(
         (i) =>
           i.split("Address: ")[1] ||
           i.split("Address display: ")[1] ||

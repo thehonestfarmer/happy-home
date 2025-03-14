@@ -99,7 +99,7 @@ export function FavoriteButton({ listingId, variant = "ghost", size = "sm" }: Fa
     <>
       <Button
         variant={variant}
-        size={size}
+        size="favorite"
         onClick={(e) => {
           e.preventDefault();
           handleFavoriteClick(e);
@@ -112,7 +112,6 @@ export function FavoriteButton({ listingId, variant = "ghost", size = "sm" }: Fa
       >
         <Heart
           className={cn(
-            "h-6 w-6",
             isFavorited && "fill-emerald-600"
           )}
         />

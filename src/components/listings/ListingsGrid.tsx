@@ -185,7 +185,8 @@ export function ListingsGrid() {
     };
   }, [filterState, handleResetFilters]);
 
-  const ROW_HEIGHT = 480;
+  // Increased row height to prevent vertical overlap
+  const ROW_HEIGHT = 520;
 
   // Calculate column count based on viewport width
   const getColumnCount = (width: number) => {
@@ -207,23 +208,11 @@ export function ListingsGrid() {
 
     const listing = filteredAndSortedListings[index];
     
-    // Log the style object and calculated dimensions
-    console.log('Cell Renderer Dimensions:', {
-      rowHeight: ROW_HEIGHT,
-      styleHeight: style.height,
-      stylePadding: '8px',
-      calculatedContentHeight: Number(style.height) - 16, // 16px for top+bottom padding
-      styleTop: style.top,
-      stylePosition: style.position,
-      rowIndex,
-      columnIndex
-    });
-
     return (
       <div 
         style={{
           ...style,
-          padding: '8px',
+          padding: '12px',  // Increased padding from 8px to 12px
           boxSizing: 'border-box',
         }} 
         key={key}
@@ -233,7 +222,7 @@ export function ListingsGrid() {
             const rect = el.getBoundingClientRect();
             console.log('Rendered Cell Dimensions:', {
               actualHeight: rect.height,
-              actualContentHeight: rect.height - 16,
+              actualContentHeight: rect.height - 24,  // Updated to match new padding
               elementOffsetHeight: el.offsetHeight,
               elementClientHeight: el.clientHeight
             });
@@ -279,12 +268,7 @@ export function ListingsGrid() {
             <AutoSizer>
               {({ width, height }) => {
                 const columnCount = getColumnCount(width);
-                console.log('AutoSizer Debug:', {
-                  width,
-                  height,
-                  columnCount,
-                  expectedCellWidth: width / columnCount
-                });
+                
                 
                 return (
                   <Grid

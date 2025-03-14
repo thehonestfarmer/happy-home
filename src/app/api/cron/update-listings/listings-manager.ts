@@ -129,6 +129,7 @@ export async function mergeListings(
   // Create map of existing addresses for quick lookup
   const addressMap = new Map(
     Object.values(existingListings.newListings)
+      .filter(listing => listing.addresses)
       .map(listing => [listing.addresses.toLowerCase(), listing.id])
   );
   console.log(`Created address map with ${addressMap.size} entries`);
@@ -176,29 +177,16 @@ export async function mergeListings(
       const newId = scrapedData.ids[index];
 
       // Debug logging for tags
-      const tags = scrapedData.tags[index];
-      const tagType = Array.isArray(tags) ? 'array' : typeof tags;
+      const tag = scrapedData.tags[index];
       console.log(`\nProcessing [${index}]: ${address}`);
-      console.log(`Tags type: ${tagType}`);
-      if (tagType === 'array') {
-        console.log(`Tags length: ${tags.length}`);
-      }
+      console.log(`Tag value: ${tag}`);
       
-      // Handle tags safely
-      let tagsString = '';
-      if (Array.isArray(tags)) {
-        tagsString = tags.join(', ');
-      } else if (typeof tags === 'string') {
-        tagsString = tags;
-      } else {
-        console.warn(`⚠️ Unexpected tags format at index ${index}:`, tags);
-        tagsString = String(tags || '');
-      }
-
+      // Handle tags - now they're directly strings from the translation
       const newListing: Listing = {
         id: existingId || newId,
         addresses: address,
-        tags: tagsString,
+        address: scrapedData.englishAddress?.[index] || address, // Use englishAddress if available
+        tags: tag || '', // Use the tag directly, with empty string fallback
         listingDetail: scrapedData.listingDetail[index],
         prices: scrapedData.prices[index],
         layout: scrapedData.layout[index],

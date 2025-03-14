@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { DisplayState } from "@/AppContext";
 import type { Listing } from "@/app/api/cron/update-listings/types";
 import type { Draft } from "immer";
+import { parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRENCY_SYMBOLS } from "@/lib/listing-utils";
 
 /**
  * TODO: move to util once you can use netrw better
@@ -105,8 +106,9 @@ interface PropertyViewProps {
 function PropertyView({ property, listingId }: PropertyViewProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const { displayState, setDisplayState } = useAppContext();
+  const { displayState, setDisplayState, filterState } = useAppContext();
   const [_, listingImageIdx = 0] = displayState.lightboxListingIdx ?? [];
+  const selectedCurrency = filterState.priceRange.currency || "USD";
 
   const handleLightboxOpen = useCallback(
     (sIdx: number) => {
@@ -149,8 +151,36 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
     });
   }, [toast]);
 
+  // Format price display based on selected currency
+  const getPriceDisplay = () => {
+    const priceJPY = parseJapanesePrice(property.price);
+    
+    // Primary price in selected currency
+    const primaryPrice = selectedCurrency === "JPY"
+      ? `¥${(priceJPY / 1_000_000).toFixed(2)}M`
+      : formatPrice(convertCurrency(priceJPY, "JPY", selectedCurrency), selectedCurrency);
+    
+    // Secondary price (always show JPY if another currency is selected, or USD if JPY is selected)
+    const secondaryCurrency = selectedCurrency === "JPY" ? "USD" : "JPY";
+    const secondaryPrice = secondaryCurrency === "JPY"
+      ? `¥${(priceJPY / 1_000_000).toFixed(2)}M`
+      : formatPrice(convertCurrency(priceJPY, "JPY", secondaryCurrency), secondaryCurrency);
+    
+    // Exchange rate
+    const rate = selectedCurrency === "JPY" 
+      ? `(¥${EXCHANGE_RATES.USD}/$)`
+      : `(¥${EXCHANGE_RATES[selectedCurrency]}/${CURRENCY_SYMBOLS[selectedCurrency]}1)`;
+
+    return {
+      primary: primaryPrice,
+      secondary: secondaryPrice,
+      rate
+    };
+  };
+
   // Mobile view
   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+    const prices = getPriceDisplay();
     return (
       <div className="pointer-events-auto overflow-y-auto">
         <div className="flex items-center h-14 px-4">
@@ -177,6 +207,12 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             </div>
           ))}
         </div>
+        <div className="p-4 bg-white border-b">
+          <div className="text-2xl font-bold">{prices.primary}</div>
+          <div className="text-sm text-muted-foreground">
+            {prices.secondary} {prices.rate}
+          </div>
+        </div>
         <Lightbox
           open={displayState.lightboxListingIdx !== null}
           close={() => setDisplayState((draft: Draft<DisplayState>) => { 
@@ -192,6 +228,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   }
 
   // Desktop view
+  const prices = getPriceDisplay();
   return (
     <div className="w-full">
       {/* Navigation Toolbar */}
@@ -305,10 +342,11 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <div className="text-3xl font-bold">
-                    ¥{(parseFloat(property.prices) * 1_000_000).toLocaleString()}
+                    {prices.primary}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Est. ${Math.round(property.priceUsd).toLocaleString()} USD
+                  <div className="text-sm text-muted-foreground flex items-center gap-2">
+                    <span>{prices.secondary}</span>
+                    <span className="text-xs">{prices.rate}</span>
                   </div>
                 </div>
                 <FavoriteButton listingId={listingId} />
