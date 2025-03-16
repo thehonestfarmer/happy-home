@@ -320,19 +320,32 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             {/* Description */}
             <div>
               <h2 className="text-lg font-semibold mb-2">About this home</h2>
-              <p className="text-muted-foreground">
-                {property.recommendedText}
-              </p>
+              {property.listingDetail ? (
+                <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                  {property.listingDetail.split('★')
+                    .filter(item => item.trim().length > 0)
+                    .map((item, index) => (
+                      <li key={index} className="leading-relaxed">
+                        {item.trim()}
+                      </li>
+                    ))
+                  }
+                </ul>
+              ) : (
+                <p className="text-muted-foreground">No details available for this property.</p>
+              )}
             </div>
 
             {/* Tags */}
-            {/* <div className="flex flex-wrap gap-2">
-              {(property.tags ?? []).split(",").map((tag: string) => (
-                <Badge key={tag} variant="outline" className="px-2 py-1">
-                  {tag.trim()}
-                </Badge>
-              ))}
-            </div> */}
+            {property.tags && (
+              <div className="flex flex-wrap gap-2">
+                {property.tags.split(",").map((tag: string, index: number) => (
+                  <Badge key={index} variant="outline" className="px-2 py-1">
+                    {tag.trim()}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}

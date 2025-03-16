@@ -35,6 +35,7 @@ interface PostConfirmationModalProps {
   publishError?: string;
   publishSuccess: boolean;
   carouselContainerId?: string | null;
+  scheduledDate?: Date;
 }
 
 export default function PostConfirmationModal({
@@ -49,7 +50,8 @@ export default function PostConfirmationModal({
   isPublishing,
   publishError,
   publishSuccess,
-  carouselContainerId
+  carouselContainerId,
+  scheduledDate
 }: PostConfirmationModalProps) {
   const [showFullCaption, setShowFullCaption] = useState(false);
   
@@ -74,6 +76,16 @@ export default function PostConfirmationModal({
   
   // Get the overall status text
   const getStatusText = () => {
+    if (scheduledDate) {
+      if (publishSuccess) return 'Post scheduled successfully!';
+      if (publishError) return 'Scheduling failed';
+      if (!isSubmitting) return 'Ready to schedule';
+      if (hasFailedUploads) return 'Some uploads failed';
+      if (carouselContainerId && !isPublishing && !publishSuccess) return 'Ready to schedule';
+      
+      return publishSuccess ? 'Post scheduled!' : 'Scheduling post...';
+    }
+    
     if (publishSuccess) return 'Posted successfully!';
     if (publishError) return 'Publishing failed';
     if (!isSubmitting) return 'Ready to start';
@@ -98,6 +110,15 @@ export default function PostConfirmationModal({
   
   // Get button text based on state
   const getButtonText = () => {
+    if (scheduledDate) {
+      if (!isSubmitting) return 'Create & Schedule Post';
+      if (hasFailedUploads) return 'Retry Failed Uploads';
+      if (currentStep === 3 && !isPublishing) return 'Schedule Post';
+      if (currentStep === 3 && isPublishing) return 'Scheduling...';
+      
+      return 'Processing...';
+    }
+    
     if (!isSubmitting) return 'Create Containers';
     if (hasFailedUploads) return 'Retry Failed Uploads';
     

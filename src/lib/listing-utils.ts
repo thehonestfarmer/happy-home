@@ -138,6 +138,7 @@ export interface Listing {
     layout?: string;
     price: string;
     landArea: string;
+    buildDate: string;
     buildArea: string;
     englishAddress?: string;
     originalAddress?: string;
@@ -146,6 +147,30 @@ export interface Listing {
     scrapedAt?: string;
     isDetailSoldPresent?: boolean;
     isDuplicate?: boolean;
+    isSold?: boolean;
+    
+    // New properties from enhanced data
+    buildSqMeters?: string;
+    landSqMeters?: string;
+    aboutProperty?: string | null;
+    coordinates?: {
+        lat: number | null;
+        long: number | null;
+    };
+    dates?: {
+        datePosted: string | null;
+        dateRenovated: string | null;
+    };
+    facilities?: {
+        water: string | null;
+        gas: string | null;
+        sewage: string | null;
+        greyWater: string | null;
+    };
+    schools?: {
+        primary: string | null;
+        juniorHigh: string | null;
+    };
 }
 
 export function parseLayout(layoutStr: string | undefined): number {

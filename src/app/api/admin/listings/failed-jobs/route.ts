@@ -1,159 +1,139 @@
 import { NextResponse } from "next/server";
-import { getFailedJobs, removeFailedJob, clearFailedJobs } from "../../../cron/update-listings/failed-jobs-manager";
-import { processListingsJob } from "../../../cron/update-listings/process-updated-listings";
+import { createClient } from "@supabase/supabase-js";
+import { Queue } from "bullmq";
+import { initRedisConnection } from "@/lib/scraper/utils/redis";
 
-export const EXTRACTORS_TO_RETRY = [
-  'checkIfListingExists',
-  'extractAndTranslateTags',
-]
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// GET: Retrieve the list of failed jobs
+// GET handler to fetch failed jobs
 export async function GET() {
   try {
-    const failedJobs = await getFailedJobs();
-    return NextResponse.json({ jobs: failedJobs });
+    const { data, error } = await supabase
+      .from("scrape_jobs")
+      .select("*")
+      .eq("status", "failed")
+      .order("completed_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`);
+    }
+
+    // Transform the data to match the expected format in the UI
+    const transformedJobs = data.map((job) => ({
+      id: job.id,
+      url: job.target_url,
+      failedAt: job.completed_at,
+      reason: job.error_message || "Unknown error",
+      retryCount: job.attempts,
+    }));
+
+    return NextResponse.json({ jobs: transformedJobs });
   } catch (error) {
-    console.error('Error fetching failed jobs:', error);
+    console.error("Failed to fetch failed jobs:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch failed jobs' }, 
+      { error: "Failed to fetch failed jobs" },
       { status: 500 }
     );
   }
 }
 
-// POST: Retry specific jobs
+// POST handler to retry failed jobs
 export async function POST(request: Request) {
   try {
-    const { jobIds, workerCount } = await request.json();
-    
-    if (!jobIds || !Array.isArray(jobIds) || jobIds.length === 0) {
+    const { jobIds, workerCount = 3 } = await request.json();
+
+    if (!Array.isArray(jobIds) || jobIds.length === 0) {
       return NextResponse.json(
-        { error: 'Invalid request. Expected an array of job IDs' }, 
+        { error: "No job IDs provided" },
         { status: 400 }
       );
     }
-    
-    // Get all failed jobs
-    const failedJobs = await getFailedJobs();
-    
-    // Filter for the requested jobs
-    const jobsToRetry = failedJobs.filter(job => jobIds.includes(job.id));
-    
-    if (jobsToRetry.length === 0) {
-      return NextResponse.json(
-        { error: 'No matching jobs found' }, 
-        { status: 404 }
-      );
-    }
-    
-    // Process the jobs in a non-blocking way with the specified worker count
-    const processPromise = processRetryJobs(jobsToRetry, workerCount);
-    
-    // Return immediately with job count that will be retried
-    return NextResponse.json({
-      message: `Retrying ${jobsToRetry.length} jobs with ${workerCount || 'default'} workers`,
-      jobsBeingRetried: jobsToRetry.map(job => ({
-        id: job.id,
-        url: job.url
-      }))
-    });
-    
-  } catch (error) {
-    console.error('Error retrying jobs:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to retry jobs' },
-      { status: 500 }
-    );
-  }
-}
 
-// DELETE: Clear failed jobs list
-export async function DELETE() {
-  try {
-    await clearFailedJobs();
-    return NextResponse.json({ success: true, message: 'All failed jobs cleared' });
-  } catch (error) {
-    console.error('Error clearing failed jobs:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to clear failed jobs' },
-      { status: 500 }
-    );
-  }
-}
+    // Get the failed jobs from the database
+    const { data: failedJobs, error } = await supabase
+      .from("scrape_jobs")
+      .select("*")
+      .in("id", jobIds)
+      .eq("status", "failed");
 
-// Helper function to process retry jobs in the background
-async function processRetryJobs(jobs: { id: string; url: string }[], workerCount?: number) {
-  try {
-    console.log(`Starting retry process for ${jobs.length} jobs${workerCount ? ` with ${workerCount} workers` : ''}`);
-    
-    const fs = require('fs/promises');
-    const path = require('path');
-    const { spawn } = require('child_process');
-    const { scrapingQueue } = require('@/lib/queue');
-    
-    // Ensure the queue is initialized
-    if (!scrapingQueue) {
-      throw new Error('Failed to initialize the scraping queue. Make sure Redis is running.');
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`);
     }
+
+    // Initialize Redis connection
+    const connection = await initRedisConnection();
     
-    // 1. Spawn workers in a separate process if worker count is specified
-    if (workerCount && workerCount > 0) {
-      console.log(`Spawning ${workerCount} workers...`);
-      const workerProcess = spawn('npx', [
-        'tsx', 
-        path.join(process.cwd(), 'src/app/api/cron/update-listings/spawn-workers.ts'),
-        `--workers=${workerCount}`
-      ], {
-        stdio: 'inherit',
-        detached: true
-      });
-      
-      // Don't wait for the worker process to exit
-      workerProcess.unref();
-    }
-    
-    // 2. Add jobs to the queue
-    console.log('Adding jobs to the queue...');
-    
-    // Add each job to the queue with a small delay between them
-    for (let i = 0; i < jobs.length; i++) {
-      const job = jobs[i];
-      await scrapingQueue.add(
-        'scrape-listing',
+    // Create or get the detail queue
+    const detailQueue = new Queue("detail-extraction", { connection });
+
+    // Re-queue the failed jobs
+    const retryCounts = {};
+    for (const job of failedJobs) {
+      // Add job back to the queue with the original data
+      await detailQueue.add(
+        `retry-${job.job_id}`,
         {
-          id: job.id,
-          url: job.url,
-          extractors: EXTRACTORS_TO_RETRY,
-          fromFailedJobs: true
+          listingId: job.listing_id,
+          targetUrl: job.target_url,
+          retryCount: job.attempts + 1,
         },
         {
-          attempts: 3,
+          attempts: 3, // Reset attempts
           backoff: {
-            type: 'exponential',
-            delay: 5000
+            type: "exponential",
+            delay: 1000, // 1 second initial delay
           },
-          removeOnComplete: true,
-          removeOnFail: false
         }
       );
-      
-      // Log progress
-      console.log(`Added job ${i + 1}/${jobs.length} to queue: ${job.id} (${job.url})`);
-      
-      // Small delay to prevent overwhelming the queue
-      if (i < jobs.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+
+      // Update job status in database
+      await supabase
+        .from("scrape_jobs")
+        .update({
+          status: "pending",
+          attempts: job.attempts + 1,
+          error_message: null,
+        })
+        .eq("id", job.id);
+
+      retryCounts[job.id] = job.attempts + 1;
     }
-    
-    console.log(`Retry process initiated for ${jobs.length} jobs`);
-    console.log('NOTE: Jobs will remain in the failed jobs list until they are successfully processed');
-    console.log('      Jobs will only be removed if latLong values are successfully extracted');
-    
-    // REMOVED: We no longer automatically remove jobs from the failed list here
-    // Instead, the worker.ts file will handle removing successfully processed jobs
-    
+
+    return NextResponse.json({
+      message: `${failedJobs.length} jobs requeued with ${workerCount} workers`,
+      retriedJobs: retryCounts,
+    });
   } catch (error) {
-    console.error('Error in retry process:', error);
+    console.error("Failed to retry jobs:", error);
+    return NextResponse.json(
+      { error: "Failed to retry jobs" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE handler to clear all failed jobs
+export async function DELETE() {
+  try {
+    // Update all failed jobs to have a "cleared" status
+    const { error } = await supabase
+      .from("scrape_jobs")
+      .update({ status: "cleared" })
+      .eq("status", "failed");
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`);
+    }
+
+    return NextResponse.json({ message: "All failed jobs cleared" });
+  } catch (error) {
+    console.error("Failed to clear jobs:", error);
+    return NextResponse.json(
+      { error: "Failed to clear failed jobs" },
+      { status: 500 }
+    );
   }
 } 

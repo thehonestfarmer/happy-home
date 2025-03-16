@@ -6,16 +6,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, SendHorizonal, ImageIcon, AlertCircle } from "lucide-react";
+import { Loader2, SendHorizonal, ImageIcon, AlertCircle, Clock } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ImageSelector from "@/components/instagram/ImageSelector";
 import TagInput from "@/components/instagram/TagInput";
 import { Separator } from "@/components/ui/separator";
 import PostConfirmationModal from "@/components/instagram/PostConfirmationModal";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { 
   MediaContainerResult, 
   createMediaContainers as createMediaContainersApi,
 } from "@/server/instagram/api";
+import SchedulingOptions from "@/components/instagram/SchedulingOptions";
 
 // Define upload status type
 interface UploadStatus {
@@ -27,13 +30,14 @@ interface UploadStatus {
 
 interface ListingData {
   id: string;
-  addresses: string;
-  tags: string;
-  listingDetail: string;
-  prices: string;
-  layout: string;
-  buildSqMeters: string;
-  landSqMeters: string;
+  englishAddress: string;
+  originalAddress: string;
+  tags: string[];
+  details: string[];
+  price: string;
+  floorPlan: string;
+  buildArea: string;
+  landArea: string;
   listingImages?: string[];
 }
 
@@ -74,12 +78,18 @@ async function createMediaContainersViaApi(imageUrls: string[]): Promise<MediaCo
 
 export default function InstagramPostsPage() {
   const [listings, setListings] = useState<Record<string, ListingData>>({});
+  const [filteredListings, setFilteredListings] = useState<Record<string, ListingData>>({});
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedListingId, setSelectedListingId] = useState<string>("");
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [caption, setCaption] = useState<string>("");
   const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGeneratingCaption, setIsGeneratingCaption] = useState<boolean>(false);
+  
+  // Scheduling options
+  const [postScheduleType, setPostScheduleType] = useState<"now" | "later">("now");
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   
   // Confirmation modal and publishing state
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
@@ -107,19 +117,49 @@ export default function InstagramPostsPage() {
     setSelectedImages([]);
   }, [selectedListingId]);
 
+  // Filter listings when search query changes
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      // If no search query, show all listings
+      setFilteredListings(listings);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = Object.entries(listings).reduce((acc, [id, listing]) => {
+      if (listing.englishAddress.toLowerCase().includes(query)) {
+        acc[id] = listing;
+      }
+      return acc;
+    }, {} as Record<string, ListingData>);
+
+    setFilteredListings(filtered);
+  }, [searchQuery, listings]);
+
   // Fetch available listings
   const fetchListings = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/listings');
+      // Read from all-listings.json instead of API
+      const response = await fetch('/batch_test_results.json');
       const data = await response.json();
       
-      if (data.success) {
-        setListings(data.data.newListings || {});
+      if (data.newListings) {
+        // Update the ID for each listing
+        const listingsWithIds = Object.entries(data.newListings).reduce((acc, [id, listing]) => {
+          acc[id] = {
+            ...listing as ListingData,
+            id
+          };
+          return acc;
+        }, {} as Record<string, ListingData>);
+        
+        setListings(listingsWithIds);
+        setFilteredListings(listingsWithIds);
       } else {
         toast({
           title: "Error",
-          description: "Failed to load listings",
+          description: "Failed to load listings - invalid format",
           variant: "destructive",
         });
       }
@@ -580,9 +620,22 @@ export default function InstagramPostsPage() {
         </CardHeader>
         
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            {/* Left Column - Listing selection and images */}
-            <div className="lg:col-span-3 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Top Row */}
+            <div className="space-y-6">
+              {/* Left Top: Listing Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Search by Address</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Type to search for a property..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  disabled={isLoading || isSubmitting}
+                />
+              </div>
+            
               {/* Listing selector */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Listing</label>
@@ -595,9 +648,9 @@ export default function InstagramPostsPage() {
                     <SelectValue placeholder="Select a listing" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(listings).map(([id, listing]) => (
+                    {Object.entries(filteredListings).map(([id, listing]) => (
                       <SelectItem key={id} value={id}>
-                        {listing.addresses}
+                        {listing.englishAddress}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -608,27 +661,102 @@ export default function InstagramPostsPage() {
               {currentListing && (
                 <div className="bg-muted/40 p-4 rounded-md space-y-2">
                   <div className="flex justify-between">
-                    <h3 className="font-medium">{currentListing.addresses}</h3>
-                    <span className="text-primary">{currentListing.prices}</span>
+                    <h3 className="font-medium">{currentListing.englishAddress}</h3>
+                    <span className="text-primary">{currentListing.price}</span>
                   </div>
-                  <p className="text-sm text-gray-600">{currentListing.listingDetail}</p>
+                  <p className="text-sm text-gray-600">
+                    {currentListing.details?.join(' ')}
+                  </p>
                   <div className="flex flex-wrap gap-1">
-                    {currentListing.tags.split(',').map((tag, index) => (
+                    {(Array.isArray(currentListing.tags) ? currentListing.tags : []).map((tag, index) => (
                       <span key={index} className="bg-muted text-xs px-2 py-1 rounded-full">
-                        {tag.trim()}
+                        {tag}
                       </span>
                     ))}
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Image selector */}
+            {/* Right Top: Caption, Hashtags, and Scheduling Options */}
+            <div className="space-y-6">
+              {/* Caption */}
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <label className="text-sm font-medium">Caption</label>
+                  <span className="text-xs text-gray-500">
+                    {caption.length}/2200 characters
+                  </span>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mb-2" 
+                      onClick={handleGenerateCaption}
+                      disabled={isGeneratingCaption || !selectedListingId}
+                    >
+                      {isGeneratingCaption ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>Auto-generate caption & hashtags</>
+                      )}
+                    </Button>
+                  </div>
+                  <Textarea
+                    placeholder="Write a detailed caption for your Instagram post. Describe the property's key features, location benefits, and unique selling points."
+                    className="min-h-[150px]"
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    disabled={isSubmitting || isGeneratingCaption}
+                    maxLength={2200}
+                  />
+                </div>
+              </div>
+
+              {/* Tags */}
+              <TagInput
+                tags={tags}
+                onChange={setTags}
+                label="Hashtags"
+                placeholder="Add hashtags (press Enter after each tag)"
+              />
+
+              {/* Scheduling Options */}
+              <SchedulingOptions
+                postScheduleType={postScheduleType}
+                setPostScheduleType={setPostScheduleType}
+                scheduledDate={scheduledDate}
+                setScheduledDate={setScheduledDate}
+              />
+            </div>
+          </div>
+
+          {/* Bottom Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            {/* Left Bottom: Image Selector */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Select Images for Post</label>
+                {selectedImages.length > 0 && (
+                  <span className="text-sm font-medium text-green-600">
+                    Selected: {selectedImages.length} 
+                    {selectedImages.length === 1 ? " image" : " images"}
+                  </span>
+                )}
+              </div>
+              
               {currentListing?.listingImages ? (
                 <ImageSelector
+                  key={`image-selector-${selectedListingId}`}
                   images={currentListing.listingImages}
                   onSelectionChange={setSelectedImages}
                   initialSelectedImages={selectedImages}
-                  maxHeight="400px"
+                  maxHeight="500px"
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-md border-gray-300 bg-gray-50">
@@ -642,99 +770,52 @@ export default function InstagramPostsPage() {
               )}
             </div>
 
-            {/* Right Column - Caption and hashtags */}
-            <div className="lg:col-span-2 space-y-6">
-              {selectedImages.length > 0 ? (
-                <>
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-md text-green-700 flex items-start gap-2">
-                    <div className="pt-0.5">
-                      <AlertCircle className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Selected {selectedImages.length} photos</p>
-                      <p className="text-xs mt-1">These will be uploaded as an Instagram carousel post</p>
-                    </div>
-                  </div>
-
-                  {/* Selected images preview */}
-                  {selectedImages.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-500">Selected images preview:</p>
+            {/* Right Bottom: Selected Images Preview */}
+            <div className="space-y-4">
+              <div className="p-4 bg-white border rounded-md shadow-sm h-full">
+                <h3 className="text-lg font-medium mb-3">Selected Images</h3>
+                
+                {selectedImages.length > 0 ? (
+                  <>
+                    {/* Selected images preview */}
+                    <div className="mb-4">
                       <div className="flex flex-wrap gap-2">
-                        {selectedImages.slice(0, 5).map((img, index) => (
+                        {selectedImages.map((img, index) => (
                           <div 
                             key={index} 
-                            className="relative w-12 h-12 rounded-md overflow-hidden border border-gray-200"
+                            className="relative h-28 w-28 rounded-md overflow-hidden border border-gray-200"
                           >
                             <img 
                               src={img} 
                               alt={`Selected ${index + 1}`} 
                               className="object-cover w-full h-full"
                             />
+                            <div className="absolute top-1 left-1 bg-black/70 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                              {index + 1}
+                            </div>
                           </div>
                         ))}
-                        {selectedImages.length > 5 && (
-                          <div className="w-12 h-12 flex items-center justify-center bg-gray-100 rounded-md text-xs text-gray-500">
-                            +{selectedImages.length - 5}
-                          </div>
-                        )}
                       </div>
                     </div>
-                  )}
-
-                  <Separator />
-
-                  {/* Caption */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <label className="text-sm font-medium">Caption</label>
-                      <span className="text-xs text-gray-500">
-                        {caption.length}/2200 characters
-                      </span>
+                    
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <p className="text-sm text-gray-600 mb-2">
+                        <span className="font-medium">Instagram Requirements:</span>
+                      </p>
+                      <ul className="text-xs text-gray-500 space-y-1 list-disc pl-4">
+                        <li>2-10 images for carousel posts</li>
+                        <li>1:1 square ratio recommended</li>
+                        <li>Maximum 2200 characters in caption</li>
+                      </ul>
                     </div>
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mb-2" 
-                          onClick={handleGenerateCaption}
-                          disabled={isGeneratingCaption || !selectedListingId}
-                        >
-                          {isGeneratingCaption ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>Auto-generate caption & hashtags</>
-                          )}
-                        </Button>
-                      </div>
-                      <Textarea
-                        placeholder="Write a detailed caption for your Instagram post. Describe the property's key features, location benefits, and unique selling points."
-                        className="min-h-[150px]"
-                        value={caption}
-                        onChange={(e) => setCaption(e.target.value)}
-                        disabled={isSubmitting || isGeneratingCaption}
-                        maxLength={2200}
-                      />
-                    </div>
+                  </>
+                ) : (
+                  <div className="h-64 flex flex-col items-center justify-center p-8 text-center text-gray-500 border-2 border-dashed rounded-md border-gray-200">
+                    <ImageIcon className="h-8 w-8 text-gray-400 mb-2" />
+                    <p>Select images from your listing to create an Instagram post</p>
                   </div>
-
-                  {/* Tags */}
-                  <TagInput
-                    tags={tags}
-                    onChange={setTags}
-                    label="Hashtags"
-                    placeholder="Add hashtags (press Enter after each tag)"
-                  />
-                </>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center p-8 text-center text-gray-500">
-                  <p>Select images from your listing to create an Instagram post</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -753,11 +834,21 @@ export default function InstagramPostsPage() {
               isSubmitting || 
               !selectedListingId || 
               selectedImages.length === 0 || 
-              !caption
+              !caption ||
+              (postScheduleType === "later" && !scheduledDate)
             }
           >
-            <SendHorizonal className="mr-2 h-4 w-4" />
-            Post to Instagram
+            {postScheduleType === "now" ? (
+              <>
+                <SendHorizonal className="mr-2 h-4 w-4" />
+                Post to Instagram
+              </>
+            ) : (
+              <>
+                <Clock className="mr-2 h-4 w-4" />
+                Schedule Post
+              </>
+            )}
           </Button>
         </CardFooter>
       </Card>
@@ -776,6 +867,7 @@ export default function InstagramPostsPage() {
         publishError={publishError}
         publishSuccess={publishSuccess}
         carouselContainerId={carouselContainerId}
+        scheduledDate={postScheduleType === "later" ? scheduledDate : undefined}
       />
     </div>
   );

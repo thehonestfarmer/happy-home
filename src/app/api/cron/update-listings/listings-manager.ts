@@ -71,9 +71,9 @@ export async function readListings(): Promise<ListingsData> {
       const fs = require('fs');
       const path = require('path');
       
-      const filePath = path.join(process.cwd(), 'all-listings.json');
+      const filePath = path.join(process.cwd(), 'batch_test_results.json');
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      console.log(`Read ${Object.keys(data.newListings).length} listings from local file`);
+      console.log(`Read ${Object.keys(data).length} listings from local file`);
       return data;
     } catch (error) {
       console.error('Error reading local listings file:', error);

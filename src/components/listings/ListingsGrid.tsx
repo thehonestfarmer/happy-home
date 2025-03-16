@@ -185,8 +185,8 @@ export function ListingsGrid() {
     };
   }, [filterState, handleResetFilters]);
 
-  // Increased row height to prevent vertical overlap
-  const ROW_HEIGHT = 520;
+  // Adjusted row height to reduce whitespace
+  const ROW_HEIGHT = 450; // Reduced from 520
 
   // Calculate column count based on viewport width
   const getColumnCount = (width: number) => {
@@ -216,18 +216,6 @@ export function ListingsGrid() {
           boxSizing: 'border-box',
         }} 
         key={key}
-        ref={(el) => {
-          if (el) {
-            // Log actual rendered dimensions
-            const rect = el.getBoundingClientRect();
-            console.log('Rendered Cell Dimensions:', {
-              actualHeight: rect.height,
-              actualContentHeight: rect.height - 24,  // Updated to match new padding
-              elementOffsetHeight: el.offsetHeight,
-              elementClientHeight: el.clientHeight
-            });
-          }
-        }}
       >
         <ListingBox
           property={listing}

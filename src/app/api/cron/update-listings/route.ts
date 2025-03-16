@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { scrapePage } from './scrape-listings';
 import type { ScrapedData, ListingsData, Listing } from './types';
 import { readListings, mergeListings } from './listings-manager';
 import fs from 'fs';
 import path from 'path';
+import { Queue } from "bullmq";
+import { initRedisConnection } from "@/lib/scraper/utils/redis";
 
 function validateScrapedData(data: any): data is ScrapedData {
   if (!data) return false;
@@ -181,20 +182,49 @@ export async function POST(request: Request) {
   }
 }
 
+export const dynamic = "force-dynamic";
+
+// This endpoint can be triggered manually or by Vercel cron
 export async function GET() {
   try {
-    // Read existing listings from the local file
-    const listingsData = await readListingsFile();
+    console.log("Starting listings update process");
+
+    // Initialize Redis connection
+    const connection = await initRedisConnection();
     
-    return NextResponse.json({ 
+    // Create the listing queue
+    const listingQueue = new Queue("listing-scraper", { connection });
+    
+    // Add a job to scrape the search pages
+    // This will be a starting point that triggers the rest of the process
+    await listingQueue.add(
+      "scrape-search-pages",
+      {
+        baseUrl: "https://happy-home.co.jp/bukken/residential/list/",
+        pagesCount: 5, // Start with the first 5 pages
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 1000, // 1 second initial delay
+        },
+        removeOnComplete: true,
+        removeOnFail: false,
+      }
+    );
+    
+    console.log("Listings update job added to queue");
+    
+    return NextResponse.json({
       success: true,
-      data: listingsData
+      message: "Listing update process initiated",
     });
   } catch (error) {
-    console.error('Error reading listings:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to read listings'
-    }, { status: 500 });
+    console.error("Failed to start listings update:", error);
+    return NextResponse.json(
+      { error: "Failed to start listings update" },
+      { status: 500 }
+    );
   }
 } 

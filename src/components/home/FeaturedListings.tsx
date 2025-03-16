@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
 import Image from 'next/image';
+import { Home, Map } from 'lucide-react';
 import { useListings } from '@/contexts/ListingsContext';
 import { useMemo, useState } from 'react';
 import { 
@@ -15,7 +16,8 @@ import {
 
 // Helper to extract only the city from a full address
 const extractCity = (address: string): string => {
-  console.log(address, ">>>>")
+  if (!address) return '';
+  
   // Look for common city patterns in Japanese addresses
   const cityPattern = /(Niigata City|Tsubame City|[A-Za-z]+ City)/i;
   const match = address.match(cityPattern);
@@ -29,9 +31,77 @@ const extractCity = (address: string): string => {
   return parts[parts.length - 1].trim();
 };
 
+// Extract only the city/district from an address (no prefecture)
+const extractFormattedLocation = (address: string): string => {
+  console.log("extractFormattedLocation input:", address);
+  
+  if (!address) {
+    console.log("Address is empty or undefined");
+    return '';
+  }
+  
+  // First check for common patterns in English addresses
+  
+  // Try looking for "in [Location]" pattern, common in our data
+  const inLocationMatch = address.match(/in\s+([^,]+)(?:,\s*([^,]+))?/i);
+  if (inLocationMatch) {
+    // Only use the first part (city) and ignore the region/prefecture
+    const location = inLocationMatch[1];
+    console.log("Found 'in Location' pattern:", location);
+    return location;
+  }
+  
+  // Look for common city names
+  const cityNames = [
+    'Niigata', 'Tsubame', 'Kashiwazaki', 'Nagaoka', 'Shibata', 
+    'Joetsu', 'Sanjo', 'Murakami', 'Tokamachi', 'Myoko', 'Ojiya'
+  ];
+  
+  for (const city of cityNames) {
+    if (address.includes(city)) {
+      console.log(`Found city name: ${city}`);
+      return city;
+    }
+  }
+  
+  // Split address by commas
+  const parts = address.split(',').map(part => part.trim());
+  console.log("Address parts:", parts);
+  
+  // If we have multiple parts, just use the city/ward part (second last)
+  if (parts.length >= 2) {
+    const cityOrWard = parts[parts.length - 2]; // Second last part is usually city or ward
+    console.log("Extracted city/ward:", cityOrWard);
+    return cityOrWard;
+  }
+  
+  // If we don't have commas, try to find City/Ward pattern
+  const cityMatch = address.match(/((?:City|Ward|Village|Town))/i);
+  if (cityMatch && cityMatch.index) {
+    // Try to extract a meaningful city name, looking back up to 20 chars before "City"
+    const startPos = Math.max(0, cityMatch.index - 20);
+    const endPos = cityMatch.index + cityMatch[0].length;
+    const cityPart = address.substring(startPos, endPos).trim();
+    console.log("Extracted city part:", cityPart);
+    return cityPart;
+  }
+  
+  // If all else fails, just return a smaller portion of the address
+  console.log("Using fallback formatting");
+  if (address.length > 20) {
+    return address.substring(0, 20) + '...';
+  }
+  
+  return address;
+};
+
 // Format price based on selected currency
-const formatPriceWithCurrency = (priceStr: string, currency: Currency): string => {
-  const priceJPY = parseJapanesePrice(priceStr);
+const formatPriceWithCurrency = (priceStr: string | number, currency: Currency): string => {
+  // Handle number or string price input
+  const priceJPY = typeof priceStr === 'number' 
+    ? priceStr 
+    : parseJapanesePrice(priceStr);
+    
   if (currency === 'JPY') {
     const millions = priceJPY / 1_000_000;
     return `¥${millions.toFixed(2)}M`;
@@ -42,50 +112,179 @@ const formatPriceWithCurrency = (priceStr: string, currency: Currency): string =
 
 // Helper to generate a meaningful title based on property characteristics
 const generatePropertyTitle = (listing: Listing): string => {
-  const city = extractCity(listing.englishAddress || listing.address);
+  console.log("generatePropertyTitle input:", {
+    id: listing.id,
+    layout: listing.layout,
+    floorPlan: listing.floorPlan,
+    englishAddress: listing.englishAddress,
+    address: listing.address
+  });
   
-  // Check for special features in recommendedText
-  if ('recommendedText' in listing && Array.isArray(listing.recommendedText) && listing.recommendedText.length > 0) {
-    // Check for historic/brewery mentions
-    if (listing.recommendedText.some((text: string) => 
-      text.toLowerCase().includes('brewery') || 
-      text.toLowerCase().includes('meiji') ||
-      text.toLowerCase().includes('historic'))) {
-      return `Historic ${listing.layout} Brewery House`;
+  // Use only address data, never use ID as address fallback
+  const locationText = extractFormattedLocation(listing.address || 'Japan');
+  
+  // Check if layout is undefined or null, and use floorPlan as backup
+  const layoutText = listing.layout || listing.floorPlan || 'Property';
+  
+  const title = `${layoutText} in ${locationText}`;
+  
+  console.log("Generated title:", title);
+  return title;
+};
+
+// Format a simple date string for display - removing Japanese characters and standardizing format
+const formatDate = (dateStr?: string | null): string => {
+  if (!dateStr) return 'N/A';
+  
+  // Remove Japanese characters and clean up
+  const cleanedDate = dateStr
+    .replace(/[年月日]/g, '-') // Replace Japanese year/month/day markers with dashes
+    .replace(/[^\w\s\-\/\.]/g, '') // Remove other non-alphanumeric characters except for date separators
+    .replace(/掲載$/, '') // Remove 掲載 (posted) at the end
+    .replace(/(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/, '$1-$2-$3') // Standardize date format to YYYY-MM-DD
+    .trim();
+  
+  // Try to parse as a date and format it
+  try {
+    const date = new Date(cleanedDate);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
     }
-    
-    // Check for large parking
-    if (listing.recommendedText.some((text: string) => 
-      text.toLowerCase().includes('parking') && 
-      text.toLowerCase().includes('car'))) {
-      return `${listing.layout} Property with Large Parking`;
-    }
-    
-    // Check for garden
-    if (listing.recommendedText.some((text: string) => 
-      text.toLowerCase().includes('garden') || 
-      text.toLowerCase().includes('spacious'))) {
-      return `Spacious ${listing.layout} with Garden`;
-    }
+  } catch (e) {
+    // Fall back to cleaned string if parsing fails
   }
   
-  // Check tags for features
-  if ('tags' in listing && typeof listing.tags === 'string') {
-    if (listing.tags.toLowerCase().includes('renovation')) {
-      return `Renovated ${listing.layout} Home`;
-    }
-    
-    if (listing.tags.toLowerCase().includes('balcony')) {
-      return `${listing.layout} with Balcony`;
-    }
+  return cleanedDate || 'N/A';
+};
+
+// Find the most relevant features to highlight
+const getPropertyHighlights = (listing: Listing): string[] => {
+  const highlights: string[] = [];
+  
+  // Debug what we have in the listing
+  console.log('Getting highlights for listing:', {
+    id: listing.id,
+    originalAddress: listing.originalAddress ? 'present' : 'missing',
+    dates: listing.dates ? JSON.stringify(listing.dates) : 'missing',
+    facilities: listing.facilities ? JSON.stringify(listing.facilities) : 'missing',
+    schools: listing.schools ? JSON.stringify(listing.schools) : 'missing'
+  });
+  
+  // Check for renovation date
+  if (listing.dates?.dateRenovated) {
+    highlights.push(`Renovated: ${listing.dates.dateRenovated}`);
   }
   
-  // Default title based on layout
-  return `${listing.layout || ''} Property in ${city}`;
+  if (listing.buildDate) {
+    highlights.push(`Built: ${listing.buildDate}`);
+  }
+  
+  // Add land size if available
+  if (listing.landSqMeters || listing.landArea) {
+    const landSize = listing.landSqMeters || listing.landArea;
+    highlights.push(`Land: ${landSize}`);
+  }
+  
+  // Add posting date if available
+  if (listing.dates?.datePosted) {
+    highlights.push(`Listed: ${listing.dates.datePosted}`);
+  }
+  
+  // Add address snippet if no other highlights
+  if (highlights.length === 0 && listing.originalAddress) {
+    highlights.push(`Location: ${listing.originalAddress}`);
+  }
+  
+  // If we still have no highlights, use listing details as fallback
+  if (highlights.length === 0 && listing.details && listing.details.length > 0) {
+    // Pick the first 2-3 meaningful details
+    const meaningfulDetails = listing.details
+      .filter(detail => detail.length > 5 && !detail.includes('N/A') && !detail.includes('undefined'))
+      .slice(0, 3);
+    
+    highlights.push(...meaningfulDetails);
+  }
+  
+  console.log('Generated highlights:', highlights);
+  
+  // Limit to max 4 highlights
+  return highlights.slice(0, 4);
+};
+
+// Format a short description from the aboutProperty field
+const formatShortDescription = (aboutProperty?: string | null): string => {
+  if (!aboutProperty) return '';
+  
+  // Limit to ~100 characters and add ellipsis if needed
+  if (aboutProperty.length <= 100) return aboutProperty;
+  
+  // Try to cut at a sentence or punctuation boundary
+  const truncated = aboutProperty.substring(0, 100);
+  const lastPunctuation = Math.max(
+    truncated.lastIndexOf('.'), 
+    truncated.lastIndexOf('!'),
+    truncated.lastIndexOf('?'),
+    truncated.lastIndexOf(',')
+  );
+  
+  if (lastPunctuation > 60) {
+    return aboutProperty.substring(0, lastPunctuation + 1) + '...';
+  }
+  
+  // Otherwise cut at a word boundary
+  return truncated.substring(0, truncated.lastIndexOf(' ')) + '...';
+};
+
+// Skeleton loader component for FeaturedListings
+const FeaturedListingsSkeleton = () => {
+  return (
+    <section className="py-16 px-4 max-w-7xl mx-auto">
+      <div className="text-center mb-12">
+        <div className="h-8 bg-muted animate-pulse rounded w-64 mx-auto mb-4"></div>
+        <div className="h-4 bg-muted animate-pulse rounded w-full max-w-2xl mx-auto mb-6"></div>
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex justify-center gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="w-12 h-8 bg-muted animate-pulse rounded-full"></div>
+            ))}
+          </div>
+          <div className="h-4 w-64 bg-muted animate-pulse rounded mt-1"></div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-card rounded-lg overflow-hidden shadow-md h-[550px] flex flex-col">
+            <div className="relative h-[220px] flex-shrink-0 bg-muted animate-pulse"></div>
+            <div className="p-4 flex flex-col flex-grow space-y-4">
+              <div className="h-6 bg-muted animate-pulse rounded w-3/4"></div>
+              <div className="h-8 bg-muted animate-pulse rounded w-1/2"></div>
+              <div className="h-4 bg-muted animate-pulse rounded w-full"></div>
+              <div className="h-4 bg-muted animate-pulse rounded w-full"></div>
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <div key={j} className="h-4 bg-muted animate-pulse rounded w-4/5"></div>
+                ))}
+              </div>
+              <div className="h-10 bg-muted animate-pulse rounded mt-auto"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="text-center mt-12">
+        <div className="h-12 bg-muted animate-pulse rounded w-48 mx-auto"></div>
+      </div>
+    </section>
+  );
 };
 
 export const FeaturedListings = () => {
-  const { listings } = useListings();
+  const { listings, isLoading } = useListings();
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>('USD');
   
   // Format exchange rate display
@@ -100,26 +299,43 @@ export const FeaturedListings = () => {
   const featuredListings = useMemo(() => {
     if (!listings || listings.length === 0) return [];
     
+    console.log("Raw listings data:", listings.slice(0, 3).map(l => ({
+      id: l.id,
+      hasEnglishAddress: !!l.englishAddress,
+      hasAddress: !!l.address,
+      hasOriginalAddress: !!l.originalAddress
+    })));
+    
     // Take the first three non-duplicate, non-sold listings
     return listings
-      .filter((listing: Listing) => !listing.isDuplicate && !listing.isDetailSoldPresent)
+      .filter((listing: Listing) => !listing.isDuplicate && !listing.isDetailSoldPresent && !listing.isSold)
       .slice(0, 3)
       .map((listing: Listing) => {
-        // Generate title and get city
-        const title = generatePropertyTitle(listing);
-        const city = extractCity(listing.englishAddress || listing.address);
+        // Normalize address data for consistency
+        const normalizedListing = {
+          ...listing,
+          // Ensure we have some form of address data, but never use ID as address
+          englishAddress: listing.englishAddress || listing.address || listing.originalAddress || 'Location in Japan',
+        };
+        
+        // Generate title using the normalized listing
+        const title = generatePropertyTitle(normalizedListing);
         
         return {
           id: listing.id,
           title,
           price: listing.price,
-          location: city,
-          layout: listing.layout || 'N/A',
-          buildSqMeters: listing.buildArea || 'N/A',
-          imageUrl: listing.listingImages?.[0] || '/images/property-placeholder.jpg'
+          buildArea: listing.buildSqMeters || listing.buildArea || 'N/A',
+          landArea: listing.landSqMeters || listing.landArea || 'N/A',
+          imageUrl: listing.listingImages?.[0] || '/images/property-placeholder.jpg',
         };
       });
   }, [listings]);
+
+  // Show skeleton loader while loading or if no listings are available yet
+  if (isLoading) {
+    return <FeaturedListingsSkeleton />;
+  }
 
   if (featuredListings.length === 0) {
     return null;
@@ -156,7 +372,7 @@ export const FeaturedListings = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {featuredListings.map((property) => (
-          <div key={property.id} className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow h-[450px] flex flex-col">
+          <div key={property.id} className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow h-[430px] flex flex-col">
             <div className="relative h-[220px] flex-shrink-0">
               <Image
                 src={property.imageUrl}
@@ -166,17 +382,26 @@ export const FeaturedListings = () => {
               />
             </div>
             <div className="p-4 flex flex-col flex-grow">
-              <div className="flex-grow space-y-2 min-h-0">
-                <h3 className="text-xl font-semibold truncate">{property.title}</h3>
-                <div className="space-y-0.5">
-                  <p className="text-2xl font-bold truncate">
-                    {formatPriceWithCurrency(property.price, selectedCurrency)}
-                  </p>
-                </div>
-                <p className="text-muted-foreground truncate">{property.location}</p>
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>{property.layout}</span>
-                  <span>{`${property.buildSqMeters}`}{property.buildSqMeters !== 'N/A' ? ' m²' : ''}</span>
+              <div className="flex-grow space-y-4">
+                <h3 className="text-xl font-semibold line-clamp-2">
+                  {property.title || `Property in Japan`}
+                </h3>
+                <p className="text-2xl font-bold">
+                  {formatPriceWithCurrency(property.price, selectedCurrency)}
+                </p>
+                
+                {/* Property details with icons */}
+                <div className="space-y-2 mt-2">
+                  <div className="flex items-center gap-6 text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Home className="h-4 w-4" />
+                      <span>{property.buildArea}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Map className="h-4 w-4" />
+                      <span>{property.landArea}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <Link 
