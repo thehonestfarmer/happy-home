@@ -4,7 +4,7 @@ import { useAppContext } from "@/AppContext";
 import { useListings } from "@/contexts/ListingsContext";
 import { ListingBox } from "./ListingBox";
 import { convertCurrency, parseJapanesePrice } from "@/lib/listing-utils";
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { LoadingListingCard } from "./LoadingListingCard";
@@ -15,6 +15,8 @@ import {
   Grid as _Grid,
   AutoSizerProps,
   GridProps,
+  GridCellProps,
+  Grid as GridType
 } from "react-virtualized";
 import { CSSProperties, FC } from "react";
 
@@ -66,6 +68,90 @@ const parsePriceJPY = (price: string): number => {
 export function ListingsGrid() {
   const { isLoading, error, listings } = useListings();
   const { filterState, setFilterState, displayState } = useAppContext();
+  // Create a ref for the Grid component
+  const gridRef = useRef<GridType | null>(null);
+
+  // Setup resize handler with debounce
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    let prevWidth = window.innerWidth;
+    let prevColumnCount = getColumnCount(prevWidth);
+    
+    const handleResize = () => {
+      // Clear any existing timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      // Set a new timeout - 150ms delay is a good balance between responsiveness and performance
+      timeoutId = setTimeout(() => {
+        const currentWidth = window.innerWidth;
+        const currentColumnCount = getColumnCount(currentWidth);
+        
+        // Recompute grid size when the resize is complete
+        if (gridRef.current) {
+          // Always recompute if column count changed (breakpoint crossed)
+          if (currentColumnCount !== prevColumnCount) {
+            console.log('Column count changed, recomputing grid size');
+            gridRef.current.recomputeGridSize();
+            triggerScrollUpdateAfterDelay();
+          } 
+          // If width changed significantly (by more than 5%), recompute
+          else if (Math.abs(currentWidth - prevWidth) / prevWidth > 0.05) {
+            console.log('Significant width change, recomputing grid size');
+            gridRef.current.recomputeGridSize();
+            triggerScrollUpdateAfterDelay();
+          }
+        }
+        
+        // Update previous values for next comparison
+        prevWidth = currentWidth;
+        prevColumnCount = currentColumnCount;
+      }, 150);
+    };
+    
+    // Helper function to trigger a small scroll to force react-virtualized to update
+    const triggerScrollUpdateAfterDelay = () => {
+      // Wait a small amount of time after recomputing before triggering scroll
+      setTimeout(() => {
+        if (gridRef.current) {
+          // Get the current scroll position
+          const scrollTop = gridRef.current.state?.scrollTop || 0;
+          const scrollLeft = gridRef.current.state?.scrollLeft || 0;
+          
+          // Scroll down 1px and then immediately back to force update
+          gridRef.current.scrollToPosition({ scrollLeft, scrollTop: scrollTop + 1 });
+          
+          // Wait a tiny moment before scrolling back to prevent flicker
+          setTimeout(() => {
+            if (gridRef.current) {
+              gridRef.current.scrollToPosition({ scrollLeft, scrollTop });
+            }
+          }, 10);
+        }
+      }, 50);
+    };
+    
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+    
+    // Initial grid recomputation after mount
+    if (gridRef.current) {
+      setTimeout(() => {
+        if (gridRef.current) {
+          gridRef.current.recomputeGridSize();
+        }
+      }, 100);
+    }
+    
+    // Cleanup function
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, []);
 
   const filteredAndSortedListings = useMemo(() => {
     if (!listings) return [];
@@ -185,8 +271,33 @@ export function ListingsGrid() {
     };
   }, [filterState, handleResetFilters]);
 
-  // Adjusted row height to reduce whitespace
-  const ROW_HEIGHT = 450; // Reduced from 520
+  // Dynamic row height calculation based on viewport width
+  const getRowHeight = (width: number): number => {
+    // Base height for mobile
+    const baseHeight = 450;
+    
+    // Calculate column count - same logic as getColumnCount
+    const columnCount = getColumnCount(width);
+    
+    // Get the column width 
+    const columnWidth = width / columnCount;
+    
+    // Calculate dynamic height that scales with column width 
+    // to maintain proportion between card width and height
+    
+    // Use a scaling factor to determine how much height should increase with width
+    const scalingFactor = 0.25; // 25% of column width added to base height
+    
+    // Calculate additional height based on column width
+    const additionalHeight = Math.floor(columnWidth * scalingFactor);
+    
+    // Apply minimum and maximum constraints
+    const minHeight = baseHeight;
+    const maxHeight = 650; // Cap the maximum height to avoid overly tall cards
+    
+    // Return the clamped height value
+    return Math.min(maxHeight, Math.max(minHeight, baseHeight + additionalHeight));
+  };
 
   // Calculate column count based on viewport width
   const getColumnCount = (width: number) => {
@@ -208,11 +319,18 @@ export function ListingsGrid() {
 
     const listing = filteredAndSortedListings[index];
     
+    // Calculate responsive padding based on viewport size
+    const getPadding = () => {
+      if (width < 640) return 8; // Mobile: smaller padding
+      if (width < 1024) return 12; // Tablet: medium padding
+      return 16; // Desktop: larger padding for better spacing
+    };
+    
     return (
       <div 
         style={{
           ...style,
-          padding: '12px',  // Increased padding from 8px to 12px
+          padding: `${getPadding()}px`,
           boxSizing: 'border-box',
         }} 
         key={key}
@@ -257,9 +375,9 @@ export function ListingsGrid() {
               {({ width, height }) => {
                 const columnCount = getColumnCount(width);
                 
-                
                 return (
                   <Grid
+                    ref={gridRef}
                     cellRenderer={({ columnIndex, key, rowIndex, style }) => 
                       cellRenderer({ columnIndex, key, rowIndex, style, width })
                     }
@@ -267,7 +385,7 @@ export function ListingsGrid() {
                     columnWidth={width / columnCount}
                     height={height}
                     rowCount={Math.ceil(filteredAndSortedListings.length / columnCount)}
-                    rowHeight={ROW_HEIGHT}
+                    rowHeight={getRowHeight(width)}
                     width={width}
                     noContentRenderer={() => <NoResults />}
                   />

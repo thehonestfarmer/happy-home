@@ -185,7 +185,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
   return (
     <Link href={`/listings/view/${property.id}`}>
       <Card className={`group h-full flex flex-col hover:shadow-md transition-shadow duration-200 ${isSold ? 'border-red-200' : ''}`}>
-        <div className="relative w-full aspect-[16/9]">
+        <div className="relative w-full aspect-[16/9] sm:aspect-[16/10] md:aspect-[16/9]">
           <Image
             src={property.listingImages?.[0] || '/placeholder-property.jpg'}
             alt={propertyTitle}
@@ -201,13 +201,13 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             </div>
           )}
         </div>
-        <div className={`p-4 flex flex-col gap-2.5`}>
+        <div className={`p-4 flex flex-col gap-2.5 flex-grow`}>
           <div className="flex justify-between items-start gap-2">
             <div className="flex flex-col min-w-0">
-              <div className="text-xl font-bold truncate">
+              <div className="text-xl font-bold truncate md:text-2xl">
                 {formatPriceWithCurrency(property.price, selectedCurrency)}
               </div>
-              <div className="text-base font-medium text-gray-700 truncate">
+              <div className="text-base font-medium text-gray-700 truncate md:text-lg">
                 {propertyTitle}
               </div>
             </div>
@@ -219,33 +219,33 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             </div>
           </div>
 
-          <div className="space-y-3 mt-1">
+          <div className="space-y-3 mt-1 md:mt-2 md:space-y-4">
             {/* First row: Layout, Build Area, Land Area */}
             <div className="grid grid-cols-3 justify-between items-center text-gray-600">
               <div className="flex items-center gap-1.5">
-                <LayoutGrid className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm truncate">{property.floorPlan || property.layout}</span>
+                <LayoutGrid className="h-4 w-4 flex-shrink-0 md:h-5 md:w-5" />
+                <span className="text-sm truncate md:text-base">{property.floorPlan || property.layout}</span>
               </div>
               <div className="flex items-center gap-1.5 justify-center">
-                <Home className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm truncate">{property.buildSqMeters}</span>
+                <Home className="h-4 w-4 flex-shrink-0 md:h-5 md:w-5" />
+                <span className="text-sm truncate md:text-base">{property.buildSqMeters}</span>
               </div>
               <div className="flex items-center gap-1.5 justify-end">
-                <Map className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm truncate">{property.landSqMeters}</span>
+                <Map className="h-4 w-4 flex-shrink-0 md:h-5 md:w-5" />
+                <span className="text-sm truncate md:text-base">{property.landSqMeters}</span>
               </div>
             </div>
 
             {/* Second row: Build Date, Listed Date */}
             <div className="grid grid-cols-2 justify-between items-center text-gray-600">
               <div className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm truncate">Built: {formattedBuildDate}</span>
+                <Calendar className="h-4 w-4 flex-shrink-0 md:h-5 md:w-5" />
+                <span className="text-sm truncate md:text-base">Built: {formattedBuildDate}</span>
               </div>
               {property.dates?.datePosted ? (
                 <div className="flex items-center gap-1.5 justify-end">
-                  <Clock className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm truncate">Listed: {relativeListedDate}</span>
+                  <Clock className="h-4 w-4 flex-shrink-0 md:h-5 md:w-5" />
+                  <span className="text-sm truncate md:text-base">Listed: {relativeListedDate}</span>
                 </div>
               ) : (
                 // Empty div to maintain grid layout when no date posted
