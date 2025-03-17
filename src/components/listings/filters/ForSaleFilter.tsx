@@ -1,4 +1,4 @@
-import { useAppContext } from "@/AppContext";
+import { useAppContext, FilterState } from "@/AppContext";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -6,37 +6,73 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ChevronDown } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 export function ForSaleFilterContent() {
   const { filterState, setFilterState } = useAppContext();
   
+  // Track both states explicitly
+  const showForSale = filterState.showForSale !== false; // Default to true if undefined
+  const showSold = filterState.showSold === true; // Default to false if undefined
+  
+  // Update ForSale state
+  const updateForSaleState = (checked: boolean) => {
+    // Create updated filter state
+    const updatedState: FilterState = {
+      ...filterState,
+      showForSale: !!checked
+    };
+    setFilterState(updatedState);
+  };
+  
+  // Update Sold state
+  const updateSoldState = (checked: boolean) => {
+    // Create updated filter state
+    const updatedState: FilterState = {
+      ...filterState,
+      showSold: !!checked
+    };
+    setFilterState(updatedState);
+  };
+  
   return (
-    <RadioGroup 
-      value={filterState.showSold ? "sold" : "for-sale"}
-      onValueChange={(value: string) => {
-        setFilterState((draft) => {
-          draft.showSold = value === "sold";
-        });
-      }}
-      className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-4"
-    >
+    <div className="flex flex-col space-y-3">
       <div className="flex items-center space-x-2">
-        <RadioGroupItem value="for-sale" id="for-sale" />
+        <Checkbox 
+          id="for-sale" 
+          checked={showForSale}
+          onCheckedChange={updateForSaleState}
+        />
         <Label htmlFor="for-sale">For Sale</Label>
       </div>
       <div className="flex items-center space-x-2">
-        <RadioGroupItem value="sold" id="sold" />
+        <Checkbox 
+          id="sold" 
+          checked={showSold}
+          onCheckedChange={updateSoldState}
+        />
         <Label htmlFor="sold">Sold</Label>
       </div>
-    </RadioGroup>
+    </div>
   );
 }
 
 export function ForSaleFilter() {
   const { filterState } = useAppContext();
+  
+  // Track both states explicitly
+  const showForSale = filterState.showForSale !== false; // Default to true if undefined
+  const showSold = filterState.showSold === true; // Default to false if undefined
+  
+  // Determine the button text based on selected options
+  const getFilterText = () => {
+    if (showForSale && showSold) return "All Properties";
+    if (showForSale) return "For Sale";
+    if (showSold) return "Sold";
+    return "None Selected"; // Edge case if both are false
+  };
 
   return (
     <Popover>
@@ -45,10 +81,10 @@ export function ForSaleFilter() {
           variant="outline" 
           className={cn(
             "flex items-center gap-2",
-            filterState.showSold && "bg-primary/10 border-primary/20"
+            (showSold || !showForSale) && "bg-primary/10 border-primary/20"
           )}
         >
-          {filterState.showSold ? "Sold" : "For Sale"}
+          {getFilterText()}
           <ChevronDown className="h-4 w-4" />
         </Button>
       </PopoverTrigger>

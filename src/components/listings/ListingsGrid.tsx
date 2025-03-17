@@ -1,6 +1,6 @@
 "use client";
 import { ListingsToolbar } from "./ListingsToolbar";
-import { useAppContext } from "@/AppContext";
+import { useAppContext, FilterState } from "@/AppContext";
 import { useListings } from "@/contexts/ListingsContext";
 import { ListingBox } from "./ListingBox";
 import { convertCurrency, parseJapanesePrice } from "@/lib/listing-utils";
@@ -20,32 +20,12 @@ import {
 } from "react-virtualized";
 import { CSSProperties, FC } from "react";
 
-interface FilterState {
-  showSold: boolean;
-  priceRange: {
-    min: number | null;
-    max: number | null;
-    currency: "JPY" | "USD" | "AUD" | "EUR";
-  };
-  layout: {
-    minLDK: number | null;
-  };
-  listingType: "sold" | "for-sale" | null;
-  size: {
-    minBuildSize: number | null;
-    maxBuildSize: number | null;
-    minLandSize: number | null;
-    maxLandSize: number | null;
-  };
-}
-
 // Helper to check if filters are at default state
 const isDefaultFilterState = (filterState: FilterState) => {
-  return !filterState.showSold &&
+  return (filterState.showForSale && !filterState.showSold) &&
     !filterState.priceRange.min &&
     !filterState.priceRange.max &&
     !filterState.layout.minLDK &&
-    !filterState.listingType &&
     !filterState.size.minBuildSize &&
     !filterState.size.maxBuildSize &&
     !filterState.size.minLandSize &&
@@ -182,10 +162,23 @@ export function ListingsGrid() {
         return true;
       })
       .filter((listing) => {
-        if (filterState.showSold) {
+        // Show both types when both filters are enabled
+        const showForSale = filterState.showForSale !== false; // Default to true
+        const showSold = filterState.showSold === true; // Default to false
+        
+        if (showForSale && showSold) {
+          // Show all listings when both options are selected
+          return true;
+        } else if (showForSale) {
+          // Only show for-sale listings
+          return !listing.isSold;
+        } else if (showSold) {
+          // Only show sold listings
           return listing.isSold;
+        } else {
+          // If neither is selected (edge case), show nothing
+          return false;
         }
-        return !listing.isSold;
       });
 
     return filteredListings.sort((a, b) => {
@@ -215,6 +208,7 @@ export function ListingsGrid() {
 
   const handleResetFilters = () => {
     setFilterState({
+      showForSale: true,
       showSold: false,
       priceRange: {
         min: null,
@@ -224,7 +218,6 @@ export function ListingsGrid() {
       layout: {
         minLDK: null,
       },
-      listingType: "for-sale",
       size: {
         minBuildSize: null,
         maxBuildSize: null,
@@ -273,8 +266,8 @@ export function ListingsGrid() {
 
   // Dynamic row height calculation based on viewport width
   const getRowHeight = (width: number): number => {
-    // Base height for mobile
-    const baseHeight = 450;
+    // Base height for mobile - reduced from 450 to remove extra whitespace
+    const baseHeight = 390;
     
     // Calculate column count - same logic as getColumnCount
     const columnCount = getColumnCount(width);
@@ -285,15 +278,15 @@ export function ListingsGrid() {
     // Calculate dynamic height that scales with column width 
     // to maintain proportion between card width and height
     
-    // Use a scaling factor to determine how much height should increase with width
-    const scalingFactor = 0.25; // 25% of column width added to base height
+    // Reduced scaling factor to decrease whitespace
+    const scalingFactor = 0.2; // 20% of column width added to base height
     
     // Calculate additional height based on column width
     const additionalHeight = Math.floor(columnWidth * scalingFactor);
     
     // Apply minimum and maximum constraints
     const minHeight = baseHeight;
-    const maxHeight = 650; // Cap the maximum height to avoid overly tall cards
+    const maxHeight = 550; // Reduced maximum height to avoid excess whitespace
     
     // Return the clamped height value
     return Math.min(maxHeight, Math.max(minHeight, baseHeight + additionalHeight));
@@ -321,9 +314,8 @@ export function ListingsGrid() {
     
     // Calculate responsive padding based on viewport size
     const getPadding = () => {
-      if (width < 640) return 8; // Mobile: smaller padding
-      if (width < 1024) return 12; // Tablet: medium padding
-      return 16; // Desktop: larger padding for better spacing
+      // Use consistent padding across all device sizes to maintain even spacing
+      return 8; // Consistent padding for all screen sizes
     };
     
     return (

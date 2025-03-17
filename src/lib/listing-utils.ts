@@ -201,3 +201,68 @@ export const SIZES = {
   build: [50, 100, 150, 200, 250, 300],
   land: [100, 250, 500, 750, 1000, 1500, 2000],
 }; 
+
+/**
+ * Conversion factor from square meters to square feet
+ * 1 square meter = 10.7639 square feet
+ */
+export const SQ_METERS_TO_SQ_FEET = 10.7639;
+
+/**
+ * Format an area measurement with the appropriate unit based on the selected currency
+ * For USD currency, converts m² to sq ft for familiarity to American users
+ * 
+ * @param area The area value (can be string or number, can include units)
+ * @param currency The currently selected currency
+ * @param includeConversion Whether to include the original value in parentheses
+ * @returns Formatted area string with appropriate units
+ */
+export function formatArea(area: string | number | undefined | null, currency: Currency, includeConversion = false): string {
+  if (!area) return 'N/A';
+  
+  // If already a number, use it directly
+  let numericValue: number;
+  let originalUnit = 'm²';
+  
+  if (typeof area === 'number') {
+    numericValue = area;
+  } else {
+    // Remove commas from the string before extracting the number
+    const normalizedArea = area.replace(/,/g, '');
+    
+    // Try to extract numeric value from string
+    const numericMatch = normalizedArea.match(/(\d+(?:\.\d+)?)/);
+    if (!numericMatch) return area.toString(); // Return original if no number found
+    
+    numericValue = parseFloat(numericMatch[1]);
+    
+    // Try to detect if the value is already in sq ft
+    if (area.toLowerCase().includes('sq ft') || area.toLowerCase().includes('sqft') || 
+        area.toLowerCase().includes('ft²') || area.toLowerCase().includes('square feet')) {
+      originalUnit = 'sq ft';
+    }
+    // Check for m² or ㎡ symbols to confirm it's in square meters
+    else if (area.includes('m²') || area.includes('㎡')) {
+      originalUnit = 'm²';
+    }
+  }
+  
+  // For JPY or non-USD currencies, display in m²
+  if (currency !== 'USD') {
+    return `${numericValue.toLocaleString()} m²`;
+  }
+  
+  // For USD currency, convert to sq ft if currently in m²
+  if (originalUnit === 'm²') {
+    const sqFeet = Math.round(numericValue * SQ_METERS_TO_SQ_FEET);
+    
+    if (includeConversion) {
+      return `${sqFeet.toLocaleString()} sq ft (${numericValue.toLocaleString()} m²)`;
+    } else {
+      return `${sqFeet.toLocaleString()} sq ft`;
+    }
+  } else {
+    // Already in sq ft
+    return `${numericValue.toLocaleString()} sq ft`;
+  }
+}

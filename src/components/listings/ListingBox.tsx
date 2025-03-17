@@ -9,7 +9,8 @@ import {
   Listing,
   convertCurrency,
   formatPrice,
-  parseJapanesePrice
+  parseJapanesePrice,
+  formatArea
 } from "@/lib/listing-utils";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import Image from "next/image";
@@ -37,10 +38,33 @@ const extractCityAndPrefecture = (address: string): string => {
   return parts.slice(0, 2).join(" ") || address;
 };
 
+// Sample property titles based on property characteristics
 const generatePropertyTitle = (property: Listing): string => {
-  const type = property.layout?.includes('LDK') ? 'House' : 'Property';
-  const location = extractCityAndPrefecture(property.englishAddress || property.address || '');
-  return `${type} in ${location}`;
+  // Create engaging titles based on property features
+  const titles = [
+    "Modern Family Home",
+    "Cozy Urban Apartment",
+    "Spacious Country House",
+    "Stylish City Residence",
+    "Luxurious Villa",
+    "Charming Traditional Home",
+    "Contemporary Loft",
+    "Elegant Townhouse"
+  ];
+  
+  // Use a simple property characteristic to determine index
+  // This avoids trying to parse UUIDs which won't work well
+  let index = 0;
+  
+  // Use property characteristics to generate a consistent index
+  if (property.address) {
+    // Sum the character codes of the first few characters of the address
+    // This provides a consistent but semi-random distribution
+    const seed = property.address.slice(0, 3).split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    index = seed % titles.length;
+  }
+  
+  return titles[index];
 };
 
 // Extract a date from a string (works with various formats)
@@ -183,12 +207,12 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
     : 'N/A';
 
   return (
-    <Link href={`/listings/view/${property.id}`}>
-      <Card className={`group h-full flex flex-col hover:shadow-md transition-shadow duration-200 ${isSold ? 'border-red-200' : ''}`}>
+    <Link href={`/listings/view/${property.id}`} className="block h-full">
+      <Card className={`group hover:shadow-md h-full transition-shadow duration-200 ${isSold ? 'border-red-200' : ''}`}>
         <div className="relative w-full aspect-[16/9] sm:aspect-[16/10] md:aspect-[16/9]">
           <Image
             src={property.listingImages?.[0] || '/placeholder-property.jpg'}
-            alt={propertyTitle}
+            alt={`Property listing ${property.id || 'image'}`}
             fill
             priority
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -201,14 +225,17 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             </div>
           )}
         </div>
-        <div className={`p-4 flex flex-col gap-2.5 flex-grow`}>
+        <div className={`p-3 flex flex-col gap-2`}>
           <div className="flex justify-between items-start gap-2">
             <div className="flex flex-col min-w-0">
               <div className="text-xl font-bold truncate md:text-2xl">
                 {formatPriceWithCurrency(property.price, selectedCurrency)}
               </div>
-              <div className="text-base font-medium text-gray-700 truncate md:text-lg">
-                {propertyTitle}
+              <div className="text-base font-semibold text-gray-800 truncate md:text-lg">
+                {generatePropertyTitle(property)}
+              </div>
+              <div className="text-sm font-medium text-gray-500 truncate">
+                {locationDisplay}
               </div>
             </div>
             <div className="flex-shrink-0 pr-2">
@@ -219,7 +246,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             </div>
           </div>
 
-          <div className="space-y-3 mt-1 md:mt-2 md:space-y-4">
+          <div className="space-y-6 mt-4">
             {/* First row: Layout, Build Area, Land Area */}
             <div className="grid grid-cols-3 justify-between items-center text-gray-600">
               <div className="flex items-center gap-1.5">
@@ -228,16 +255,16 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
               </div>
               <div className="flex items-center gap-1.5 justify-center">
                 <Home className="h-4 w-4 flex-shrink-0 md:h-5 md:w-5" />
-                <span className="text-sm truncate md:text-base">{property.buildSqMeters}</span>
+                <span className="text-sm truncate md:text-base">{formatArea(property.buildSqMeters, selectedCurrency)}</span>
               </div>
               <div className="flex items-center gap-1.5 justify-end">
                 <Map className="h-4 w-4 flex-shrink-0 md:h-5 md:w-5" />
-                <span className="text-sm truncate md:text-base">{property.landSqMeters}</span>
+                <span className="text-sm truncate md:text-base">{formatArea(property.landSqMeters, selectedCurrency)}</span>
               </div>
             </div>
 
             {/* Second row: Build Date, Listed Date */}
-            <div className="grid grid-cols-2 justify-between items-center text-gray-600">
+            <div className="grid grid-cols-2 justify-between items-center text-gray-600 mt-2">
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4 flex-shrink-0 md:h-5 md:w-5" />
                 <span className="text-sm truncate md:text-base">Built: {formattedBuildDate}</span>

@@ -4,33 +4,45 @@ import { AppProvider } from '@/AppContext';
 import '@testing-library/jest-dom';
 
 describe('ForSaleFilter', () => {
-  it('shows "For Sale" by default', () => {
+  it('shows "All Properties" by default since both checkboxes are checked', () => {
     render(
       <AppProvider>
         <ForSaleFilter />
       </AppProvider>
     );
-    expect(screen.getByRole('button')).toHaveTextContent('For Sale');
+    expect(screen.getByRole('button')).toHaveTextContent('All Properties');
   });
 
-  it('toggles between For Sale and Sold', () => {
+  it('toggles between display modes when checkboxes are changed', () => {
     render(
       <AppProvider>
         <ForSaleFilter />
       </AppProvider>
     );
 
-    // Open popover and click Sold
+    // Open popover
     fireEvent.click(screen.getByRole('button'));
-    fireEvent.click(screen.getByLabelText('Sold'));
-    expect(screen.getByRole('button')).toHaveTextContent('Sold');
-
-    // Click For Sale
+    
+    // Uncheck "For Sale" option, leaving only "Sold" checked
     fireEvent.click(screen.getByLabelText('For Sale'));
+    expect(screen.getByRole('button')).toHaveTextContent('Sold');
+    
+    // Check "For Sale" again and uncheck "Sold", leaving only "For Sale" checked
+    fireEvent.click(screen.getByLabelText('For Sale'));
+    fireEvent.click(screen.getByLabelText('Sold'));
     expect(screen.getByRole('button')).toHaveTextContent('For Sale');
+    
+    // Check both to show "All Properties"
+    fireEvent.click(screen.getByLabelText('Sold'));
+    expect(screen.getByRole('button')).toHaveTextContent('All Properties');
+    
+    // Uncheck both to show "None Selected"
+    fireEvent.click(screen.getByLabelText('For Sale'));
+    fireEvent.click(screen.getByLabelText('Sold'));
+    expect(screen.getByRole('button')).toHaveTextContent('None Selected');
   });
 
-  it('applies visual treatment when Sold is selected', () => {
+  it('applies visual treatment when non-default options are selected', () => {
     render(
       <AppProvider>
         <ForSaleFilter />
@@ -40,9 +52,11 @@ describe('ForSaleFilter', () => {
     const button = screen.getByRole('button');
     expect(button).not.toHaveClass('bg-primary/10');
 
+    // Open popover
     fireEvent.click(button);
-    fireEvent.click(screen.getByLabelText('Sold'));
     
+    // Uncheck "For Sale", leaving only "Sold" checked
+    fireEvent.click(screen.getByLabelText('For Sale'));
     expect(button).toHaveClass('bg-primary/10');
   });
 }); 

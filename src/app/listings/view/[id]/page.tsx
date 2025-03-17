@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Draft } from "immer";
-import { parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRENCY_SYMBOLS, Listing as ListingType } from "@/lib/listing-utils";
+import { parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRENCY_SYMBOLS, Listing as ListingType, formatArea } from "@/lib/listing-utils";
 
 /**
  * TODO: move to util once you can use netrw better
@@ -325,12 +325,12 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                 <div className="text-sm text-muted-foreground">LDK</div>
               </div>
               <div className="text-center">
-                <div className="font-semibold">{property.buildSqMeters}</div>
-                <div className="text-sm text-muted-foreground">Build m²</div>
+                <div className="font-semibold">{formatArea(property.buildSqMeters || '', selectedCurrency)}</div>
+                <div className="text-sm text-muted-foreground">{selectedCurrency === 'USD' ? 'Build Area' : 'Build m²'}</div>
               </div>
               <div className="text-center">
-                <div className="font-semibold">{property.landSqMeters}</div>
-                <div className="text-sm text-muted-foreground">Land m²</div>
+                <div className="font-semibold">{formatArea(property.landSqMeters || '', selectedCurrency)}</div>
+                <div className="text-sm text-muted-foreground">{selectedCurrency === 'USD' ? 'Land Area' : 'Land m²'}</div>
               </div>
               <div className="text-center">
                 <div className="font-semibold">3</div>
@@ -402,7 +402,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
               <div className="space-y-2">
                 <p>Shiawase Home Reuse</p>
                 <a 
-                  href={property.listingDetail}
+                  href={property.listingDetailUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-blue-600 hover:text-blue-800 hover:underline"

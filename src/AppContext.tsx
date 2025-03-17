@@ -26,8 +26,8 @@ interface AppContextType {
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export type FilterState = {
+  showForSale: boolean;
   showSold: boolean;
-  listingType: 'for-sale' | 'sold';
   priceRange: {
     min: number | null;
     max: number | null;
@@ -45,8 +45,8 @@ export type FilterState = {
 };
 
 export const defaultFilterState: FilterState = {
-  showSold: false,
-  listingType: 'for-sale',
+  showForSale: true,
+  showSold: true,
   priceRange: {
     min: null,
     max: null,
