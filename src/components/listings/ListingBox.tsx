@@ -13,6 +13,7 @@ import {
 } from "@/lib/listing-utils";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 import { DetailCarousel } from "@/app/ListingCarousel";
 
 const extractCityAndPrefecture = (address: string): string => {
@@ -155,6 +156,7 @@ const formatRelativeTime = (date: Date | null | undefined): string => {
 export function ListingBox({ property, handleLightboxOpen }: { property: Listing, handleLightboxOpen: any }) {
   const { filterState } = useAppContext();
   const selectedCurrency = filterState.priceRange.currency || "USD";
+  const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
 
   // Format price in millions
   const formatPriceWithCurrency = (price: number | string, currency: Currency): string => {
@@ -182,7 +184,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
 
   return (
     <Link href={`/listings/view/${property.id}`}>
-      <Card className="group h-full flex flex-col hover:shadow-md transition-shadow duration-200">
+      <Card className={`group h-full flex flex-col hover:shadow-md transition-shadow duration-200 ${isSold ? 'border-red-200' : ''}`}>
         <div className="relative w-full aspect-[16/9]">
           <Image
             src={property.listingImages?.[0] || '/placeholder-property.jpg'}
@@ -190,11 +192,16 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             fill
             priority
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-200"
+            className={`object-cover group-hover:scale-105 transition-transform duration-200 ${isSold ? 'opacity-90' : ''}`}
             style={{ objectPosition: 'center' }}
           />
+          {isSold && (
+            <div className="absolute top-3 right-3">
+              <Badge variant="destructive" className="px-2 py-0.5 text-sm font-semibold">SOLD</Badge>
+            </div>
+          )}
         </div>
-        <div className="p-4 flex flex-col gap-2.5">
+        <div className={`p-4 flex flex-col gap-2.5`}>
           <div className="flex justify-between items-start gap-2">
             <div className="flex flex-col min-w-0">
               <div className="text-xl font-bold truncate">

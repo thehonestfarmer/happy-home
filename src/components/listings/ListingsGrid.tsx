@@ -97,9 +97,9 @@ export function ListingsGrid() {
       })
       .filter((listing) => {
         if (filterState.showSold) {
-          return listing.isDetailSoldPresent;
+          return listing.isSold;
         }
-        return !listing.isDetailSoldPresent;
+        return !listing.isSold;
       });
 
     return filteredListings.sort((a, b) => {
