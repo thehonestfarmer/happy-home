@@ -1,7 +1,13 @@
 import Queue from 'bull';
 
-// Only create the queue on the server side
+// Only create the queue on the server side and not in production
 const createQueue = () => {
+  // Skip queue creation in production to avoid Redis dependency
+  if (process.env.NODE_ENV === 'production') {
+    console.log("Queue disabled in production environment");
+    return null;
+  }
+
   if (typeof window === 'undefined') {
     console.log("Creating queue...");
     
@@ -29,4 +35,9 @@ const createQueue = () => {
   return null;
 };
 
-export const scrapingQueue = createQueue(); 
+export const scrapingQueue = createQueue();
+
+// Helper method to check if queue is available
+export const isQueueAvailable = () => {
+  return process.env.NODE_ENV !== 'production' && scrapingQueue !== null;
+}; 

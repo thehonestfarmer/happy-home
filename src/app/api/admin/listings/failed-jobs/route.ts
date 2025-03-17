@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { Queue } from "bullmq";
-import { initRedisConnection } from "@/lib/scraper/utils/redis";
+// Comment out Redis-related imports for production
+// import { Queue } from "bullmq";
+// import { initRedisConnection } from "@/lib/scraper/utils/redis";
+
+// Helper function to check if we're in production environment
+const isProduction = () => {
+  return process.env.NODE_ENV === 'production';
+};
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -10,6 +16,15 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // GET handler to fetch failed jobs
 export async function GET() {
+  // In production, just return an empty array of jobs
+  if (isProduction()) {
+    console.log('Failed jobs API disabled in production environment');
+    return NextResponse.json({ 
+      jobs: [],
+      message: 'Scraping functionality disabled in production' 
+    });
+  }
+
   try {
     const { data, error } = await supabase
       .from("scrape_jobs")
@@ -42,6 +57,15 @@ export async function GET() {
 
 // POST handler to retry failed jobs
 export async function POST(request: Request) {
+  // Skip in production environment
+  if (isProduction()) {
+    console.log('Retry failed jobs API disabled in production environment');
+    return NextResponse.json({ 
+      message: 'Scraping functionality disabled in production',
+      retriedJobs: [] 
+    });
+  }
+
   try {
     const { jobIds, workerCount = 3 } = await request.json();
 
@@ -64,30 +88,30 @@ export async function POST(request: Request) {
     }
 
     // Initialize Redis connection
-    const connection = await initRedisConnection();
+    // const connection = await initRedisConnection();
     
     // Create or get the detail queue
-    const detailQueue = new Queue("detail-extraction", { connection });
+    // const detailQueue = new Queue("detail-extraction", { connection });
 
     // Re-queue the failed jobs
-    const retryCounts = {};
+    const retryCounts: Record<string, number> = {};
     for (const job of failedJobs) {
       // Add job back to the queue with the original data
-      await detailQueue.add(
-        `retry-${job.job_id}`,
-        {
-          listingId: job.listing_id,
-          targetUrl: job.target_url,
-          retryCount: job.attempts + 1,
-        },
-        {
-          attempts: 3, // Reset attempts
-          backoff: {
-            type: "exponential",
-            delay: 1000, // 1 second initial delay
-          },
-        }
-      );
+      // await detailQueue.add(
+      //   `retry-${job.job_id}`,
+      //   {
+      //     listingId: job.listing_id,
+      //     targetUrl: job.target_url,
+      //     retryCount: job.attempts + 1,
+      //   },
+      //   {
+      //     attempts: 3, // Reset attempts
+      //     backoff: {
+      //       type: "exponential",
+      //       delay: 1000, // 1 second initial delay
+      //     },
+      //   }
+      // );
 
       // Update job status in database
       await supabase

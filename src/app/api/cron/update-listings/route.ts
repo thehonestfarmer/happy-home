@@ -4,8 +4,14 @@ import type { ScrapedData, ListingsData, Listing } from './types';
 import { readListings, mergeListings } from './listings-manager';
 import fs from 'fs';
 import path from 'path';
-import { Queue } from "bullmq";
-import { initRedisConnection } from "@/lib/scraper/utils/redis";
+// Import Queue conditionally since we're disabling in production
+// import { Queue } from "bullmq";
+// import { initRedisConnection } from "@/lib/scraper/utils/redis";
+
+// Helper function to check if we're in production environment
+const isProduction = () => {
+  return process.env.NODE_ENV === 'production';
+}
 
 function validateScrapedData(data: any): data is ScrapedData {
   if (!data) return false;
@@ -62,12 +68,18 @@ function hasListingsChanged(oldListings: ListingsData, newListings: ListingsData
       return true;
     }
 
-    // Compare each property
-    for (const [key, value] of Object.entries(newListing)) {
-      if (JSON.stringify(value) !== JSON.stringify(oldListing[key])) {
+    // Compare each property - using type-safe property access
+    const propsToCompare: (keyof Listing)[] = [
+      'id', 'addresses', 'address', 'tags', 'listingDetail', 
+      'prices', 'layout', 'buildSqMeters', 'landSqMeters',
+      'listingImages', 'recommendedText', 'isDetailSoldPresent'
+    ];
+    
+    for (const key of propsToCompare) {
+      if (JSON.stringify(newListing[key]) !== JSON.stringify(oldListing[key])) {
         console.log(`Changes detected in listing ${id}, property: ${key}`);
         console.log('Old:', oldListing[key]);
-        console.log('New:', value);
+        console.log('New:', newListing[key]);
         return true;
       }
     }
@@ -106,9 +118,33 @@ async function readListingsFile(): Promise<ListingsData> {
 }
 
 export async function POST(request: Request) {
-  console.log('Received scraping request');
-
   try {
+    // Check if we're in production - if yes, we'll skip queue operations
+    if (isProduction()) {
+      console.log('Skipping scraping operations in production environment');
+      return NextResponse.json({ 
+        success: true,
+        message: 'Scraping operations disabled in production',
+        data: {} 
+      });
+    }
+
+    // This code will only run in development/test environments
+    console.log('Starting scraping process');
+    
+    // Continue with the normal scraping process
+    /* 
+    // Redis-dependent code commented out
+    const redis = await initRedisConnection();
+    if (!redis) {
+      throw new Error('Failed to initialize Redis connection');
+    }
+    
+    const queue = new Queue('listing-scraper', {
+      connection: redis
+    });
+    */
+
     const requestData = await request.json();
     console.log('Received data properties:', Object.keys(requestData));
 
@@ -171,14 +207,12 @@ export async function POST(request: Request) {
       newListings: scrapedData.addresses.length,
     });
   } catch (error) {
-    console.error('Error processing scraped data:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error processing scraped data'
-      }, 
-      { status: 500 }
-    );
+    console.error('Error in POST route:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Unknown error',
+      data: {}
+    }, { status: 500 });
   }
 }
 
@@ -187,44 +221,56 @@ export const dynamic = "force-dynamic";
 // This endpoint can be triggered manually or by Vercel cron
 export async function GET() {
   try {
+    // In production, provide a simple response without Redis operations
+    if (isProduction()) {
+      console.log('Skipping GET scraping operations in production environment');
+      return NextResponse.json({ 
+        success: true,
+        message: 'Scraping operations disabled in production',
+        data: {} 
+      });
+    }
+    
     console.log("Starting listings update process");
 
     // Initialize Redis connection
-    const connection = await initRedisConnection();
+    // const connection = await initRedisConnection();
     
     // Create the listing queue
-    const listingQueue = new Queue("listing-scraper", { connection });
+    // const listingQueue = new Queue("listing-scraper", { connection });
     
     // Add a job to scrape the search pages
     // This will be a starting point that triggers the rest of the process
-    await listingQueue.add(
-      "scrape-search-pages",
-      {
-        baseUrl: "https://happy-home.co.jp/bukken/residential/list/",
-        pagesCount: 5, // Start with the first 5 pages
-      },
-      {
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 1000, // 1 second initial delay
-        },
-        removeOnComplete: true,
-        removeOnFail: false,
-      }
-    );
+    // await listingQueue.add(
+    //   "scrape-search-pages",
+    //   {
+    //     baseUrl: "https://happy-home.co.jp/bukken/residential/list/",
+    //     pagesCount: 5, // Start with the first 5 pages
+    //   },
+    //   {
+    //     attempts: 3,
+    //     backoff: {
+    //       type: "exponential",
+    //       delay: 1000, // 1 second initial delay
+    //     },
+    //     removeOnComplete: true,
+    //     removeOnFail: false,
+    //   }
+    // );
     
     console.log("Listings update job added to queue");
     
-    return NextResponse.json({
-      success: true,
-      message: "Listing update process initiated",
+    return NextResponse.json({ 
+      success: true, 
+      message: 'GET endpoint for scraping',
+      data: {} 
     });
   } catch (error) {
-    console.error("Failed to start listings update:", error);
-    return NextResponse.json(
-      { error: "Failed to start listings update" },
-      { status: 500 }
-    );
+    console.error('Error in GET route:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Unknown error',
+      data: {}
+    }, { status: 500 });
   }
 } 

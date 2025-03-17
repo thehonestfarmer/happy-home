@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import translate from "translate";
 import puppeteer from 'puppeteer';
-import { scrapingQueue } from '@/lib/queue';
+import { scrapingQueue, isQueueAvailable } from '@/lib/queue';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs/promises';
 import path from 'path';
 import { translateText } from '../cron/update-listings/scrape-listings';
+
+// Helper function to check if we're in production environment
+const isProduction = () => {
+  return process.env.NODE_ENV === 'production';
+};
 
 // Initialize listings.json if it doesn't exist
 const initListingsFile = async () => {
@@ -60,7 +65,7 @@ if (scrapingQueue) {
                 const images = elements
                     .map((el) => {
                         const list = el.querySelectorAll("li > a > img") ?? [];
-                        return Array.from(list).map((li) => li.src);
+                        return Array.from(list).map((li) => (li as HTMLImageElement).src);
                     })
                     .flat();
                 return images;
@@ -268,6 +273,12 @@ async function scrapeListingsFromPage(pageUrl: string) {
 
 // Add connection check function
 async function checkQueueConnection() {
+    // Skip queue connection check in production
+    if (isProduction()) {
+        console.log('Queue connection check skipped in production');
+        return false;
+    }
+
     if (!scrapingQueue) {
         throw new Error('Queue not initialized');
     }
@@ -306,7 +317,21 @@ async function scrapePages(startPage: number, endPage: number) {
 }
 
 export async function GET() {
+    // In production, provide a simple response without Redis operations
+    if (isProduction()) {
+        console.log('Update all listings API disabled in production environment');
+        return NextResponse.json({ 
+            success: true,
+            message: 'Scraping operations disabled in production',
+            data: {} 
+        });
+    }
+
+    // Continue with normal operation in non-production environments
     try {
+        // Check if Redis is available
+        await checkQueueConnection();
+        
         await initListingsFile();
         let totalListings = 0;
         

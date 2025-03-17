@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "node scripts/patch-react-virtualized.js && next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "node scripts/patch-react-virtualized.js",
     "scrape": "ts-node src/app/api/cron/update-listings/process-listings.ts",
     "update-listings": "ts-node src/app/api/cron/update-listings/process-updated-listings.ts",
     "extract-tags-and-location": "ts-node src/app/api/cron/update-listings/process-updated-listings.ts",
