@@ -65,7 +65,6 @@ async function retryFailedScrapes(
 
 export async function readListings(): Promise<ListingsData> {
   // Check if in development mode
-  if (process.env.NODE_ENV === 'development') {
     try {
       // Import local file system module
       const fs = require('fs');
@@ -79,36 +78,35 @@ export async function readListings(): Promise<ListingsData> {
       console.error('Error reading local listings file:', error);
       return { newListings: {} };
     }
-  }
 
-  try {
-    // List blobs to find the most recent listings.json
-    const { blobs } = await list();
-    const listingsBlob = blobs
-      .filter(blob => blob.pathname.endsWith('listings.json'))
-      .sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())[0];
+  // try {
+  //   // List blobs to find the most recent listings.json
+  //   const { blobs } = await list();
+  //   const listingsBlob = blobs
+  //     .filter(blob => blob.pathname.endsWith('listings.json'))
+  //     .sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())[0];
 
-    if (!listingsBlob) {
-      console.log('No existing listings blob found, creating new data');
-      return { newListings: {} };
-    }
+  //   if (!listingsBlob) {
+  //     console.log('No existing listings blob found, creating new data');
+  //     return { newListings: {} };
+  //   }
 
-    // Get the blob content
-    const response = await fetch(listingsBlob.url);
-    if (!response.ok) {
-      throw new Error('Failed to fetch blob');
-    }
+  //   // Get the blob content
+  //   const response = await fetch(listingsBlob.url);
+  //   if (!response.ok) {
+  //     throw new Error('Failed to fetch blob');
+  //   }
 
-    const listings = await response.json() as ListingsData;
-    console.log(`Read ${Object.keys(listings.newListings).length} existing listings from blob`);
-    console.log(`Blob URL: ${listingsBlob.url}`);
-    console.log(`Last updated: ${listingsBlob.uploadedAt}`);
+  //   const listings = await response.json() as ListingsData;
+  //   console.log(`Read ${Object.keys(listings.newListings).length} existing listings from blob`);
+  //   console.log(`Blob URL: ${listingsBlob.url}`);
+  //   console.log(`Last updated: ${listingsBlob.uploadedAt}`);
     
-    return listings;
-  } catch (error) {
-    console.error('Error reading listings from blob:', error);
-    return { newListings: {} };
-  }
+  //   return listings;
+  // } catch (error) {
+  //   console.error('Error reading listings from blob:', error);
+  //   return { newListings: {} };
+  // }
 }
 
 export async function mergeListings(
