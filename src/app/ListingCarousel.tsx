@@ -36,8 +36,6 @@ export function DetailSlide({
 export function DetailCarousel({
   property,
   handleOpenAction,
-  allImages,
-  startIdx = 0,
 }: {
   property: any;
   handleOpenAction: (idx: number, sIdx: number) => void;
@@ -45,25 +43,27 @@ export function DetailCarousel({
   startIdx?: number;
 }) {
   return (
-    <Carousel className="flex flex-col w-full">
+    <Carousel className="w-full">
       <CarouselContent>
-        {property.listingImages.map((item, index) => (
+        {property.listingImages.slice(0,1).map((item, index) => (
           <CarouselItem
             key={index}
             onClick={(e) => {
               e.preventDefault();
               handleOpenAction(property.id, index);
             }}
+            className="relative h-72"
           >
-            <Image
-              src={item}
-              alt={`Property ${item.id}`}
-              priority
-              height={500}
-              width={500}
-              className="w-full sm:w-[300px] h-60 object-cover"
-              style={{ aspectRatio: "400/300", objectFit: "cover" }}
-            />
+            <div className="absolute inset-0">
+              <Image
+                src={item}
+                alt={`Property ${property.id}`}
+                priority
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              />
+            </div>
           </CarouselItem>
         ))}
       </CarouselContent>

@@ -1,6 +1,7 @@
 export interface Listing {
   id: string;
   addresses: string;
+  address?: string;
   tags: string;
   listingDetail: string;
   prices: string;
@@ -20,7 +21,8 @@ export interface ListingsData {
 
 export interface ScrapedData {
   addresses: string[];
-  tags: string[][];
+  englishAddress: string[];
+  tags: string[];
   listingDetail: string[];
   prices: string[];
   layout: string[];

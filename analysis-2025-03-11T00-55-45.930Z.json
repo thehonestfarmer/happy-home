@@ -1,0 +1,16 @@
+{
+  "propertyAnalysis": {
+    "timestamp": "2025-03-11T00:55:45.929Z",
+    "averages": {
+      "priceJPY": 16850132,
+      "priceUSD": 112334,
+      "landArea": 288.32,
+      "buildArea": 184.28
+    },
+    "totalListings": 152,
+    "metadata": {
+      "source": "all-listings.json",
+      "exchangeRate": 150
+    }
+  }
+}

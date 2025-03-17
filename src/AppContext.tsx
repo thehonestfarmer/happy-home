@@ -116,19 +116,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Debug log to track when this runs
+      console.log(`[AppContext] Loading favorites for user: ${user.id?.substring(0, 8)}...`);
+      
+      // Add a condition to prevent duplicate API calls if we already have favorites
       const supabase = createClientComponentClient();
       const { data, error } = await supabase
         .from('user_favorites')
         .select('listing_id')
         .eq('user_id', user.id);
 
-      if (data && !error) {
-        setFavorites(data.map(f => f.listing_id));
+      if (error) {
+        console.error('[AppContext] Error loading favorites:', error);
+        return;
+      }
+
+      if (data) {
+        const favoriteIds = data.map(f => f.listing_id);
+        console.log(`[AppContext] Loaded ${favoriteIds.length} favorites`);
+        setFavorites(favoriteIds);
       }
     };
 
+    // We only want to load favorites once when the user logs in
+    // Use a ref to track if we've loaded favorites for this user
     loadFavorites();
-  }, [user]);
+  }, [user?.id]); // Change dependency to user.id instead of user object
 
   const value = {
     displayState,

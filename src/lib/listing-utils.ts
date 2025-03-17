@@ -1,26 +1,6 @@
 export const JPY_TO_USD = 155;
 
-export function parseJapanesePrice(priceStr: string): number {
-  // Handle "18.8 million yen" format
-  const match = priceStr.match(/(\d+\.?\d*)\s*Million/);
-  if (!match) return 0;
-  
-  const millionYen = parseFloat(match[1]);
-  return millionYen * 1_000_000; // Return raw yen amount
-}
-
-export function parseLDK(layout: string): number {
-  // Handle formats like "3LDK", "2DK", etc.
-  const match = layout.match(/(\d+)[LD]?K/);
-  return match ? parseInt(match[1], 10) : 0;
-}
-
-export const SIZES = {
-  build: [50, 100, 150, 200, 250, 300],
-  land: [100, 250, 500, 750, 1000, 1500, 2000],
-};
-
-// Exchange rates against JPY
+// Exchange rates against JPY - This will be refactored to support dynamic updates
 export const EXCHANGE_RATES = {
   JPY: 1,
   USD: 155,
@@ -28,15 +8,110 @@ export const EXCHANGE_RATES = {
   EUR: 160,
 } as const;
 
-export type Currency = keyof typeof EXCHANGE_RATES;
-
-// Helper to convert between currencies
-export function convertCurrency(amount: number, from: Currency, to: Currency): number {
-  const inJPY = amount * EXCHANGE_RATES[from];
-  return Math.round(inJPY / EXCHANGE_RATES[to]);
+/**
+ * Interface for currency exchange rate service
+ * This allows us to easily switch between static rates and third-party services
+ */
+export interface ExchangeRateService {
+  getRate: (from: Currency, to: Currency) => number;
 }
 
-const CURRENCY_SYMBOLS = {
+/**
+ * Static implementation of exchange rate service using predefined rates
+ */
+export class StaticExchangeRateService implements ExchangeRateService {
+  private rates: Record<Currency, number>;
+  
+  constructor(rates: Record<Currency, number> = EXCHANGE_RATES) {
+    this.rates = rates;
+  }
+  
+  getRate(from: Currency, to: Currency): number {
+    return this.rates[from] / this.rates[to];
+  }
+}
+
+// Default exchange rate service instance
+// This can be replaced with a different implementation (e.g., API-based)
+// without changing the consuming code
+let exchangeRateService: ExchangeRateService = new StaticExchangeRateService();
+
+/**
+ * Set a new exchange rate service implementation
+ * @param service The new exchange rate service to use
+ */
+export function setExchangeRateService(service: ExchangeRateService): void {
+  exchangeRateService = service;
+}
+
+export type Currency = keyof typeof EXCHANGE_RATES;
+
+/**
+ * Parse Japanese price notation into JPY numeric value
+ * Handles formats like:
+ * - "693万円" (6.93 million yen)
+ * - "1億2000万円" (120 million yen)
+ * - "18.8 Million" (18.8 million yen)
+ * - "5,000万円" (50 million yen)
+ * 
+ * @param priceStr The price string in Japanese notation
+ * @returns The price in JPY (as a number)
+ */
+export function parseJapanesePrice(priceStr: string | number): number {
+  if (!priceStr) return 0;
+  
+  // If price is already a number, return it
+  if (typeof priceStr === 'number') return priceStr;
+  
+  // Convert to string and remove commas and spaces
+  const normalized = String(priceStr).replace(/,|\s+/g, '');
+  
+  // Handle "18.8 Million" format (English)
+  const millionMatch = normalized.match(/(\d+\.?\d*)Million/i);
+  if (millionMatch) {
+    const millionYen = parseFloat(millionMatch[1]);
+    return millionYen * 1_000_000;
+  }
+  
+  // Handle "693万円" format (Japanese)
+  const manYenMatch = normalized.match(/(\d+\.?\d*)万円?/);
+  if (manYenMatch) {
+    const manYen = parseFloat(manYenMatch[1]);
+    return manYen * 10_000;
+  }
+  
+  // Handle "1億2000万円" format (Japanese)
+  const okuYenMatch = normalized.match(/(\d+\.?\d*)億(?:(\d+\.?\d*)万)?円?/);
+  if (okuYenMatch) {
+    const oku = parseFloat(okuYenMatch[1] || '0');
+    const man = parseFloat(okuYenMatch[2] || '0');
+    return oku * 100_000_000 + man * 10_000;
+  }
+  
+  // Try to extract just numbers as a fallback
+  const numericMatch = normalized.match(/(\d+\.?\d*)/);
+  if (numericMatch) {
+    return parseFloat(numericMatch[1]);
+  }
+  
+  return 0;
+}
+
+/**
+ * Helper to convert between currencies using the current exchange rate service
+ * @param amount The amount to convert
+ * @param from Source currency
+ * @param to Target currency
+ * @returns The converted amount
+ */
+export function convertCurrency(amount: number, from: Currency, to: Currency): number {
+  if (from === to) return amount;
+  
+  // Apply the exchange rate to convert from the source currency to the target currency
+  return Math.round(amount * exchangeRateService.getRate(from, to));
+}
+
+export const CURRENCY_SYMBOLS = {
   JPY: "¥",
   USD: "$",
   AUD: "A$",
@@ -53,4 +128,76 @@ export function formatPrice(amount: number, currency: Currency): string {
   
   // Format other currencies with thousands separator
   return `${symbol}${Math.round(amount).toLocaleString()}`;
-} 
+}
+
+export interface Listing {
+    id: string;
+    listingUrl: string;
+    address: string;
+    floorPlan?: string;
+    layout?: string;
+    price: string;
+    landArea: string;
+    buildDate: string;
+    buildArea: string;
+    englishAddress?: string;
+    originalAddress?: string;
+    details?: string[];
+    listingImages?: string[];
+    scrapedAt?: string;
+    isDetailSoldPresent?: boolean;
+    isDuplicate?: boolean;
+    isSold?: boolean;
+    
+    // New properties from enhanced data
+    buildSqMeters?: string;
+    landSqMeters?: string;
+    aboutProperty?: string | null;
+    coordinates?: {
+        lat: number | null;
+        long: number | null;
+    };
+    dates?: {
+        datePosted: string | null;
+        dateRenovated: string | null;
+    };
+    facilities?: {
+        water: string | null;
+        gas: string | null;
+        sewage: string | null;
+        greyWater: string | null;
+    };
+    schools?: {
+        primary: string | null;
+        juniorHigh: string | null;
+    };
+}
+
+export function parseLayout(layoutStr: string | undefined): number {
+    if (!layoutStr) return 0;
+    
+    // Look for LDK pattern
+    const ldkMatch = layoutStr.match(/(\d+)LDK/i);
+    if (ldkMatch) {
+        return parseInt(ldkMatch[1], 10);
+    }
+
+    // Look for DK pattern
+    const dkMatch = layoutStr.match(/(\d+)DK/i);
+    if (dkMatch) {
+        return parseInt(dkMatch[1], 10);
+    }
+
+    // Look for K pattern
+    const kMatch = layoutStr.match(/(\d+)K/i);
+    if (kMatch) {
+        return parseInt(kMatch[1], 10);
+    }
+
+    return 0; // Return 0 if no valid pattern is found
+}
+
+export const SIZES = {
+  build: [50, 100, 150, 200, 250, 300],
+  land: [100, 250, 500, 750, 1000, 1500, 2000],
+}; 

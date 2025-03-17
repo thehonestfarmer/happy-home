@@ -2,14 +2,7 @@
 
 import { createContext, useContext, ReactNode, useMemo } from "react";
 import { useLoadListings } from "@/hooks";
-
-interface Listing {
-  id: string;
-  addresses: string;
-  prices: string;
-  listingImages: string[];
-  // ... add other listing properties as needed
-}
+import { Listing } from "@/lib/listing-utils";
 
 // Define the context type
 interface ListingsContextType {

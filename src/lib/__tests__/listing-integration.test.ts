@@ -7,7 +7,7 @@ describe('Listing Data Integration', () => {
   describe('Price parsing', () => {
     it('successfully parses all listing prices', () => {
       listings.forEach(listing => {
-        const price = parseJapanesePrice(listing.prices);
+        const price = parseJapanesePrice(listing.price);
         expect(price).toBeGreaterThan(0);
         expect(Number.isFinite(price)).toBe(true);
       });
@@ -15,7 +15,7 @@ describe('Listing Data Integration', () => {
 
     it('maintains expected price ranges', () => {
       listings.forEach(listing => {
-        const price = parseJapanesePrice(listing.prices);
+        const price = parseJapanesePrice(listing.price);
         // Most Japanese properties in our dataset should be between $50k and $2M USD
         expect(price).toBeGreaterThanOrEqual(50_000);
         expect(price).toBeLessThanOrEqual(2_000_000);

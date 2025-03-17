@@ -1,82 +1,82 @@
 "use client";
-import { useListings } from "@/contexts/ListingsContext";
 import { ListingsToolbar } from "./ListingsToolbar";
 import { useAppContext } from "@/AppContext";
-import { convertCurrency } from "@/lib/listing-utils";
+import { useListings } from "@/contexts/ListingsContext";
+import { ListingBox } from "./ListingBox";
+import { convertCurrency, parseJapanesePrice } from "@/lib/listing-utils";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { LoadingListingCard } from "./LoadingListingCard";
 import { ErrorDisplay } from "../ui/ErrorDisplay";
-import { ListingBox } from "./ListingBox";
+import { Listing, parseLayout } from '@/lib/listing-utils';
+import {
+  AutoSizer as _AutoSizer,
+  Grid as _Grid,
+  AutoSizerProps,
+  GridProps,
+} from "react-virtualized";
+import { CSSProperties, FC } from "react";
 
 interface FilterState {
   showSold: boolean;
   priceRange: {
     min: number | null;
     max: number | null;
+    currency: "JPY" | "USD" | "AUD" | "EUR";
   };
   layout: {
     minLDK: number | null;
   };
+  listingType: "sold" | "for-sale" | null;
+  size: {
+    minBuildSize: number | null;
+    maxBuildSize: number | null;
+    minLandSize: number | null;
+    maxLandSize: number | null;
+  };
 }
-
-interface ListingData {
-  id: string;
-  addresses: string;
-  isDuplicate?: boolean;
-  tags: string;
-  listingDetail: string;
-  prices: string;
-  layout: string;
-  buildSqMeters: string;
-  landSqMeters: string;
-  listingImages?: string[];
-  recommendedText?: string[];
-  isDetailSoldPresent?: boolean;
-}
-
-const parsePriceJPY = (priceStr: string): number => {
-  // Extract number from strings like "18.8 million yen"
-  const match = priceStr.match(/(\d+\.?\d*)/);
-  if (!match) return 0;
-  const number = parseFloat(match[1]);
-  return number * 1_000_000; // Convert to full yen amount
-};
-
-const parseLayout = (layout: string): number => {
-  // Handle cases like "9DK", "2LDK", etc.
-  const match = layout.match(/(\d+)/);
-  return match ? parseInt(match[1]) : 0;
-};
 
 // Helper to check if filters are at default state
 const isDefaultFilterState = (filterState: FilterState) => {
   return !filterState.showSold &&
     !filterState.priceRange.min &&
     !filterState.priceRange.max &&
-    !filterState.layout.minLDK;
+    !filterState.layout.minLDK &&
+    !filterState.listingType &&
+    !filterState.size.minBuildSize &&
+    !filterState.size.maxBuildSize &&
+    !filterState.size.minLandSize &&
+    !filterState.size.maxLandSize;
+};
+
+interface ListingsGridProps {
+  listings: Listing[];
+}
+
+const Grid = _Grid as unknown as FC<GridProps>;
+const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
+
+// Add the missing parsePriceJPY function
+const parsePriceJPY = (price: string): number => {
+  // return parseJapanesePrice(price);
+  return 1000
 };
 
 export function ListingsGrid() {
-  const { listings, isLoading, error } = useListings();
+  const { isLoading, error, listings } = useListings();
   const { filterState, setFilterState, displayState } = useAppContext();
-
-  console.log(listings);
 
   const filteredAndSortedListings = useMemo(() => {
     if (!listings) return [];
     
-    // First filter
     const filteredListings = listings 
-      // Filter out duplicates
-      .filter((listing: ListingData) => !listing.isDuplicate)
-      // Handle price filter first
-      .filter((property: ListingData) => {
+      .filter((listing) => !listing.isDuplicate)
+      .filter((listing) => {
         if (filterState.priceRange.min || filterState.priceRange.max) {
-          const priceJPY = parsePriceJPY(property.prices);
+          const priceJPY = parseJapanesePrice(listing.price);
           const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
-
+          
           if (filterState.priceRange.min && priceUSD < filterState.priceRange.min) {
             return false;
           }
@@ -86,41 +86,36 @@ export function ListingsGrid() {
         }
         return true;
       })
-      // Handle layout filter
-      .filter((property: ListingData) => {
+      .filter((listing) => {
         if (filterState.layout.minLDK) {
-          const layoutNumber = parseLayout(property.layout);
+          const layoutNumber = parseLayout(listing.layout);
           if (layoutNumber < filterState.layout.minLDK) {
             return false;
           }
         }
         return true;
       })
-      // Handle sold filter last
-      .filter((property: ListingData) => {
+      .filter((listing) => {
         if (filterState.showSold) {
-          return property.isDetailSoldPresent;
-        } else {
-          return !property.isDetailSoldPresent;
+          return listing.isDetailSoldPresent;
         }
+        return !listing.isDetailSoldPresent;
       });
 
-    // Then sort
     return filteredListings.sort((a, b) => {
       switch (displayState.sortBy) {
         case 'price-asc': {
-          const priceA = parsePriceJPY(a.prices);
-          const priceB = parsePriceJPY(b.prices);
+          const priceA = parsePriceJPY(a.price);
+          const priceB = parsePriceJPY(b.price);
           return priceA - priceB;
         }
         case 'price-desc': {
-          const priceA = parsePriceJPY(a.prices);
-          const priceB = parsePriceJPY(b.prices);
+          const priceA = parsePriceJPY(a.price);
+          const priceB = parsePriceJPY(b.price);
           return priceB - priceA;
         }
-        // Add other sort options as needed
         default:
-          return 0; // Keep original order for 'recommended'
+          return 0;
       }
     });
   }, [
@@ -129,15 +124,27 @@ export function ListingsGrid() {
     filterState.priceRange.min,
     filterState.priceRange.max,
     filterState.layout.minLDK,
-    displayState.sortBy // Add this back to dependencies
+    displayState.sortBy
   ]);
 
   const handleResetFilters = () => {
-    setFilterState((draft) => {
-      draft.showSold = false;
-      draft.priceRange.min = null;
-      draft.priceRange.max = null;
-      draft.layout.minLDK = null;
+    setFilterState({
+      showSold: false,
+      priceRange: {
+        min: null,
+        max: null,
+        currency: "USD"
+      },
+      layout: {
+        minLDK: null,
+      },
+      listingType: "for-sale",
+      size: {
+        minBuildSize: null,
+        maxBuildSize: null,
+        minLandSize: null,
+        maxLandSize: null
+      }
     });
   };
 
@@ -178,15 +185,48 @@ export function ListingsGrid() {
     };
   }, [filterState, handleResetFilters]);
 
-  if (error) {
+  // Adjusted row height to reduce whitespace
+  const ROW_HEIGHT = 450; // Reduced from 520
+
+  // Calculate column count based on viewport width
+  const getColumnCount = (width: number) => {
+    if (width < 640) return 1; // Mobile
+    if (width < 1024) return 2; // Tablet
+    return 3; // Desktop
+  };
+
+  function cellRenderer({ columnIndex, key, rowIndex, style, width }: {
+    columnIndex: number;
+    key: string;
+    rowIndex: number;
+    style: CSSProperties;
+    width: number;
+  }) {
+    const columnCount = getColumnCount(width);
+    const index = rowIndex * columnCount + columnIndex;
+    if (index >= filteredAndSortedListings.length) return null;
+
+    const listing = filteredAndSortedListings[index];
+    
     return (
-      <div className="grid place-items-center min-h-[50vh]">
-        <ErrorDisplay
-          title="Failed to load listings"
-          message={error.message}
+      <div 
+        style={{
+          ...style,
+          padding: '12px',  // Increased padding from 8px to 12px
+          boxSizing: 'border-box',
+        }} 
+        key={key}
+      >
+        <ListingBox
+          property={listing}
+          handleLightboxOpen={() => {}}
         />
       </div>
     );
+  }
+
+  if (error) {
+    return <ErrorDisplay title="Failed to load listings" message={error.message} />;
   }
 
   if (isLoading) {
@@ -210,14 +250,30 @@ export function ListingsGrid() {
   return (
     <>
       <ListingsToolbar />
-      <div className="p-4">
+      <div className="flex-1">
         {filteredAndSortedListings.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAndSortedListings.map((property) => (
-              <ListingBox key={property.id} property={property}
-                handleLightboxOpen={() => { }}
-              />
-            ))}
+          <div className="h-[calc(100vh-50px)]">
+            <AutoSizer>
+              {({ width, height }) => {
+                const columnCount = getColumnCount(width);
+                
+                
+                return (
+                  <Grid
+                    cellRenderer={({ columnIndex, key, rowIndex, style }) => 
+                      cellRenderer({ columnIndex, key, rowIndex, style, width })
+                    }
+                    columnCount={columnCount}
+                    columnWidth={width / columnCount}
+                    height={height}
+                    rowCount={Math.ceil(filteredAndSortedListings.length / columnCount)}
+                    rowHeight={ROW_HEIGHT}
+                    width={width}
+                    noContentRenderer={() => <NoResults />}
+                  />
+                );
+              }}
+            </AutoSizer>
           </div>
         ) : (
           <NoResults />

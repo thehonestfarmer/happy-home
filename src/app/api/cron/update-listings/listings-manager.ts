@@ -64,11 +64,28 @@ async function retryFailedScrapes(
 }
 
 export async function readListings(): Promise<ListingsData> {
+  // Check if in development mode
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      // Import local file system module
+      const fs = require('fs');
+      const path = require('path');
+      
+      const filePath = path.join(process.cwd(), 'batch_test_results.json');
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      console.log(`Read ${Object.keys(data).length} listings from local file`);
+      return data;
+    } catch (error) {
+      console.error('Error reading local listings file:', error);
+      return { newListings: {} };
+    }
+  }
+
   try {
     // List blobs to find the most recent listings.json
     const { blobs } = await list();
     const listingsBlob = blobs
-      .filter(blob => blob.pathname.endsWith('listings.json'))
+      .filter(blob => blob.pathname.startsWith('listings'))
       .sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())[0];
 
     if (!listingsBlob) {
@@ -83,7 +100,7 @@ export async function readListings(): Promise<ListingsData> {
     }
 
     const listings = await response.json() as ListingsData;
-    console.log(`Read ${Object.keys(listings.newListings).length} existing listings from blob`);
+    console.log(`Read ${Object.keys(listings).length} existing listings from blob`);
     console.log(`Blob URL: ${listingsBlob.url}`);
     console.log(`Last updated: ${listingsBlob.uploadedAt}`);
     
@@ -112,6 +129,7 @@ export async function mergeListings(
   // Create map of existing addresses for quick lookup
   const addressMap = new Map(
     Object.values(existingListings.newListings)
+      .filter(listing => listing.addresses)
       .map(listing => [listing.addresses.toLowerCase(), listing.id])
   );
   console.log(`Created address map with ${addressMap.size} entries`);
@@ -159,29 +177,16 @@ export async function mergeListings(
       const newId = scrapedData.ids[index];
 
       // Debug logging for tags
-      const tags = scrapedData.tags[index];
-      const tagType = Array.isArray(tags) ? 'array' : typeof tags;
+      const tag = scrapedData.tags[index];
       console.log(`\nProcessing [${index}]: ${address}`);
-      console.log(`Tags type: ${tagType}`);
-      if (tagType === 'array') {
-        console.log(`Tags length: ${tags.length}`);
-      }
+      console.log(`Tag value: ${tag}`);
       
-      // Handle tags safely
-      let tagsString = '';
-      if (Array.isArray(tags)) {
-        tagsString = tags.join(', ');
-      } else if (typeof tags === 'string') {
-        tagsString = tags;
-      } else {
-        console.warn(`⚠️ Unexpected tags format at index ${index}:`, tags);
-        tagsString = String(tags || '');
-      }
-
+      // Handle tags - now they're directly strings from the translation
       const newListing: Listing = {
         id: existingId || newId,
         addresses: address,
-        tags: tagsString,
+        address: scrapedData.englishAddress?.[index] || address, // Use englishAddress if available
+        tags: tag || '', // Use the tag directly, with empty string fallback
         listingDetail: scrapedData.listingDetail[index],
         prices: scrapedData.prices[index],
         layout: scrapedData.layout[index],

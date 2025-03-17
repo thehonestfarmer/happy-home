@@ -16,37 +16,14 @@ interface FavoriteButtonProps {
 }
 
 export function FavoriteButton({ listingId, variant = "ghost", size = "sm" }: FavoriteButtonProps) {
-  const { user } = useAppContext();
+  const { user, favorites, setFavorites } = useAppContext();
   const { toast } = useToast();
-  const [isFavorited, setIsFavorited] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const supabase = createClientComponentClient();
-
-  useEffect(() => {
-    if (user) {
-      checkFavoriteStatus();
-    } else {
-      setIsLoading(false);
-    }
-  }, [user, listingId]);
-
-  const checkFavoriteStatus = async () => {
-    try {
-      const { data } = await supabase
-        .from('user_favorites')
-        .select('id')
-        .eq('user_id', user?.id)
-        .eq('listing_id', listingId)
-        .single();
-
-      setIsFavorited(!!data);
-    } catch (error) {
-      console.error('Error checking favorite status:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  
+  // Check if this listing is in the favorites array from AppContext
+  const isFavorited = favorites.includes(listingId);
 
   const handleFavoriteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -58,23 +35,31 @@ export function FavoriteButton({ listingId, variant = "ghost", size = "sm" }: Fa
     setIsLoading(true);
     try {
       if (isFavorited) {
+        // Remove from Supabase
         await supabase
           .from('user_favorites')
           .delete()
           .eq('user_id', user.id)
           .eq('listing_id', listingId);
+        
+        // Update local state by removing this ID from favorites
+        setFavorites(favorites.filter(id => id !== listingId));
 
         toast({
           title: "Removed from favorites",
           description: "The listing has been removed from your favorites",
         });
       } else {
+        // Add to Supabase
         await supabase
           .from('user_favorites')
           .insert({
             user_id: user.id,
             listing_id: listingId,
           });
+        
+        // Update local state by adding this ID to favorites
+        setFavorites([...favorites, listingId]);
 
         toast({
           title: "Added to favorites",
@@ -82,7 +67,6 @@ export function FavoriteButton({ listingId, variant = "ghost", size = "sm" }: Fa
           variant: "success",
         });
       }
-      setIsFavorited(!isFavorited);
     } catch (error) {
       console.error('Error updating favorite:', error);
       toast({
@@ -99,7 +83,7 @@ export function FavoriteButton({ listingId, variant = "ghost", size = "sm" }: Fa
     <>
       <Button
         variant={variant}
-        size={size}
+        size="favorite"
         onClick={(e) => {
           e.preventDefault();
           handleFavoriteClick(e);
@@ -112,7 +96,6 @@ export function FavoriteButton({ listingId, variant = "ghost", size = "sm" }: Fa
       >
         <Heart
           className={cn(
-            "h-6 w-6",
             isFavorited && "fill-emerald-600"
           )}
         />

@@ -1,20 +1,39 @@
 import puppeteer from "puppeteer";
-import fs from "fs/promises"; // If using ES modules
+import fs from "fs/promises";
+import path from "path";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function runSerially(tasks) {
-  const results = [];
+type Task<T> = () => Promise<T>;
+
+async function runSerially<T>(tasks: Task<T>[]): Promise<T[]> {
+  const results: T[] = [];
   for (const task of tasks) {
-    const result = await task(); // Wait for each task to complete
-    results.push(result); // Collect the result
+    const result = await task();
+    results.push(result);
   }
   return results;
 }
 
-export async function scrapeListingPage(listingUrl: string) {
+interface ScrapedData {
+  listingImages: string[];
+  recommendedText: string[];
+  isDetailSoldPresent: boolean;
+}
+
+interface ListingsData {
+  newListings: {
+    [key: string]: {
+      listingImages: string[];
+      recommendedText: string[];
+      isDetailSoldPresent: boolean;
+    };
+  };
+}
+
+export async function scrapeListingPage(listingUrl: string): Promise<ScrapedData | Error> {
   const startTime = Date.now();
   console.log(`\n🔍 Starting to scrape: ${listingUrl}`);
   
@@ -36,8 +55,8 @@ export async function scrapeListingPage(listingUrl: string) {
     const listingImages = await page.$$eval(".slick-track", (elements) => {
       const images = elements
         .map((el) => {
-          const list = el.querySelectorAll("li > a > img") ?? [];
-          return Array.from(list).map((li) => li.src);
+          const list = el.querySelectorAll("li > a > img");
+          return Array.from(list).map((li) => (li as HTMLImageElement).src);
         })
         .flat();
       return images;
@@ -50,7 +69,7 @@ export async function scrapeListingPage(listingUrl: string) {
       "section.detail_txt.recommend_txt p",
       (items) =>
         items
-          .map((el) => el.textContent.trim())
+          .map((el) => el.textContent?.trim() || "")
           .flat(),
     );
     
@@ -93,54 +112,87 @@ export async function scrapeListingPage(listingUrl: string) {
         name: error.name
       });
     }
-    return error;
+    return error as Error;
   }
 }
 
-async function writeListingDataToJson(result, id) {
-  const fileContents = await fs.readFile("./listings.json", "utf8");
-  const data = JSON.parse(fileContents);
-
-  data.newListings[String(id)].listingImages = result.listingImages;
-  data.newListings[String(id)].recommendedText = result.recommendedText.filter(
-    (i) => i,
-  );
-  data.newListings[String(id)].isDetailSoldPresent = result.isDetailSoldPresent;
-
-  const newData = JSON.stringify(data, null, 2);
-  await fs.writeFile("./listings.json", newData, "utf8", (err) => {
-    if (err) {
-      console.error("Error writing to file", err);
-    } else {
-      console.log("JSON file has been saved.");
-    }
-  });
+async function ensureFileExists(filePath: string, defaultContent: any = {}): Promise<void> {
+  try {
+    await fs.access(filePath);
+  } catch {
+    await fs.writeFile(filePath, JSON.stringify(defaultContent, null, 2));
+    console.log(`Created new file: ${filePath}`);
+  }
 }
 
-async function init(index = 0) {
-  const fileContents = await fs.readFile("./output.json", "utf8");
-  const data = JSON.parse(fileContents);
+async function writeListingDataToJson(result: ScrapedData, id: number | string): Promise<void> {
+  const listingsPath = path.join(process.cwd(), "listings.json");
+  
+  // Ensure listings.json exists
+  await ensureFileExists(listingsPath, { newListings: {} });
+  
+  // Read and update data
+  const fileContents = await fs.readFile(listingsPath, "utf8");
+  const data = JSON.parse(fileContents) as ListingsData;
 
-  let details = data.listingDetail;
-  for (let i = index; i < details.length; i++) {
-    try {
-      const result = await scrapeListingPage(details[i]);
-      console.log(result, "<<<");
-      await writeListingDataToJson(result, i);
-      await fs.writeFile("./idx", String(i), "utf8", (err) => {
-        if (err) {
-          console.error("Error writing to file", err);
-          throw new Error("fs write error");
-        } else {
-          console.log("JSON file has been saved.");
+  if (!data.newListings) {
+    data.newListings = {};
+  }
+
+  data.newListings[String(id)] = {
+    listingImages: result.listingImages,
+    recommendedText: result.recommendedText.filter(Boolean),
+    isDetailSoldPresent: result.isDetailSoldPresent
+  };
+
+  // Write back to file
+  await fs.writeFile(listingsPath, JSON.stringify(data, null, 2), "utf8");
+  console.log(`Updated listings.json with data for ID: ${id}`);
+}
+
+async function init(index = 0): Promise<void> {
+  const outputPath = path.join(process.cwd(), "output.json");
+  
+  // Ensure output.json exists
+  await ensureFileExists(outputPath, { listingDetail: [] });
+  
+  try {
+    const fileContents = await fs.readFile(outputPath, "utf8");
+    const data = JSON.parse(fileContents) as { listingDetail: string[] };
+
+    if (!Array.isArray(data.listingDetail)) {
+      throw new Error("Invalid output.json format: listingDetail must be an array");
+    }
+
+    const details = data.listingDetail;
+    for (let i = index; i < details.length; i++) {
+      try {
+        const result = await scrapeListingPage(details[i]);
+        if (result instanceof Error) {
+          console.error(`Failed to scrape listing ${i}:`, result);
+          continue;
         }
-      });
-      console.log("wrote", "<<<");
-    } catch (e) {
-      break;
+        
+        await writeListingDataToJson(result, i);
+        await fs.writeFile(path.join(process.cwd(), "idx"), String(i), "utf8");
+        console.log(`Processed listing ${i} successfully`);
+        
+        // Add a small delay between requests to be polite
+        await sleep(1000);
+      } catch (e) {
+        console.error(`Error processing listing ${i}:`, e);
+        break;
+      }
     }
+    console.log("✅ Scraping process completed");
+  } catch (e) {
+    console.error("Failed to initialize scraping:", e);
+    process.exit(1);
   }
-  console.log("finish");
-  return;
+}
+
+// If this file is run directly (not imported as a module)
+if (require.main === module) {
+  init().catch(console.error);
 }
 

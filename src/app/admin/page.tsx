@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ListIcon, InstagramIcon } from "lucide-react";
+import { ListIcon, InstagramIcon, BotIcon, RefreshCwIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -10,7 +10,7 @@ export default function AdminPage() {
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Listing Manager Card */}
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader>
@@ -58,6 +58,32 @@ export default function AdminPage() {
             <Link href="/admin/posts" className="w-full">
               <Button className="w-full" size="lg">
                 Open Instagram Manager
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+
+        {/* Scraping Tool Card */}
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BotIcon className="h-5 w-5" />
+              Scraping Tool
+            </CardTitle>
+            <CardDescription>
+              Manage and monitor web scraping jobs for property listings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              View scraping status, retry failed jobs, and schedule new scraping runs.
+              Troubleshoot issues with data collection from external sources.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Link href="/admin/scraper" className="w-full">
+              <Button className="w-full" size="lg">
+                Open Scraping Tool
               </Button>
             </Link>
           </CardFooter>

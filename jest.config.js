@@ -10,6 +10,9 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  transformIgnorePatterns: [
+    '/node_modules/(?!(translate|fp-ts|io-ts)/)'
+  ],
 };
 
 module.exports = createJestConfig(customJestConfig); 

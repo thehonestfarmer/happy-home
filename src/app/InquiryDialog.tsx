@@ -56,7 +56,7 @@ export function DrawerDialogDemo({ property }) {
   const handleMailto = React.useCallback(() => {
     const email = "thehonestfarmer@proton.me";
     const subject = "Property inquiry";
-    const body = `I'm interested in learning more about this property ${property.addresses}`;
+    const body = `I'm interested in learning more about this property ${property.address}`;
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     window.location.href = mailtoUrl;
@@ -80,7 +80,7 @@ export function DrawerDialogDemo({ property }) {
     });
   }, [toast]);
 
-  const [title, desc] = property.addresses.split(",");
+  const [title, desc] = property.address.split(",");
   const snapPoints = [0.6, 0.96];
   const [snap, setSnap] = React.useState<number | string | null>(snapPoints[0]);
 
@@ -179,7 +179,7 @@ function ListingDetailContent({ property, handleMailto }) {
             About this home
           </h2>
           <p className="text-sm text-gray-600">
-            {property.recommendedText.join(". ")}
+            {property.recommendedText}
           </p>
         </div>
 
