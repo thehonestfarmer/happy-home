@@ -23,6 +23,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "usehooks-ts";
+import { formatListingDetail } from "@/hooks";
 
 function ActionButtons({ onCopy, onEmail }: { 
   onCopy: () => void;
@@ -141,7 +142,7 @@ export function DrawerDialogDemo({ property }) {
   );
 }
 
-function ListingDetailContent({ property, handleMailto }) {
+function ListingDetailContent({ property, handleMailto }: { property: any, handleMailto: () => void }) {
   const processedTags = property.tags.split(",");
 
   return (
@@ -178,9 +179,20 @@ function ListingDetailContent({ property, handleMailto }) {
           <h2 className="text-lg font-semibold text-black mb-2">
             About this home
           </h2>
-          <p className="text-sm text-gray-600">
-            {property.recommendedText}
-          </p>
+          {property.listingDetail ? (
+                <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+                  {property.listingDetail.split('★')
+                    .filter(item => item.trim().length > 0)
+                    .map((item, index) => (
+                      <li key={index} className="leading-relaxed">
+                        {item.trim()}
+                      </li>
+                    ))
+                  }
+            </ul>
+          ) : (
+            <p className="text-muted-foreground">No details available for this property.</p>
+          )}
         </div>
 
         <div className="p-4 flex flex-wrap">

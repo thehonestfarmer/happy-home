@@ -22,7 +22,7 @@ interface ProcessedListing {
 }
 
 // Function to format listing detail text
-function formatListingDetail(text: string): string {
+export function formatListingDetail(text: string): string {
   if (!text) return '';
   
   // Trim whitespace from beginning and end
