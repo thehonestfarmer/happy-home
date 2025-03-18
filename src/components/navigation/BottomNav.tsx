@@ -26,6 +26,11 @@ const navItems = [
 export function BottomNav() {
   const pathname = usePathname();
   
+  // Don't render the navigation on the home page
+  if (pathname === '/') {
+    return null;
+  }
+  
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
       <div className="border-t bg-background">
