@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Drawer, DrawerContent, DrawerHeader,
-  DrawerTitle
+  DrawerTitle, DrawerDescription
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "usehooks-ts";
 
@@ -120,17 +120,19 @@ export function DrawerDialogDemo({ property }: { property: any }) {
         // modal={false}
         // preventScrollRestoration={false}
       >
-        <DrawerContent className="pb-[72px]">
+        <DrawerContent className="pb-[72px] max-w-full">
           <DrawerHeader className="text-left">
             <DrawerTitle>
               <div>
                 <div className="text-lg font-semibold">{propertyTitle}</div>
-                <div className="text-sm text-muted-foreground">{addressDisplay}</div>
               </div>
             </DrawerTitle>
+            <DrawerDescription>
+              {addressDisplay}
+            </DrawerDescription>
           </DrawerHeader>
           
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden w-full">
             <ListingDetailContent 
               property={property} 
               handleMailto={handleMailto} 
@@ -153,14 +155,11 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
   handleMailto: () => void,
   selectedCurrency?: Currency 
 }) {
-  const processedTags = property.tags?.split(",") || [];
-  const propertyTitle = property.propertyTitle || (property.address ? property.address.split(",")[0] : "Property");
-
   return (
-    <div className="flex flex-col md:grid md:grid-cols-[240px_1fr] md:p-4">
+    <div className="flex flex-col w-full max-w-full md:grid md:grid-cols-[240px_1fr] md:p-4">
       <div className="p-4 bg-white rounded-lg shadow-sm">
         {/* Property details with icons in a horizontal row */}
-        <div className="grid grid-cols-4 gap-3 text-center py-2">
+        <div className="grid grid-cols-4 gap-3 text-center py-2 max-w-full">
           {/* Price */}
           <div className="flex flex-col items-center">
             <div className="text-base font-bold mb-1.5">
@@ -200,38 +199,34 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
         </div>
       </div>
 
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="p-4 bg-white">
+      <div className="flex flex-col flex-1 overflow-hidden w-full">
+        <div className="p-4 bg-white w-full">
           <h2 className="text-lg font-semibold text-black mb-2">
             About this home
           </h2>
-          {property.listingDetail ? (
-                <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                  {property.listingDetail.split('★')
-                    .filter((item: string) => item.trim().length > 0)
-                    .map((item: string, index: number) => (
-                      <li key={index} className="leading-relaxed">
-                        {item.trim()}
-                      </li>
-                    ))
-                  }
+          {property.propertyCaption ? (
+            <div className="text-muted-foreground whitespace-pre-line p-4 bg-muted/30 border rounded-md">
+              {property.propertyCaption}
+            </div>
+          ) : property.listingDetail ? (
+            <ul className="list-disc pl-5 space-y-2 text-muted-foreground p-4 bg-muted/30 border rounded-md">
+              {property.listingDetail.split('★')
+                .filter((item: string) => item.trim().length > 0)
+                .map((item: string, index: number) => (
+                  <li key={index} className="leading-relaxed">
+                    {item.trim()}
+                  </li>
+                ))
+              }
             </ul>
           ) : (
-            <p className="text-muted-foreground">No details available for this property.</p>
+            <p className="text-muted-foreground p-4 bg-muted/30 border rounded-md">No details available for this property.</p>
           )}
-        </div>
-
-        <div className="p-4 flex flex-wrap overflow-hidden">
-          {processedTags.map((p: string) => (
-            <Badge key={p} className="p-1 m-1" variant="outline">
-              {p.trim()}
-            </Badge>
-          ))}
         </div>
 
         {/* Utilities and Schools Table */}
         <div className="p-4 pt-0 w-full max-w-full">
-          <div className="border rounded-md overflow-hidden w-full">
+          <div className="border rounded-md overflow-hidden w-full max-w-full">
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="bg-muted">

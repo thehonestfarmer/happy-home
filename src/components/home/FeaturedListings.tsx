@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, Map } from 'lucide-react';
+import { Home, Map, LayoutGrid } from 'lucide-react';
 import { useListings } from '@/contexts/ListingsContext';
 import { useMemo, useState } from 'react';
 import { 
@@ -239,7 +239,7 @@ const FeaturedListingsSkeleton = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-lg overflow-hidden shadow-md h-[440px] flex flex-col">
+          <div key={i} className="bg-card rounded-lg overflow-hidden shadow-md h-[460px] flex flex-col">
             <div className="relative h-[220px] flex-shrink-0 bg-muted animate-pulse"></div>
             <div className="p-4 flex flex-col flex-grow space-y-4">
               <div className="h-6 bg-muted animate-pulse rounded w-3/4"></div>
@@ -302,6 +302,7 @@ export const FeaturedListings = () => {
           id: listing.id,
           title,
           price: listing.price,
+          layout: listing.layout || listing.floorPlan || 'N/A',
           buildArea: listing.buildSqMeters || listing.buildArea || 'N/A',
           landArea: listing.landSqMeters || listing.landArea || 'N/A',
           imageUrl: listing.listingImages?.[0] || '/images/property-placeholder.jpg',
@@ -349,7 +350,7 @@ export const FeaturedListings = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {featuredListings.map((property) => (
-          <div key={property.id} className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow h-[430px] flex flex-col">
+          <div key={property.id} className="bg-card rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow h-[460px] flex flex-col">
             <div className="relative h-[220px] flex-shrink-0">
               <Image
                 src={property.imageUrl}
@@ -370,6 +371,10 @@ export const FeaturedListings = () => {
                 {/* Property details with icons */}
                 <div className="space-y-2 mt-auto">
                   <div className="flex items-center gap-6 text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <LayoutGrid className="h-4 w-4" />
+                      <span>{property.layout}</span>
+                    </div>
                     <div className="flex items-center gap-1.5">
                       <Home className="h-4 w-4" />
                       <span>{property.buildArea}</span>
