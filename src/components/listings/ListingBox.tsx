@@ -201,109 +201,13 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   // Track images that fail to load
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
-  // Touch handling state
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  // Add startY and currentY to track vertical movement
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [touchCurrentY, setTouchCurrentY] = useState<number | null>(null);
-  // Add isSwiping state to track when a swipe is in progress
-  const [isSwiping, setIsSwiping] = useState(false);
-  // Add a ref to track whether we've prevented default during this touch sequence
-  const preventedDefault = useRef(false);
   
-  // Minimum swipe distance in pixels
-  const minSwipeDistance = 50;
-
   // Ensure we have valid image URLs
   const rawImages = property.listingImages || [];
   // Ensure they're valid strings and limit to first 4
   const displayImages = rawImages.length > 0 
     ? rawImages.filter(img => typeof img === 'string' && img.trim() !== '').slice(0, 4)
     : ['/placeholder-property.jpg'];
-
-  // Touch event handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // Reset prevention tracking
-    preventedDefault.current = false;
-    
-    // Store both X and Y positions
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-    setTouchStartY(e.targetTouches[0].clientY);
-    setTouchCurrentY(e.targetTouches[0].clientY);
-    setIsSwiping(false);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    // Always update current X position
-    setTouchEnd(e.targetTouches[0].clientX);
-    setTouchCurrentY(e.targetTouches[0].clientY);
-    
-    // Only check for horizontal swipes if we have multiple images
-    if (touchStart !== null && touchStartY !== null && displayImages.length > 1) {
-      const horizontalDistance = Math.abs(e.targetTouches[0].clientX - touchStart);
-      const verticalDistance = Math.abs(e.targetTouches[0].clientY - touchStartY);
-      
-      // If clearly a horizontal swipe (significantly more horizontal than vertical movement)
-      if (horizontalDistance > 10 && horizontalDistance > verticalDistance * 1.5) {
-        // Mark that we're in a swiping state
-        if (!isSwiping) {
-          setIsSwiping(true);
-        }
-        
-        // Try to prevent default - might not work on all mobile browsers
-        if (!preventedDefault.current) {
-          try {
-            e.preventDefault();
-            preventedDefault.current = true;
-          } catch (err) {
-            // Some browsers might throw an error when preventDefault is called
-            // on passive events, just ignore it
-          }
-          e.stopPropagation();
-        }
-      }
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isSwipe = Math.abs(distance) > minSwipeDistance;
-    
-    if (isSwipe && displayImages.length > 1) {
-      if (distance > 0) {
-        // Swipe left, show next image
-        goToNextImage();
-      } else {
-        // Swipe right, show previous image
-        goToPreviousImage();
-      }
-      
-      // If this was a valid swipe, make sure we stop event propagation
-      e.stopPropagation();
-    }
-    
-    // Reset all touch positions and state
-    setTouchStart(null);
-    setTouchEnd(null);
-    setTouchStartY(null);
-    setTouchCurrentY(null);
-    setIsSwiping(false);
-    preventedDefault.current = false;
-  };
-
-  // Add touchCancel handler to reset state when touch is canceled
-  const handleTouchCancel = () => {
-    setTouchStart(null);
-    setTouchEnd(null);
-    setTouchStartY(null);
-    setTouchCurrentY(null);
-    setIsSwiping(false);
-    preventedDefault.current = false;
-  };
 
   // Handle image error
   const handleImageError = () => {
@@ -372,19 +276,13 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
         {/* Simple carousel */}
         <div 
           className="relative w-full h-full"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchCancel}
           role="region"
           aria-roledescription="carousel"
           aria-label="Property images"
-          // Add touch-action CSS property to improve mobile browser behavior
-          style={{ touchAction: displayImages.length > 1 ? 'pan-y' : 'auto' }}
         >
           {/* Display number of images (1/4) for accessibility */}
           {displayImages.length > 1 && (
-            <div className="absolute top-2 left-2 z-10 text-xs bg-black/40 text-white px-1.5 py-0.5 rounded-sm sm:hidden">
+            <div className="absolute top-2 left-2 z-10 text-xs bg-black/40 text-white px-1.5 py-0.5 rounded-sm">
               {currentImageIndex + 1}/{displayImages.length}
             </div>
           )}
@@ -398,21 +296,9 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
                 priority
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className={`object-cover ${isSold ? 'opacity-90' : ''}`}
-                style={{ 
-                  objectPosition: 'center',
-                  // Apply touch-action CSS directly to the image as well
-                  touchAction: displayImages.length > 1 ? 'pan-y' : 'auto'
-                }}
+                style={{ objectPosition: 'center' }}
                 onClick={handleImageClick}
                 onError={handleImageError}
-                onTouchStart={(e) => {
-                  // Prevent the default behavior that might interfere with our custom handling
-                  if (displayImages.length > 1) {
-                    // Try to prevent click events that might interfere with swiping
-                    e.stopPropagation();
-                  }
-                  handleTouchStart(e);
-                }}
                 draggable={false}
                 role="img"
                 aria-roledescription="slide"
@@ -429,19 +315,10 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             )}
           </div>
           
-          {/* Visual indicator for swipe position */}
-          {touchStart !== null && touchEnd !== null && Math.abs(touchStart - touchEnd) > 20 && (
-            <div 
-              className={`absolute inset-y-0 w-12 bg-black/10 transition-opacity duration-200 ${touchStart > touchEnd ? 'right-0' : 'left-0'}`}
-              style={{ opacity: Math.min(0.5, Math.abs(touchStart - touchEnd) / 200) }}
-              aria-hidden="true"
-            />
-          )}
-          
           {displayImages.length > 1 && (
             <>
               <button
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white/90 z-10 h-7 w-7 sm:h-8 sm:w-8 rounded-full hidden sm:flex items-center justify-center shadow-sm hover:shadow transition-all sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white/90 z-10 h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center shadow-sm hover:shadow transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={goToPreviousImage}
                 aria-label="View previous image"
               >
@@ -451,7 +328,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
               </button>
               
               <button
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white/90 z-10 h-7 w-7 sm:h-8 sm:w-8 rounded-full hidden sm:flex items-center justify-center shadow-sm hover:shadow transition-all sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white/90 z-10 h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center shadow-sm hover:shadow transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={goToNextImage}
                 aria-label="View next image"
               >
@@ -461,7 +338,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
               </button>
               
               {/* Image indicators */}
-              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10 sm:opacity-70 sm:group-hover:opacity-100 transition-opacity duration-200">
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10 transition-opacity duration-200">
                 {displayImages.map((_, index) => (
                   <button
                     key={index}
