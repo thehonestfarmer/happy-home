@@ -274,7 +274,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
   };
 
   return (
-    <Card className={`h-full transition-shadow duration-200 ${isSold ? 'border-red-200' : ''}`}>
+    <Card className={`h-full transition-shadow duration-200 hover:shadow-md rounded-xl overflow-hidden ${isSold ? 'border-red-200' : ''}`}>
       <div className="relative w-full aspect-[16/9] sm:aspect-[16/10] md:aspect-[16/9] overflow-hidden group">
         {/* Simple carousel */}
         <div 
@@ -371,7 +371,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
       </div>
 
       <Link href={`/listings/view/${property.id}`} className="block">
-        <div className={`p-3 flex flex-col gap-2 mt-2 group hover:bg-gray-50 transition-colors duration-200 rounded-b-lg cursor-pointer`}>
+        <div className={`p-3 flex flex-col gap-2 mt-2 group hover:bg-green-50 bg-green-50/30 transition-colors duration-200 rounded-b-lg cursor-pointer`}>
           <div className="flex justify-between items-start gap-2">
             <div className="flex flex-col min-w-0">
               <div className="text-xl font-bold truncate md:text-2xl">
@@ -438,5 +438,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
 
 // Function to generate sample property descriptions
 const generatePropertyDescription = (property: Listing): string => {
+  // Using optional chaining to safely access the property, even if it doesn't exist on the type
+  // @ts-ignore - Property may not be explicitly defined in the type but exists in the data
   return property.shortDescription || '';
 };

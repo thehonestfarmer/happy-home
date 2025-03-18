@@ -123,8 +123,6 @@ export default function RootLayout({
           <AppProvider>
             <ListingsProvider>
               <AppSidebar />
-
-              <Header />
               <div className="pb-16 lg:pb-0">
                 {children}
                 <BottomNav />

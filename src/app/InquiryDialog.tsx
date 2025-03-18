@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import * as React from "react";
 
-import { MailIcon, Copy, LayoutGrid, Home, Map, DollarSign } from "lucide-react";
+import { MailIcon, Copy, LayoutGrid, Home, Map, DollarSign, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatArea, Currency, parseLayout, parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRENCY_SYMBOLS } from "@/lib/listing-utils";
 
@@ -20,6 +20,53 @@ import {
   DrawerTitle, DrawerDescription
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "usehooks-ts";
+
+// Extract year from arbitrary date strings
+// Handles formats like "New construction unknown date: 1966" or "July 31, 1974"
+const extractBuildYear = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'N/A';
+  
+  // First check for a 4-digit year anywhere in the string
+  const yearMatch = dateString.match(/\b(19\d{2}|20\d{2})\b/);
+  if (yearMatch) {
+    return yearMatch[1];
+  }
+  
+  // Try to extract a date using more formal patterns
+  // Japanese era dates
+  const japaneseEraMatch = dateString.match(/(令和|平成|昭和)(\d+)年/);
+  if (japaneseEraMatch) {
+    const [_, era, yearInEra] = japaneseEraMatch;
+    let year = parseInt(yearInEra);
+    
+    // Convert Japanese era to western year
+    if (era === '令和') { // Reiwa era (2019-present)
+      year += 2018;
+    } else if (era === '平成') { // Heisei era (1989-2019)
+      year += 1988;
+    } else if (era === '昭和') { // Showa era (1926-1989)
+      year += 1925;
+    }
+    
+    return year.toString();
+  }
+  
+  // Regular date formats
+  const dateRegex = /(\d{4})[-./](\d{1,2})[-./](\d{1,2})|(\d{1,2})[-./](\d{1,2})[-./](\d{4})|(\w+)\s+(\d{1,2}),\s+(\d{4})/;
+  const match = dateString.match(dateRegex);
+  
+  if (match) {
+    // YYYY.MM.DD format
+    if (match[1]) return match[1];
+    // MM/DD/YYYY format
+    else if (match[6]) return match[6];
+    // "Month DD, YYYY" format
+    else if (match[9]) return match[9];
+  }
+  
+  // If no year found, return the original string or a default
+  return dateString.includes('unknown') ? 'Unknown' : dateString;
+};
 
 function ActionButtons({ onCopy, onEmail }: { 
   onCopy: () => void;
@@ -80,7 +127,7 @@ export function DrawerDialogDemo({ property }: { property: any }) {
   // Use propertyTitle as the main title if available, otherwise use address
   const propertyTitle = property.propertyTitle || (property.address ? property.address.split(",")[0] : "Property");
   const addressDisplay = property.address || "Address unavailable";
-  const snapPoints = [0.4, 0.6, 0.96];
+  const snapPoints = [0.5, 0.68, 0.96];
   const [snap, setSnap] = React.useState<number | string | null>(snapPoints[0]);
   
   // Listen for scroll events on the listing images and snap drawer to smallest size
@@ -160,7 +207,10 @@ export function DrawerDialogDemo({ property }: { property: any }) {
           </div>
         </DrawerContent>
       </Drawer>
-
+      <ActionButtons 
+        onCopy={handleCopyLink}
+        onEmail={handleMailto}
+      />
     </>
   );
 }
@@ -200,73 +250,76 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
 
   const prices = getPriceDisplay();
   const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
+  
+  // Extract build year from the buildDate string
+  const buildYear = extractBuildYear(property.buildDate);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
     <div className="flex flex-col w-full max-w-full md:grid md:grid-cols-[240px_1fr] md:p-4">
-      <div className="p-4 bg-white rounded-lg shadow-sm">
+      <div className={`bg-white rounded-lg shadow-sm ${isDesktop ? 'p-4' : 'p-2.5'}`}>
         {/* Price section (enhanced for mobile) */}
-        <div className={`mb-4 ${isSold ? 'text-red-600' : ''}`}>
+        <div className={`${isDesktop ? 'mb-4' : 'mb-2'} ${isSold ? 'text-red-600' : ''}`}>
           <div className="text-xl font-bold">{prices.primary}</div>
           <div className="text-sm text-muted-foreground">
             {prices.secondary} {prices.rate}
           </div>
           {isSold && (
             <div className="mt-1">
-              <Badge variant="destructive" className="px-2 py-1">SOLD</Badge>
+              <Badge variant="destructive" className="px-2 py-0.5 text-sm">SOLD</Badge>
             </div>
           )}
         </div>
 
         {/* Property details with icons in a horizontal row */}
-        <div className="grid grid-cols-4 gap-3 text-center py-2 max-w-full">
+        <div className="grid grid-cols-4 gap-2 text-center py-1 max-w-full">
           {/* LDK */}
           <div className="flex flex-col items-center">
-            <div className="text-base font-bold mb-1.5">
+            <div className={`font-bold ${isDesktop ? 'text-base mb-1.5' : 'text-sm mb-1'}`}>
               {parseLayout(property.layout)} <span className="text-xs">LDK</span>
             </div>
-            <LayoutGrid className="h-5 w-5 text-gray-500" />
+            <LayoutGrid className="h-4 w-4 text-gray-500" />
           </div>
           
           {/* Build Area */}
           <div className="flex flex-col items-center">
-            <div className="text-base font-bold mb-1.5">
+            <div className={`font-bold ${isDesktop ? 'text-base mb-1.5' : 'text-sm mb-1'}`}>
               {property.buildSqMeters ? formatArea(property.buildSqMeters, selectedCurrency, false).split(' ')[0] : 'N/A'}
               <span className="text-xs"> {selectedCurrency === 'USD' ? 'ft²' : 'm²'}</span>
             </div>
-            <Home className="h-5 w-5 text-gray-500" />
+            <Home className="h-4 w-4 text-gray-500" />
           </div>
           
           {/* Land Area */}
           <div className="flex flex-col items-center">
-            <div className="text-base font-bold mb-1.5">
+            <div className={`font-bold ${isDesktop ? 'text-base mb-1.5' : 'text-sm mb-1'}`}>
               {property.landSqMeters ? formatArea(property.landSqMeters, selectedCurrency, false).split(' ')[0] : 'N/A'}
               <span className="text-xs"> {selectedCurrency === 'USD' ? 'ft²' : 'm²'}</span>
             </div>
-            <Map className="h-5 w-5 text-gray-500" />
+            <Map className="h-4 w-4 text-gray-500" />
           </div>
           
-          {/* Price icon */}
+          {/* Year Built */}
           <div className="flex flex-col items-center">
-            <div className="text-base font-bold mb-1.5">
-              {property.buildYear || 'N/A'}
-              <span className="text-xs"> Year</span>
+            <div className={`font-bold ${isDesktop ? 'text-base mb-1.5' : 'text-sm mb-1'}`}>
+              {buildYear}
             </div>
-            <DollarSign className="h-5 w-5 text-gray-500" />
+            <Calendar className="h-4 w-4 text-gray-500" />
           </div>
         </div>
       </div>
 
       <div className="flex flex-col flex-1 overflow-hidden w-full">
-        <div className="p-4 bg-white w-full">
-          <h2 className="text-lg font-semibold text-black mb-2">
+        <div className={`bg-white w-full ${isDesktop ? 'p-4' : 'p-3'}`}>
+          <h2 className={`font-semibold text-black ${isDesktop ? 'text-lg mb-2' : 'text-base mb-1.5'}`}>
             About this home
           </h2>
           {property.propertyCaption ? (
-            <div className="text-muted-foreground whitespace-pre-line p-4 bg-muted/30 border rounded-md">
+            <div className="text-muted-foreground whitespace-pre-line p-3 bg-muted/30 border rounded-md">
               {property.propertyCaption}
             </div>
           ) : property.listingDetail ? (
-            <ul className="list-disc pl-5 space-y-2 text-muted-foreground p-4 bg-muted/30 border rounded-md">
+            <ul className="list-disc pl-5 space-y-1.5 text-muted-foreground p-3 bg-muted/30 border rounded-md">
               {property.listingDetail.split('★')
                 .filter((item: string) => item.trim().length > 0)
                 .map((item: string, index: number) => (
@@ -277,76 +330,76 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
               }
             </ul>
           ) : (
-            <p className="text-muted-foreground p-4 bg-muted/30 border rounded-md">No details available for this property.</p>
+            <p className="text-muted-foreground p-3 bg-muted/30 border rounded-md">No details available for this property.</p>
           )}
         </div>
 
         {/* Utilities and Schools Table */}
-        <div className="p-4 pt-0 w-full max-w-full">
+        <div className={`w-full max-w-full ${isDesktop ? 'p-4 pt-0' : 'p-3 pt-0'}`}>
           <div className="border rounded-md overflow-hidden w-full max-w-full">
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="bg-muted">
-                  <th colSpan={2} className="px-3 py-2 text-left font-semibold">Utilities</th>
+                  <th colSpan={2} className="px-3 py-1.5 text-left font-semibold">Utilities</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 <tr>
-                  <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Water</td>
-                  <td className="px-3 py-2 truncate">{property.facilities?.water || 'Not specified'}</td>
+                  <td className="px-3 py-1.5 font-medium text-muted-foreground w-1/3">Water</td>
+                  <td className="px-3 py-1.5 truncate">{property.facilities?.water || 'Not specified'}</td>
                 </tr>
                 <tr>
-                  <td className="px-3 py-2 font-medium text-muted-foreground">Gas</td>
-                  <td className="px-3 py-2 truncate">{property.facilities?.gas || 'Not specified'}</td>
+                  <td className="px-3 py-1.5 font-medium text-muted-foreground">Gas</td>
+                  <td className="px-3 py-1.5 truncate">{property.facilities?.gas || 'Not specified'}</td>
                 </tr>
                 <tr>
-                  <td className="px-3 py-2 font-medium text-muted-foreground">Sewage</td>
-                  <td className="px-3 py-2 truncate">{property.facilities?.sewage || 'Not specified'}</td>
+                  <td className="px-3 py-1.5 font-medium text-muted-foreground">Sewage</td>
+                  <td className="px-3 py-1.5 truncate">{property.facilities?.sewage || 'Not specified'}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <div className="border rounded-md overflow-hidden mt-4 w-full">
+          <div className="border rounded-md overflow-hidden mt-3 w-full">
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="bg-muted">
-                  <th colSpan={2} className="px-3 py-2 text-left font-semibold">Schools</th>
+                  <th colSpan={2} className="px-3 py-1.5 text-left font-semibold">Schools</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 <tr>
-                  <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Primary School</td>
-                  <td className="px-3 py-2 truncate">{property.schools?.primary || 'Not specified'}</td>
+                  <td className="px-3 py-1.5 font-medium text-muted-foreground w-1/3">Primary School</td>
+                  <td className="px-3 py-1.5 truncate">{property.schools?.primary || 'Not specified'}</td>
                 </tr>
                 <tr>
-                  <td className="px-3 py-2 font-medium text-muted-foreground">Junior High</td>
-                  <td className="px-3 py-2 truncate">{property.schools?.juniorHigh || 'Not specified'}</td>
+                  <td className="px-3 py-1.5 font-medium text-muted-foreground">Junior High</td>
+                  <td className="px-3 py-1.5 truncate">{property.schools?.juniorHigh || 'Not specified'}</td>
                 </tr>
               </tbody>
             </table>
           </div>
           
-          <div className="border rounded-md overflow-hidden mt-4 w-full">
+          <div className="border rounded-md overflow-hidden mt-3 w-full">
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="bg-muted">
-                  <th colSpan={2} className="px-3 py-2 text-left font-semibold">Property Information</th>
+                  <th colSpan={2} className="px-3 py-1.5 text-left font-semibold">Property Information</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 <tr>
-                  <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Build Date</td>
-                  <td className="px-3 py-2 truncate">{property.buildDate || 'Not specified'}</td>
+                  <td className="px-3 py-1.5 font-medium text-muted-foreground w-1/3">Build Date</td>
+                  <td className="px-3 py-1.5 truncate">{property.buildDate || 'Not specified'}</td>
                 </tr>
                 <tr>
-                  <td className="px-3 py-2 font-medium text-muted-foreground">Date Posted</td>
-                  <td className="px-3 py-2 truncate">{property.dates?.datePosted || 'Not specified'}</td>
+                  <td className="px-3 py-1.5 font-medium text-muted-foreground">Date Posted</td>
+                  <td className="px-3 py-1.5 truncate">{property.dates?.datePosted || 'Not specified'}</td>
                 </tr>
                 {property.dates?.dateRenovated && (
                   <tr>
-                    <td className="px-3 py-2 font-medium text-muted-foreground">Date Renovated</td>
-                    <td className="px-3 py-2 truncate">{property.dates.dateRenovated}</td>
+                    <td className="px-3 py-1.5 font-medium text-muted-foreground">Date Renovated</td>
+                    <td className="px-3 py-1.5 truncate">{property.dates.dateRenovated}</td>
                   </tr>
                 )}
               </tbody>

@@ -138,13 +138,6 @@ export default function Header() {
             )}
             <AuthButton />
           </div>
-
-          {/* Only show filters trigger on mobile */}
-          <div className="lg:hidden">
-            <SidebarTrigger>
-              <SlidersHorizontal className="h-5 w-5" />
-            </SidebarTrigger>
-          </div>
         </div>
       </header>
 
