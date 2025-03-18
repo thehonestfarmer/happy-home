@@ -219,10 +219,25 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
+    // Don't prevent default here to allow other touch behaviors to work normally
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     setTouchEnd(e.targetTouches[0].clientX);
+    
+    // Prevent scroll when user is swiping horizontally on the carousel
+    if (touchStart !== null) {
+      const horizontalDistance = Math.abs(e.targetTouches[0].clientX - touchStart);
+      const verticalDistance = Math.abs(e.targetTouches[0].pageY - e.targetTouches[0].clientY);
+      
+      // If horizontal swipe is more significant than vertical movement
+      // and we have multiple images (so carousel interaction makes sense)
+      if (horizontalDistance > verticalDistance && horizontalDistance > 10 && displayImages.length > 1) {
+        // Prevent default to stop page scrolling
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
   };
 
   const handleTouchEnd = () => {
@@ -339,6 +354,11 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
                 style={{ objectPosition: 'center' }}
                 onClick={handleImageClick}
                 onError={handleImageError}
+                onTouchStart={(e) => {
+                  // Stop propagation to parent handlers that might cause scrolling
+                  e.stopPropagation();
+                  handleTouchStart(e);
+                }}
                 draggable={false}
                 role="img"
                 aria-roledescription="slide"
