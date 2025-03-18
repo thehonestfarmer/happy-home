@@ -12,6 +12,10 @@ import NextJsImage from "@/components/ui/nextjsimage";
 import { useLoadListings } from "@/hooks";
 import { CSSProperties, FC, useCallback } from "react";
 import Lightbox from "yet-another-react-lightbox";
+import { parseLayout, formatPrice, convertCurrency, parseJapanesePrice, Currency } from "@/lib/listing-utils";
+import { Card } from "@/components/ui/card";
+import Link from "next/link";
+import Image from "next/image";
 
 const List = _List as unknown as FC<ListProps>;
 const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
@@ -33,7 +37,7 @@ export function FilteredListingsBox() {
     .filter(
       (property) =>
         property.priceUsd < filterState.maxPrice &&
-        parseInt(property.layout) >= filterState.minLDK &&
+        parseLayout(property.layout) >= filterState.minLDK &&
         !property.isDetailSoldPresent,
     )
     .map((p) => ({
@@ -104,8 +108,6 @@ export function FilteredListingsBox() {
   );
 }
 
-<<<<<<< HEAD
-=======
 export function ListingBox({ property, handleLightboxOpen }: { property: any, handleLightboxOpen: any }) {
   const { filterState } = useAppContext();
   const selectedCurrency = filterState.priceRange.currency || "USD";
@@ -116,7 +118,6 @@ export function ListingBox({ property, handleLightboxOpen }: { property: any, ha
     // Convert to USD using the exchange rate
     const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
     const secondaryPrice = ["USD", "JPY"].includes(currency) ? formatPrice(priceUSD, "USD") : formatPrice(convertCurrency(priceJPY, "JPY", currency), currency);
-
 
     return (
       <div className="space-y-1">
@@ -163,4 +164,3 @@ export function ListingBox({ property, handleLightboxOpen }: { property: any, ha
     </Link>
   );
 }
->>>>>>> d3fb97d (wip)

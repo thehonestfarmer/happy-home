@@ -1,11 +1,11 @@
 "use client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import * as React from "react";
 
-import { ChevronLeft, MailIcon, ShareIcon, Copy } from "lucide-react";
+import { MailIcon, Copy, LayoutGrid, Home, Map, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatArea, Currency, parseLayout } from "@/lib/listing-utils";
 
 import {
   Dialog,
@@ -16,14 +16,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
+  Drawer, DrawerContent, DrawerHeader,
+  DrawerTitle
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "usehooks-ts";
-import { formatListingDetail } from "@/hooks";
 
 function ActionButtons({ onCopy, onEmail }: { 
   onCopy: () => void;
@@ -50,7 +46,7 @@ function ActionButtons({ onCopy, onEmail }: {
   );
 }
 
-export function DrawerDialogDemo({ property }) {
+export function DrawerDialogDemo({ property }: { property: any }) {
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -81,26 +77,32 @@ export function DrawerDialogDemo({ property }) {
     });
   }, [toast]);
 
-  const [title, desc] = property.address.split(",");
+  // Use propertyTitle as the main title if available, otherwise use address
+  const propertyTitle = property.propertyTitle || (property.address ? property.address.split(",")[0] : "Property");
+  const addressDisplay = property.address || "Address unavailable";
   const snapPoints = [0.6, 0.96];
   const [snap, setSnap] = React.useState<number | string | null>(snapPoints[0]);
+  
+  // Get the selected currency from the property or default to USD
+  const selectedCurrency = property.selectedCurrency || 'USD' as Currency;
 
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline">Edit Profile</Button>
+          <Button variant="outline">View Property Details</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Thank you for your interest</DialogTitle>
+            <DialogTitle>{propertyTitle}</DialogTitle>
             <DialogDescription>
-              Make changes to your profile here. Click save when you're done.
+              {addressDisplay}
             </DialogDescription>
           </DialogHeader>
           <ListingDetailContent
             handleMailto={handleMailto}
             property={property}
+            selectedCurrency={selectedCurrency}
           />
         </DialogContent>
       </Dialog>
@@ -122,14 +124,18 @@ export function DrawerDialogDemo({ property }) {
           <DrawerHeader className="text-left">
             <DrawerTitle>
               <div>
-                <div className="text-lg font-semibold">{title}</div>
-                <div className="text-sm text-muted-foreground">{desc}</div>
+                <div className="text-lg font-semibold">{propertyTitle}</div>
+                <div className="text-sm text-muted-foreground">{addressDisplay}</div>
               </div>
             </DrawerTitle>
           </DrawerHeader>
           
           <div className="flex-1 overflow-y-auto">
-            <ListingDetailContent property={property} handleMailto={handleMailto} />
+            <ListingDetailContent 
+              property={property} 
+              handleMailto={handleMailto} 
+              selectedCurrency={selectedCurrency} 
+            />
           </div>
         </DrawerContent>
       </Drawer>
@@ -142,39 +148,59 @@ export function DrawerDialogDemo({ property }) {
   );
 }
 
-function ListingDetailContent({ property, handleMailto }: { property: any, handleMailto: () => void }) {
-  const processedTags = property.tags.split(",");
+function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD' }: { 
+  property: any, 
+  handleMailto: () => void,
+  selectedCurrency?: Currency 
+}) {
+  const processedTags = property.tags?.split(",") || [];
+  const propertyTitle = property.propertyTitle || (property.address ? property.address.split(",")[0] : "Property");
 
   return (
     <div className="flex flex-col md:grid md:grid-cols-[240px_1fr] md:p-4">
-      <div className="flex justify-between p-4 bg-white rounded-lg shadow-sm">
-        <div>
-          <div className="text-center">
-            <div className="text-xl font-bold text-black">
-              ${(Math.round(property.priceUsd / 1000) * 1000).toLocaleString()}
+      <div className="p-4 bg-white rounded-lg shadow-sm">
+        {/* Property details with icons in a horizontal row */}
+        <div className="grid grid-cols-4 gap-3 text-center py-2">
+          {/* Price */}
+          <div className="flex flex-col items-center">
+            <div className="text-base font-bold mb-1.5">
+              {property.priceUsd 
+                ? `$${(Math.round(property.priceUsd / 1000) * 1000).toLocaleString()}`
+                : property.price || 'N/A'
+              }
             </div>
-            <div className="text-sm text-gray-500">Price</div>
+            <DollarSign className="h-5 w-5 text-gray-500" />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="text-center">
-            <div className="text-xl font-bold text-black">
-              {parseInt(property.layout)}
+          
+          {/* LDK */}
+          <div className="flex flex-col items-center">
+            <div className="text-base font-bold mb-1.5">
+              {parseLayout(property.layout)} <span className="text-xs">LDK</span>
             </div>
-            <div className="text-sm text-gray-500">LDK</div>
+            <LayoutGrid className="h-5 w-5 text-gray-500" />
           </div>
-
-          <div className="text-center">
-            <div className="text-xl font-bold text-black">
-              {`${parseInt(property.buildSqMeters)}`}
+          
+          {/* Build Area */}
+          <div className="flex flex-col items-center">
+            <div className="text-base font-bold mb-1.5">
+              {property.buildSqMeters ? formatArea(property.buildSqMeters, selectedCurrency, false).split(' ')[0] : 'N/A'}
+              <span className="text-xs"> {selectedCurrency === 'USD' ? 'ft²' : 'm²'}</span>
             </div>
-            <div className="text-sm text-gray-500">Sq. Meters</div>
+            <Home className="h-5 w-5 text-gray-500" />
+          </div>
+          
+          {/* Land Area */}
+          <div className="flex flex-col items-center">
+            <div className="text-base font-bold mb-1.5">
+              {property.landSqMeters ? formatArea(property.landSqMeters, selectedCurrency, false).split(' ')[0] : 'N/A'}
+              <span className="text-xs"> {selectedCurrency === 'USD' ? 'ft²' : 'm²'}</span>
+            </div>
+            <Map className="h-5 w-5 text-gray-500" />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 overflow-hidden">
         <div className="p-4 bg-white">
           <h2 className="text-lg font-semibold text-black mb-2">
             About this home
@@ -182,8 +208,8 @@ function ListingDetailContent({ property, handleMailto }: { property: any, handl
           {property.listingDetail ? (
                 <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                   {property.listingDetail.split('★')
-                    .filter(item => item.trim().length > 0)
-                    .map((item, index) => (
+                    .filter((item: string) => item.trim().length > 0)
+                    .map((item: string, index: number) => (
                       <li key={index} className="leading-relaxed">
                         {item.trim()}
                       </li>
@@ -195,12 +221,85 @@ function ListingDetailContent({ property, handleMailto }: { property: any, handl
           )}
         </div>
 
-        <div className="p-4 flex flex-wrap">
-          {processedTags.map((p) => (
+        <div className="p-4 flex flex-wrap overflow-hidden">
+          {processedTags.map((p: string) => (
             <Badge key={p} className="p-1 m-1" variant="outline">
               {p.trim()}
             </Badge>
           ))}
+        </div>
+
+        {/* Utilities and Schools Table */}
+        <div className="p-4 pt-0 w-full max-w-full">
+          <div className="border rounded-md overflow-hidden w-full">
+            <table className="w-full text-sm table-fixed">
+              <thead>
+                <tr className="bg-muted">
+                  <th colSpan={2} className="px-3 py-2 text-left font-semibold">Utilities</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                <tr>
+                  <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Water</td>
+                  <td className="px-3 py-2 truncate">{property.facilities?.water || 'Not specified'}</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-2 font-medium text-muted-foreground">Gas</td>
+                  <td className="px-3 py-2 truncate">{property.facilities?.gas || 'Not specified'}</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-2 font-medium text-muted-foreground">Sewage</td>
+                  <td className="px-3 py-2 truncate">{property.facilities?.sewage || 'Not specified'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="border rounded-md overflow-hidden mt-4 w-full">
+            <table className="w-full text-sm table-fixed">
+              <thead>
+                <tr className="bg-muted">
+                  <th colSpan={2} className="px-3 py-2 text-left font-semibold">Schools</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                <tr>
+                  <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Primary School</td>
+                  <td className="px-3 py-2 truncate">{property.schools?.primary || 'Not specified'}</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-2 font-medium text-muted-foreground">Junior High</td>
+                  <td className="px-3 py-2 truncate">{property.schools?.juniorHigh || 'Not specified'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="border rounded-md overflow-hidden mt-4 w-full">
+            <table className="w-full text-sm table-fixed">
+              <thead>
+                <tr className="bg-muted">
+                  <th colSpan={2} className="px-3 py-2 text-left font-semibold">Property Information</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                <tr>
+                  <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Build Date</td>
+                  <td className="px-3 py-2 truncate">{property.buildDate || 'Not specified'}</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-2 font-medium text-muted-foreground">Date Posted</td>
+                  <td className="px-3 py-2 truncate">{property.dates?.datePosted || 'Not specified'}</td>
+                </tr>
+                {property.dates?.dateRenovated && (
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-muted-foreground">Date Renovated</td>
+                    <td className="px-3 py-2 truncate">{property.dates.dateRenovated}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

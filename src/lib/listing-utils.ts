@@ -148,6 +148,12 @@ export interface Listing {
     isDetailSoldPresent?: boolean;
     isDuplicate?: boolean;
     isSold?: boolean;
+    propertyTitle?: string;
+    propertyCaption?: string;
+    hashTags?: string;
+    listingDetail?: string;
+    tags?: string;
+    listingDetailUrl?: string;
     
     // New properties from enhanced data
     buildSqMeters?: string;

@@ -15,7 +15,52 @@ import { useToast } from "@/hooks/use-toast";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Draft } from "immer";
-import { parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRENCY_SYMBOLS, Listing as ListingType, formatArea } from "@/lib/listing-utils";
+import { parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRENCY_SYMBOLS, Listing as ListingType, formatArea, parseLayout } from "@/lib/listing-utils";
+
+/**
+ * Format date string to match buildDate format
+ * @param dateStr The date string to format
+ * @returns Formatted date string
+ */
+function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return 'Not specified';
+  
+  // Try to extract a date with common formats: YYYY.MM.DD, MM/DD/YYYY, YYYY/MM/DD, etc.
+  const dateRegex = /(\d{4})[-./](\d{1,2})[-./](\d{1,2})|(\d{1,2})[-./](\d{1,2})[-./](\d{4})/;
+  const match = dateStr.match(dateRegex);
+  
+  if (match) {
+    // Process YYYY.MM.DD format
+    if (match[1] && match[2] && match[3]) {
+      return `${match[1]}.${match[2]}.${match[3]}`;
+    }
+    // Process MM/DD/YYYY format
+    else if (match[4] && match[5] && match[6]) {
+      return `${match[6]}.${match[4]}.${match[5]}`;
+    }
+  }
+  
+  // Try to parse Japanese dates like "令和6年12月22日" or "平成6年12月22日"
+  const japaneseEraMatch = dateStr.match(/(令和|平成|昭和)(\d+)年(\d+)月(\d+)日/);
+  if (japaneseEraMatch) {
+    const [_, era, yearInEra, month, day] = japaneseEraMatch;
+    let year = parseInt(yearInEra);
+    
+    // Convert Japanese era to western year
+    if (era === '令和') { // Reiwa era (2019-present)
+      year += 2018;
+    } else if (era === '平成') { // Heisei era (1989-2019)
+      year += 1988;
+    } else if (era === '昭和') { // Showa era (1926-1989)
+      year += 1925;
+    }
+    
+    return `${year}.${month}.${day}`;
+  }
+  
+  // If no match, return the original string
+  return dateStr;
+}
 
 /**
  * TODO: move to util once you can use netrw better
@@ -199,7 +244,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           {property.listingImages?.map((image: string, index: number) => (
             <div key={index} className="relative w-full aspect-[4/3]">
               <Image
-                src={image}
+                src={image || '/placeholder-property.jpg'}
                 alt={`Property view ${index + 1}`}
                 fill
                 priority={index < 2}
@@ -223,7 +268,22 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
               </div>
             </div>
           </div>
+          <div className="mt-4">
+            <h1 className="text-xl font-semibold">{property.propertyTitle || property.address?.split(",")[0] || "Property"}</h1>
+            <p className="text-sm text-muted-foreground">{property.address || "Address unavailable"}</p>
+          </div>
         </div>
+        
+        {/* Caption and tags for mobile view */}
+        {property.propertyCaption && (
+          <div className="p-4 bg-white border-b">
+            <h2 className="text-lg font-semibold mb-2">About this home</h2>
+            <div className="text-sm text-muted-foreground whitespace-pre-line p-4 bg-muted/30 border rounded-md">
+              {property.propertyCaption}
+            </div>
+          </div>
+        )}
+        
         <Lightbox
           open={displayState.lightboxListingIdx !== null}
           close={() => setDisplayState({
@@ -267,7 +327,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
         <div className="col-span-8 relative">
           <Image
             src={property.listingImages?.[0] || '/placeholder-property.jpg'}
-            alt="Main property view"
+            alt={property.propertyTitle || "Property image"}
             fill
             priority
             className="object-cover cursor-pointer"
@@ -285,7 +345,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           {property.listingImages?.slice(1, 5).map((image: string, index: number) => (
             <div key={index} className="relative">
               <Image
-                src={image}
+                src={image || '/placeholder-property.jpg'}
                 alt={`Property view ${index + 2}`}
                 fill
                 priority
@@ -313,15 +373,15 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-semibold">{property.address?.split(",")[0]}</h1>
-                <p className="text-muted-foreground">{property.address?.split(",")[1]}</p>
+                <h1 className="text-2xl font-semibold">{property.propertyTitle || property.address?.split(",")[0] || "Property"}</h1>
+                <p className="text-muted-foreground">{property.address || "Address unavailable"}</p>
               </div>
             </div>
 
             {/* Key Features */}
             <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="text-center">
-                <div className="font-semibold">{parseInt(property.layout)}</div>
+                <div className="font-semibold">{parseLayout(property.layout)}</div>
                 <div className="text-sm text-muted-foreground">LDK</div>
               </div>
               <div className="text-center">
@@ -341,11 +401,15 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             {/* Description */}
             <div>
               <h2 className="text-lg font-semibold mb-2">About this home</h2>
-              {property.listingDetail ? (
-                <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
+              {property.propertyCaption ? (
+                <div className="text-muted-foreground whitespace-pre-line p-4 bg-muted/30 border rounded-md">
+                  {property.propertyCaption}
+                </div>
+              ) : property.listingDetail ? (
+                <ul className="list-disc pl-5 space-y-2 text-muted-foreground p-4 bg-muted/30 border rounded-md">
                   {property.listingDetail.split('★')
-                    .filter(item => item.trim().length > 0)
-                    .map((item, index) => (
+                    .filter((item: string) => item.trim().length > 0)
+                    .map((item: string, index: number) => (
                       <li key={index} className="leading-relaxed">
                         {item.trim()}
                       </li>
@@ -353,20 +417,82 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                   }
                 </ul>
               ) : (
-                <p className="text-muted-foreground">No details available for this property.</p>
+                <p className="text-muted-foreground p-4 bg-muted/30 border rounded-md">No details available for this property.</p>
               )}
             </div>
 
-            {/* Tags */}
-            {property.tags && (
-              <div className="flex flex-wrap gap-2">
-                {property.tags.split(",").map((tag: string, index: number) => (
-                  <Badge key={index} variant="outline" className="px-2 py-1">
-                    {tag.trim()}
-                  </Badge>
-                ))}
+            {/* Utilities and Schools Tables */}
+            <div className="mt-6">
+              <div className="border rounded-md overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted">
+                      <th colSpan={2} className="px-3 py-2 text-left font-semibold">Utilities</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    <tr>
+                      <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Water</td>
+                      <td className="px-3 py-2">{property.facilities?.water || 'Not specified'}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-3 py-2 font-medium text-muted-foreground">Gas</td>
+                      <td className="px-3 py-2">{property.facilities?.gas || 'Not specified'}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-3 py-2 font-medium text-muted-foreground">Sewage</td>
+                      <td className="px-3 py-2">{property.facilities?.sewage || 'Not specified'}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            )}
+
+              <div className="border rounded-md overflow-hidden mt-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted">
+                      <th colSpan={2} className="px-3 py-2 text-left font-semibold">Schools</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    <tr>
+                      <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Primary School</td>
+                      <td className="px-3 py-2">{property.schools?.primary || 'Not specified'}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-3 py-2 font-medium text-muted-foreground">Junior High</td>
+                      <td className="px-3 py-2">{property.schools?.juniorHigh || 'Not specified'}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <div className="border rounded-md overflow-hidden mt-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted">
+                      <th colSpan={2} className="px-3 py-2 text-left font-semibold">Property Information</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    <tr>
+                      <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Build Date</td>
+                      <td className="px-3 py-2">{formatDate(property.buildDate)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-3 py-2 font-medium text-muted-foreground">Date Posted</td>
+                      <td className="px-3 py-2">{formatDate(property.dates?.datePosted)}</td>
+                    </tr>
+                    {property.dates?.dateRenovated && (
+                      <tr>
+                        <td className="px-3 py-2 font-medium text-muted-foreground">Date Renovated</td>
+                        <td className="px-3 py-2">{formatDate(property.dates.dateRenovated)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}

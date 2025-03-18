@@ -41,6 +41,23 @@ export interface CaptionResponse {
   hashtags: string[];
 }
 
+/**
+ * Response structure from the batch caption generation function
+ */
+export interface BatchCaptionResponse {
+  [address: string]: {
+    caption: string;
+    hashtags: string[];
+  };
+}
+
+/**
+ * Response structure from the title generation function
+ */
+export interface TitleResponse {
+  titles: string[];
+}
+
 export interface CaptionGenerationRequest {
   listingId: string;
 }

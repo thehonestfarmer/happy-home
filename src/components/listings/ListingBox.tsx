@@ -40,6 +40,12 @@ const extractCityAndPrefecture = (address: string): string => {
 
 // Sample property titles based on property characteristics
 const generatePropertyTitle = (property: Listing): string => {
+  // If the property has a propertyTitle field, use it
+  if (property.propertyTitle) {
+    return property.propertyTitle;
+  }
+  
+  // Fallback to the original title generation logic
   // Create engaging titles based on property features
   const titles = [
     "Modern Family Home",

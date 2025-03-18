@@ -120,6 +120,11 @@ const generatePropertyTitle = (listing: Listing): string => {
     address: listing.address
   });
   
+  // If the property has a propertyTitle field, use it
+  if (listing.propertyTitle) {
+    return listing.propertyTitle;
+  }
+  
   // Use only address data, never use ID as address fallback
   const locationText = extractFormattedLocation(listing.address || 'Japan');
   
@@ -215,15 +220,24 @@ const getPropertyHighlights = (listing: Listing): string[] => {
   return highlights.slice(0, 4);
 };
 
-// Format a short description from the aboutProperty field
-const formatShortDescription = (aboutProperty?: string | null): string => {
-  if (!aboutProperty) return '';
+// Format a short description from the aboutProperty or propertyCaption fields
+const formatShortDescription = (listing: Listing): string => {
+  // Prefer propertyCaption when available, as it's better formatted
+  const textToUse = listing.propertyCaption || listing.aboutProperty;
+  
+  if (!textToUse) return '';
+  
+  // Remove emoji characters which can confuse character counting
+  const cleanText = textToUse.replace(/[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+  
+  // Extract first paragraph (stop at first double newline)
+  const firstParagraph = cleanText.split('\n\n')[0];
   
   // Limit to ~100 characters and add ellipsis if needed
-  if (aboutProperty.length <= 100) return aboutProperty;
+  if (firstParagraph.length <= 100) return firstParagraph;
   
   // Try to cut at a sentence or punctuation boundary
-  const truncated = aboutProperty.substring(0, 100);
+  const truncated = firstParagraph.substring(0, 100);
   const lastPunctuation = Math.max(
     truncated.lastIndexOf('.'), 
     truncated.lastIndexOf('!'),
@@ -232,11 +246,11 @@ const formatShortDescription = (aboutProperty?: string | null): string => {
   );
   
   if (lastPunctuation > 60) {
-    return aboutProperty.substring(0, lastPunctuation + 1) + '...';
+    return firstParagraph.substring(0, lastPunctuation + 1) + '...';
   }
   
-  // Otherwise cut at a word boundary
-  return truncated.substring(0, truncated.lastIndexOf(' ')) + '...';
+  // If no good punctuation break point found, just truncate at 100 chars
+  return truncated + '...';
 };
 
 // Skeleton loader component for FeaturedListings
@@ -265,6 +279,7 @@ const FeaturedListingsSkeleton = () => {
               <div className="h-8 bg-muted animate-pulse rounded w-1/2"></div>
               <div className="h-4 bg-muted animate-pulse rounded w-full"></div>
               <div className="h-4 bg-muted animate-pulse rounded w-full"></div>
+              <div className="h-4 bg-muted animate-pulse rounded w-4/5"></div>
               <div className="space-y-2">
                 {Array.from({ length: 3 }).map((_, j) => (
                   <div key={j} className="h-4 bg-muted animate-pulse rounded w-4/5"></div>
@@ -321,9 +336,13 @@ export const FeaturedListings = () => {
         // Generate title using the normalized listing
         const title = generatePropertyTitle(normalizedListing);
         
+        // Generate description from propertyCaption or aboutProperty
+        const description = formatShortDescription(normalizedListing);
+        
         return {
           id: listing.id,
           title,
+          description,
           price: listing.price,
           buildArea: listing.buildSqMeters || listing.buildArea || 'N/A',
           landArea: listing.landSqMeters || listing.landArea || 'N/A',
@@ -376,7 +395,7 @@ export const FeaturedListings = () => {
             <div className="relative h-[220px] flex-shrink-0">
               <Image
                 src={property.imageUrl}
-                alt={property.title}
+                alt={property.title || "Property image"}
                 fill
                 className="object-cover"
               />
@@ -389,6 +408,13 @@ export const FeaturedListings = () => {
                 <p className="text-2xl font-bold">
                   {formatPriceWithCurrency(property.price, selectedCurrency)}
                 </p>
+                
+                {/* Description */}
+                {property.description && (
+                  <p className="text-muted-foreground text-sm line-clamp-3">
+                    {property.description}
+                  </p>
+                )}
                 
                 {/* Property details with icons */}
                 <div className="space-y-2 mt-2">
