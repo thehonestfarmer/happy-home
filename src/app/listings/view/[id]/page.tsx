@@ -225,7 +225,6 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
 
   // Mobile view
   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-    const prices = getPriceDisplay();
     const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
     
     return (
@@ -259,30 +258,6 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             </div>
           ))}
         </div>
-        <div className={`p-4 bg-white border-b ${isSold ? 'bg-red-50' : ''}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-2xl font-bold">{prices.primary}</div>
-              <div className="text-sm text-muted-foreground">
-                {prices.secondary} {prices.rate}
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <h1 className="text-xl font-semibold">{property.propertyTitle || property.address?.split(",")[0] || "Property"}</h1>
-            <p className="text-sm text-muted-foreground">{property.address || "Address unavailable"}</p>
-          </div>
-        </div>
-        
-        {/* Caption and tags for mobile view */}
-        {property.propertyCaption && (
-          <div className="p-4 bg-white border-b">
-            <h2 className="text-lg font-semibold mb-2">About this home</h2>
-            <div className="text-sm text-muted-foreground whitespace-pre-line p-4 bg-muted/30 border rounded-md">
-              {property.propertyCaption}
-            </div>
-          </div>
-        )}
         
         <Lightbox
           open={displayState.lightboxListingIdx !== null}

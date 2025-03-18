@@ -5,7 +5,7 @@ import * as React from "react";
 
 import { MailIcon, Copy, LayoutGrid, Home, Map, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatArea, Currency, parseLayout } from "@/lib/listing-utils";
+import { formatArea, Currency, parseLayout, parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRENCY_SYMBOLS } from "@/lib/listing-utils";
 
 import {
   Dialog,
@@ -109,6 +109,9 @@ export function DrawerDialogDemo({ property }: { property: any }) {
     );
   }
 
+  // For mobile view, enhance the drawer header with price information
+  const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
+
   return (
     <>
       <Drawer
@@ -123,7 +126,7 @@ export function DrawerDialogDemo({ property }: { property: any }) {
         <DrawerContent className="pb-[72px] max-w-full">
           <DrawerHeader className="text-left">
             <DrawerTitle>
-              <div>
+              <div className={isSold ? 'text-red-600' : ''}>
                 <div className="text-lg font-semibold">{propertyTitle}</div>
               </div>
             </DrawerTitle>
@@ -155,22 +158,55 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
   handleMailto: () => void,
   selectedCurrency?: Currency 
 }) {
+  // Format price display based on selected currency
+  const getPriceDisplay = () => {
+    // Use optional chaining and provide default values
+    const priceJPY = parseJapanesePrice(property.price ?? "0");
+    
+    // Primary price in selected currency
+    const primaryPrice = selectedCurrency === "JPY"
+      ? `¥${(priceJPY / 1_000_000).toFixed(2)}M`
+      : formatPrice(convertCurrency(priceJPY, "JPY", selectedCurrency), selectedCurrency);
+    
+    // Secondary price (always show JPY if another currency is selected, or USD if JPY is selected)
+    const secondaryCurrency = selectedCurrency === "JPY" ? "USD" : "JPY";
+    const secondaryPrice = secondaryCurrency === "JPY"
+      ? `¥${(priceJPY / 1_000_000).toFixed(2)}M`
+      : formatPrice(convertCurrency(priceJPY, "JPY", secondaryCurrency), secondaryCurrency);
+    
+    // Exchange rate
+    const rate = selectedCurrency === "JPY" 
+      ? `(¥${EXCHANGE_RATES.USD}/$)`
+      : `(¥${EXCHANGE_RATES[selectedCurrency]}/${CURRENCY_SYMBOLS[selectedCurrency]}1)`;
+
+    return {
+      primary: primaryPrice,
+      secondary: secondaryPrice,
+      rate
+    };
+  };
+
+  const prices = getPriceDisplay();
+  const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
+
   return (
     <div className="flex flex-col w-full max-w-full md:grid md:grid-cols-[240px_1fr] md:p-4">
       <div className="p-4 bg-white rounded-lg shadow-sm">
+        {/* Price section (enhanced for mobile) */}
+        <div className={`mb-4 ${isSold ? 'text-red-600' : ''}`}>
+          <div className="text-xl font-bold">{prices.primary}</div>
+          <div className="text-sm text-muted-foreground">
+            {prices.secondary} {prices.rate}
+          </div>
+          {isSold && (
+            <div className="mt-1">
+              <Badge variant="destructive" className="px-2 py-1">SOLD</Badge>
+            </div>
+          )}
+        </div>
+
         {/* Property details with icons in a horizontal row */}
         <div className="grid grid-cols-4 gap-3 text-center py-2 max-w-full">
-          {/* Price */}
-          <div className="flex flex-col items-center">
-            <div className="text-base font-bold mb-1.5">
-              {property.priceUsd 
-                ? `$${(Math.round(property.priceUsd / 1000) * 1000).toLocaleString()}`
-                : property.price || 'N/A'
-              }
-            </div>
-            <DollarSign className="h-5 w-5 text-gray-500" />
-          </div>
-          
           {/* LDK */}
           <div className="flex flex-col items-center">
             <div className="text-base font-bold mb-1.5">
@@ -195,6 +231,15 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
               <span className="text-xs"> {selectedCurrency === 'USD' ? 'ft²' : 'm²'}</span>
             </div>
             <Map className="h-5 w-5 text-gray-500" />
+          </div>
+          
+          {/* Price icon */}
+          <div className="flex flex-col items-center">
+            <div className="text-base font-bold mb-1.5">
+              {property.buildYear || 'N/A'}
+              <span className="text-xs"> Year</span>
+            </div>
+            <DollarSign className="h-5 w-5 text-gray-500" />
           </div>
         </div>
       </div>
