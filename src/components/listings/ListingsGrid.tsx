@@ -266,8 +266,14 @@ export function ListingsGrid() {
 
   // Dynamic row height calculation based on viewport width
   const getRowHeight = (width: number): number => {
-    // Base height for mobile - reduced from 450 to remove extra whitespace
-    const baseHeight = 336;
+    let baseHeight = 336;
+
+    if (width > 1024) {
+      baseHeight = 384;
+    } else if (width < 640) {
+      baseHeight = 364;
+    }
+    
     
     // Calculate column count - same logic as getColumnCount
     const columnCount = getColumnCount(width);

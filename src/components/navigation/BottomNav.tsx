@@ -1,15 +1,20 @@
 "use client";
 
-import { Home, Heart, User } from "lucide-react";
+import { Home, Heart, User, Search } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   {
-    label: "Find Homes",
-    href: "/listings",
+    label: "Home",
+    href: "/",
     icon: Home
+  },
+  {
+    label: "Find",
+    href: "/listings",
+    icon: Search
   },
   {
     label: "Favorites",
@@ -34,7 +39,7 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
       <div className="border-t bg-background">
-        <div className="grid grid-cols-3 h-16">
+        <div className="grid grid-cols-4 h-16">
           {navItems.map((item) => {
             const isActive = pathname === item.href || 
               (item.href === '/listings' && pathname.startsWith('/listings/'));

@@ -35,6 +35,7 @@ export default function FavoritesPage() {
       </div>
     </div>
   );
+  console.log(favoriteListings);
 
   return (
     <main className="h-[calc(100vh-64px)] flex flex-col lg:flex-row">
@@ -47,15 +48,7 @@ export default function FavoritesPage() {
                 {favoriteListings.map((property) => (
                   <ListingBox 
                     key={property.id} 
-                    property={{
-                      id: property.id,
-                      priceUsd: parseFloat(property.prices) * 1000000,
-                      prices: property.prices,
-                      layout: property.layout,
-                      buildSqMeters: property.buildSqMeters,
-                      addresses: property.addresses,
-                      listingImages: property.listingImages || []
-                    }}
+                    property={property}
                     handleLightboxOpen={handleLightboxOpen}
                   />
                 ))}

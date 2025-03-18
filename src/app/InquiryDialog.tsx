@@ -186,7 +186,7 @@ export function DrawerDialogDemo({ property }: { property: any }) {
         // modal={false}
         // preventScrollRestoration={false}
       >
-        <DrawerContent className="pb-[72px] max-w-full h-full">
+        <DrawerContent className="max-w-full h-full">
           <DrawerHeader className="text-left">
             <DrawerTitle>
               <div className={isSold ? 'text-red-600' : ''}>
@@ -316,8 +316,12 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
             About this home
           </h2>
           {property.propertyCaption ? (
-            <div className="text-muted-foreground bg-muted/30 border rounded-md p-3 min-h-[100px]">
-              {property.propertyCaption}
+            <div className="text-muted-foreground bg-muted/30 border rounded-md p-3 min-h-[100px] overflow-y-auto">
+              {property.propertyCaption.split('\n').map((paragraph: string, index: number) => (
+                <p key={index} className={index > 0 ? 'mt-2' : ''}>
+                  {paragraph}
+                </p>
+              ))}
             </div>
           ) : property.listingDetail ? (
             <ul className="list-disc pl-5 space-y-1.5 text-muted-foreground p-3 bg-muted/30 border rounded-md min-h-[100px]">
