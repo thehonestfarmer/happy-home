@@ -204,9 +204,9 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
   
   // Ensure we have valid image URLs
   const rawImages = property.listingImages || [];
-  // Ensure they're valid strings and limit to first 4
+  // Ensure they're valid strings and limit to first 25 (increased from 4)
   const displayImages = rawImages.length > 0 
-    ? rawImages.filter(img => typeof img === 'string' && img.trim() !== '').slice(0, 4)
+    ? rawImages.filter(img => typeof img === 'string' && img.trim() !== '').slice(0, 25)
     : ['/placeholder-property.jpg'];
 
   // Handle image error
@@ -265,6 +265,9 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
     ? formatRelativeTime(extractDateFromString(property.dates.datePosted))
     : 'N/A';
     
+  // Generate a property description based on the property details
+  const propertyDescription = generatePropertyDescription(property);
+  
   // Handle navigation to the detail page
   const handleNavigation = (e: React.MouseEvent) => {
     // Let the navigation happen naturally
@@ -392,7 +395,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             </div>
           </div>
 
-          <div className="space-y-6 mt-4">
+          <div className="space-y-4 mt-3">
             {/* First row: Layout, Build Area, Land Area */}
             <div className="grid grid-cols-3 justify-between items-center text-gray-600">
               <div className="flex items-center gap-1.5">
@@ -410,7 +413,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             </div>
 
             {/* Second row: Build Date, Listed Date */}
-            <div className="grid grid-cols-2 justify-between items-center text-gray-600 mt-2">
+            <div className="grid grid-cols-2 justify-between items-center text-gray-600">
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4 flex-shrink-0 md:h-5 md:w-5" />
                 <span className="text-sm truncate md:text-base">Built: {formattedBuildDate}</span>
@@ -425,9 +428,15 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
                 <div />
               )}
             </div>
+            
           </div>
         </div>
       </Link>
     </Card>
   );
 }
+
+// Function to generate sample property descriptions
+const generatePropertyDescription = (property: Listing): string => {
+  return property.shortDescription || '';
+};

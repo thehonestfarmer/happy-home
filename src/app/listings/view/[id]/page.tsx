@@ -27,11 +27,11 @@ import { SignInModal } from "@/components/auth/SignInModal";
  */
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return 'Not specified';
-  
+
   // Try to extract a date with common formats: YYYY.MM.DD, MM/DD/YYYY, YYYY/MM/DD, etc.
   const dateRegex = /(\d{4})[-./](\d{1,2})[-./](\d{1,2})|(\d{1,2})[-./](\d{1,2})[-./](\d{4})/;
   const match = dateStr.match(dateRegex);
-  
+
   if (match) {
     // Process YYYY.MM.DD format
     if (match[1] && match[2] && match[3]) {
@@ -42,13 +42,13 @@ function formatDate(dateStr?: string | null): string {
       return `${match[6]}.${match[4]}.${match[5]}`;
     }
   }
-  
+
   // Try to parse Japanese dates like "令和6年12月22日" or "平成6年12月22日"
   const japaneseEraMatch = dateStr.match(/(令和|平成|昭和)(\d+)年(\d+)月(\d+)日/);
   if (japaneseEraMatch) {
     const [_, era, yearInEra, month, day] = japaneseEraMatch;
     let year = parseInt(yearInEra);
-    
+
     // Convert Japanese era to western year
     if (era === '令和') { // Reiwa era (2019-present)
       year += 2018;
@@ -57,10 +57,10 @@ function formatDate(dateStr?: string | null): string {
     } else if (era === '昭和') { // Showa era (1926-1989)
       year += 1925;
     }
-    
+
     return `${year}.${month}.${day}`;
   }
-  
+
   // If no match, return the original string
   return dateStr;
 }
@@ -159,27 +159,27 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClientComponentClient();
   const [isMobile, setIsMobile] = useState(false);
-  
+
   // Create refs at the top level - they'll be used only in mobile view
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastScrollPosition = useRef(0);
   const lastScrollTime = useRef(0);
-  
+
   // Check if we're on mobile when component mounts
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsMobile(window.innerWidth < 1024);
-      
+
       // Hide header and construction banner on mobile for better UX
       if (window.innerWidth < 1024) {
         // Select the header and construction banner
         const header = document.querySelector('header');
         const constructionBanner = document.querySelector('div[class*="bg-amber-500"]');
-        
+
         // Hide them on mobile for this page - use type casting for TypeScript
         if (header) (header as HTMLElement).style.display = 'none';
         if (constructionBanner) (constructionBanner as HTMLElement).style.display = 'none';
-        
+
         // Restore them when component unmounts
         return () => {
           if (header) (header as HTMLElement).style.display = '';
@@ -188,7 +188,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
       }
     }
   }, []);
-  
+
   // Function to handle scroll events with throttling - defined at top level
   const handleScroll = useCallback(() => {
     const now = Date.now();
@@ -196,19 +196,19 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
     if (now - lastScrollTime.current > 150) {
       if (scrollRef.current) {
         const currentPosition = scrollRef.current.scrollTop;
-        
+
         // Any scroll action (up or down) should collapse the drawer
         if (Math.abs(currentPosition - lastScrollPosition.current) > 10) {
           // Send event to collapse the drawer regardless of scroll direction
           window.dispatchEvent(new CustomEvent('listing-images-scroll'));
         }
-        
+
         lastScrollPosition.current = currentPosition;
         lastScrollTime.current = now;
       }
     }
   }, []);
-  
+
   const handleLightboxOpen = useCallback(
     (sIdx: number) => {
       setDisplayState({
@@ -255,20 +255,20 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   const getPriceDisplay = () => {
     // Use optional chaining and provide default values
     const priceJPY = parseJapanesePrice(property.price ?? "0");
-    
+
     // Primary price in selected currency
     const primaryPrice = selectedCurrency === "JPY"
       ? `¥${(priceJPY / 1_000_000).toFixed(2)}M`
       : formatPrice(convertCurrency(priceJPY, "JPY", selectedCurrency), selectedCurrency);
-    
+
     // Secondary price (always show JPY if another currency is selected, or USD if JPY is selected)
     const secondaryCurrency = selectedCurrency === "JPY" ? "USD" : "JPY";
     const secondaryPrice = secondaryCurrency === "JPY"
       ? `¥${(priceJPY / 1_000_000).toFixed(2)}M`
       : formatPrice(convertCurrency(priceJPY, "JPY", secondaryCurrency), secondaryCurrency);
-    
+
     // Exchange rate
-    const rate = selectedCurrency === "JPY" 
+    const rate = selectedCurrency === "JPY"
       ? `(¥${EXCHANGE_RATES.USD}/$)`
       : `(¥${EXCHANGE_RATES[selectedCurrency]}/${CURRENCY_SYMBOLS[selectedCurrency]}1)`;
 
@@ -281,12 +281,12 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
 
   // Check if this listing is favorited
   const isFavorited = favorites.includes(listingId);
-  
+
   // Handle favorite toggle
   const handleFavoriteToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!user) {
       setShowSignIn(true);
       return;
@@ -301,9 +301,9 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           .delete()
           .eq('user_id', user.id)
           .eq('listing_id', listingId);
-        
+
         setFavorites(favorites.filter(id => id !== listingId));
-        
+
         toast({
           title: "Removed from favorites",
           description: "Property removed from your saved listings",
@@ -316,9 +316,9 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             user_id: user.id,
             listing_id: listingId,
           });
-        
+
         setFavorites([...favorites, listingId]);
-        
+
         toast({
           title: "Saved to favorites",
           description: "Property added to your saved listings",
@@ -344,14 +344,14 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   // Mobile view rendering
   if (isMobile) {
     return (
-      <div 
+      <div
         ref={scrollRef}
         className="pointer-events-auto overflow-y-auto relative"
         onScroll={handleScroll}
       >
         {/* Fixed back button that stays visible while scrolling */}
         <div className="fixed top-4 left-4 z-50">
-          <Button 
+          <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push('/listings')}
@@ -372,7 +372,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             className="h-9 w-9 p-0 rounded-full backdrop-blur-sm shadow-sm flex items-center justify-center bg-black/20 hover:bg-black/30"
             aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
           >
-            <Heart 
+            <Heart
               className={cn(
                 "h-5 w-5",
                 isFavorited ? "fill-red-500 text-red-500" : "text-white"
@@ -393,7 +393,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                 className="object-cover"
                 onClick={() => handleLightboxOpen(index)}
               />
-              
+
               {index === 0 && isSold && (
                 <div className="absolute top-4 right-4">
                   <Badge variant="destructive" className="px-3 py-1.5 text-base font-semibold">SOLD</Badge>
@@ -402,7 +402,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             </div>
           ))}
         </div>
-        
+
         <Lightbox
           open={displayState.lightboxListingIdx !== null}
           close={() => setDisplayState({
@@ -414,10 +414,10 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           index={listingImageIdx}
         />
         <DrawerDialogDemo property={property} />
-        
+
         {/* Sign in modal */}
-        <SignInModal 
-          isOpen={showSignIn} 
+        <SignInModal
+          isOpen={showSignIn}
           onClose={() => setShowSignIn(false)}
         />
       </div>
@@ -429,8 +429,8 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
     <div className="w-full">
       {/* Navigation Toolbar */}
       <div className="flex items-center justify-between h-14 px-4 border-b">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           onClick={() => router.push('/listings')}
           className="flex items-center gap-2"
         >
@@ -475,7 +475,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                 onClick={() => handleLightboxOpen(index + 1)}
               />
               {index === 3 && property.listingImages && property.listingImages.length > 5 && (
-                <div 
+                <div
                   className="absolute inset-0 bg-black/50 flex items-center justify-center text-white cursor-pointer"
                   onClick={() => handleLightboxOpen(4)}
                 >
@@ -499,6 +499,13 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                 <p className="text-muted-foreground">{property.address || "Address unavailable"}</p>
               </div>
             </div>
+            
+            {/* Short Description - Added this section */}
+            {property.shortDescription && (
+              <div className="text-muted-foreground p-4 bg-muted/30 border rounded-md mb-4">
+                <p className="italic">{property.shortDescription}</p>
+              </div>
+            )}
 
             {/* Key Features */}
             <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
@@ -523,6 +530,8 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             {/* Description */}
             <div>
               <h2 className="text-lg font-semibold mb-2">About this home</h2>
+
+
               {property.propertyCaption ? (
                 <div className="text-muted-foreground whitespace-pre-line p-4 bg-muted/30 border rounded-md">
                   {property.propertyCaption}
@@ -588,7 +597,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                   </tbody>
                 </table>
               </div>
-              
+
               <div className="border rounded-md overflow-hidden mt-4">
                 <table className="w-full text-sm">
                   <thead>
@@ -635,8 +644,8 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                   <FavoriteButton listingId={listingId} />
                 </div>
               </div>
-              <Button 
-                className="w-full mb-2" 
+              <Button
+                className="w-full mb-2"
                 onClick={handleMailto}
                 disabled={isSold}
               >
@@ -649,7 +658,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
               <h3 className="font-semibold mb-4">Listed By</h3>
               <div className="space-y-2">
                 <p>Shiawase Home Reuse</p>
-                <a 
+                <a
                   href={property.listingDetailUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -673,10 +682,10 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
         render={{ slide: NextJsImage }}
         index={listingImageIdx}
       />
-      
+
       {/* Sign in modal */}
-      <SignInModal 
-        isOpen={showSignIn} 
+      <SignInModal
+        isOpen={showSignIn}
         onClose={() => setShowSignIn(false)}
       />
     </div>
@@ -687,7 +696,7 @@ export default function Page() {
   const router = useRouter();
   const { listingsById, isLoading } = useListings();
   const params = useParams<{ id: string }>();
-  
+
   if (isLoading) {
     return <ListingPageSkeleton />;
   }

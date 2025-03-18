@@ -1,6 +1,6 @@
 import { Anthropic } from '@anthropic-ai/sdk';
 import prompts from './prompts.json';
-import { CaptionResponse, TitleResponse, BatchCaptionResponse } from './types';
+import { CaptionResponse, TitleResponse, BatchCaptionResponse, ShortDescriptionResponse } from './types';
 
 /**
  * Generate a caption and hashtags for a property listing using Anthropic's Claude API
@@ -297,6 +297,91 @@ export async function generateBatchCaptions(propertiesDetails: Record<string, an
     }
   } catch (error) {
     console.error('Error generating batch captions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate short descriptions for multiple property listings at once using Anthropic's Claude API
+ * @param propertiesDetails - Object containing property details with addresses as keys
+ * @returns Promise with a batch of short descriptions
+ */
+export async function generateShortDescriptions(propertiesDetails: Record<string, any>): Promise<ShortDescriptionResponse> {
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('Anthropic API key is not configured');
+    }
+
+    // Initialize the official Anthropic SDK client
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
+    // Format the data for the prompt - include all properties details
+    const formattedPropertiesDetails = JSON.stringify(propertiesDetails, null, 2);
+    console.log('Processing batch short descriptions generation');
+    console.log(`Processing ${Object.keys(propertiesDetails).length} properties in this batch`);
+    
+    // Replace placeholder in prompt template with properties details
+    const userPrompt = prompts.shortDescriptionGenerator.userPrompt.replace(
+      '{propertiesDetails}', 
+      formattedPropertiesDetails
+    );
+
+    console.log('Calling Anthropic API with batch of properties details for short descriptions');
+    
+    // Create message using the SDK with proper message format
+    const response = await anthropic.messages.create({
+      model: "claude-3-7-sonnet-20250219",
+      system: prompts.shortDescriptionGenerator.systemPrompt,
+      max_tokens: 4096, // Increased for batch processing
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt
+        }
+      ]
+    });
+
+    console.log('Received response from Anthropic API');
+    console.log('Response ID:', response.id);
+    
+    // Access the response content safely with type checking
+    if (response.content.length === 0 || response.content[0].type !== 'text') {
+      throw new Error('Unexpected response format from Anthropic API');
+    }
+    
+    // Get the response text
+    const responseContent = response.content[0].type === 'text' ? response.content[0].text : '';
+    
+    // Debug: Log the first and last 300 characters of the response
+    console.log('\n=== DEBUG: RESPONSE PREVIEW ===');
+    console.log('First 300 chars:', responseContent.substring(0, 300));
+    console.log('Last 300 chars:', responseContent.substring(responseContent.length - 300));
+    console.log('Total response length:', responseContent.length);
+    console.log('=== END DEBUG PREVIEW ===\n');
+    
+    // Write the full response to a file for debugging
+    const fs = require('fs');
+    const path = require('path');
+    const debugPath = path.resolve(process.cwd(), 'anthropic-debug-shortdesc-response.json');
+    fs.writeFileSync(debugPath, responseContent);
+    console.log(`Full response written to ${debugPath} for debugging`);
+    
+    try {
+      // Parse the JSON response
+      const parsedResponse = JSON.parse(responseContent) as ShortDescriptionResponse;
+      
+      console.log('Successfully parsed short descriptions response');
+      console.log(`Parsed ${Object.keys(parsedResponse).length} property short descriptions`);
+      
+      return parsedResponse;
+    } catch (error: any) {
+      console.error('Error processing AI short descriptions response:', error);
+      throw new Error('Failed to process AI short descriptions response. Expected a JSON object with property short descriptions.');
+    }
+  } catch (error) {
+    console.error('Error generating short descriptions:', error);
     throw error;
   }
 } 

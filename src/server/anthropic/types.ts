@@ -52,6 +52,15 @@ export interface BatchCaptionResponse {
 }
 
 /**
+ * Response structure from the short description generation function
+ */
+export interface ShortDescriptionResponse {
+  [address: string]: {
+    shortDescription: string;
+  };
+}
+
+/**
  * Response structure from the title generation function
  */
 export interface TitleResponse {
