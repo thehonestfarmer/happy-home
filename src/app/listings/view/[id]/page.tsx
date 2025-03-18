@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Copy } from "lucide-react";
+import { ArrowLeft, Copy, Heart } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import NextJsImage from "@/components/ui/nextjsimage";
 import { DrawerDialogDemo } from "@/app/InquiryDialog";
@@ -16,6 +16,9 @@ import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Draft } from "immer";
 import { parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRENCY_SYMBOLS, Listing as ListingType, formatArea, parseLayout } from "@/lib/listing-utils";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cn } from "@/lib/utils";
+import { SignInModal } from "@/components/auth/SignInModal";
 
 /**
  * Format date string to match buildDate format
@@ -149,10 +152,63 @@ interface PropertyViewProps {
 function PropertyView({ property, listingId }: PropertyViewProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const { displayState, setDisplayState, filterState } = useAppContext();
+  const { displayState, setDisplayState, filterState, user, favorites, setFavorites } = useAppContext();
   const [_, listingImageIdx = 0] = displayState.lightboxListingIdx ?? [];
   const selectedCurrency = filterState.priceRange.currency || "USD";
-
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClientComponentClient();
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Create refs at the top level - they'll be used only in mobile view
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastScrollPosition = useRef(0);
+  const lastScrollTime = useRef(0);
+  
+  // Check if we're on mobile when component mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsMobile(window.innerWidth < 1024);
+      
+      // Hide header and construction banner on mobile for better UX
+      if (window.innerWidth < 1024) {
+        // Select the header and construction banner
+        const header = document.querySelector('header');
+        const constructionBanner = document.querySelector('div[class*="bg-amber-500"]');
+        
+        // Hide them on mobile for this page - use type casting for TypeScript
+        if (header) (header as HTMLElement).style.display = 'none';
+        if (constructionBanner) (constructionBanner as HTMLElement).style.display = 'none';
+        
+        // Restore them when component unmounts
+        return () => {
+          if (header) (header as HTMLElement).style.display = '';
+          if (constructionBanner) (constructionBanner as HTMLElement).style.display = '';
+        };
+      }
+    }
+  }, []);
+  
+  // Function to handle scroll events with throttling - defined at top level
+  const handleScroll = useCallback(() => {
+    const now = Date.now();
+    // Throttle to max once every 150ms for performance
+    if (now - lastScrollTime.current > 150) {
+      if (scrollRef.current) {
+        const currentPosition = scrollRef.current.scrollTop;
+        
+        // Any scroll action (up or down) should collapse the drawer
+        if (Math.abs(currentPosition - lastScrollPosition.current) > 10) {
+          // Send event to collapse the drawer regardless of scroll direction
+          window.dispatchEvent(new CustomEvent('listing-images-scroll'));
+        }
+        
+        lastScrollPosition.current = currentPosition;
+        lastScrollTime.current = now;
+      }
+    }
+  }, []);
+  
   const handleLightboxOpen = useCallback(
     (sIdx: number) => {
       setDisplayState({
@@ -223,49 +279,109 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
     };
   };
 
-  // Mobile view
-  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-    const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const lastScrollPosition = useRef(0);
-    const lastScrollTime = useRef(0);
+  // Check if this listing is favorited
+  const isFavorited = favorites.includes(listingId);
+  
+  // Handle favorite toggle
+  const handleFavoriteToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    // Function to handle scroll events with throttling
-    const handleScroll = useCallback(() => {
-      const now = Date.now();
-      // Throttle to max once every 150ms for performance
-      if (now - lastScrollTime.current > 150) {
-        if (scrollRef.current) {
-          const currentPosition = scrollRef.current.scrollTop;
-          
-          // Any scroll action (up or down) should collapse the drawer
-          if (Math.abs(currentPosition - lastScrollPosition.current) > 10) {
-            // Send event to collapse the drawer regardless of scroll direction
-            window.dispatchEvent(new CustomEvent('listing-images-scroll'));
-          }
-          
-          lastScrollPosition.current = currentPosition;
-          lastScrollTime.current = now;
-        }
+    if (!user) {
+      setShowSignIn(true);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (isFavorited) {
+        // Remove from favorites
+        await supabase
+          .from('user_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('listing_id', listingId);
+        
+        setFavorites(favorites.filter(id => id !== listingId));
+        
+        toast({
+          title: "Removed from favorites",
+          description: "Property removed from your saved listings",
+        });
+      } else {
+        // Add to favorites
+        await supabase
+          .from('user_favorites')
+          .insert({
+            user_id: user.id,
+            listing_id: listingId,
+          });
+        
+        setFavorites([...favorites, listingId]);
+        
+        toast({
+          title: "Saved to favorites",
+          description: "Property added to your saved listings",
+          variant: "success",
+        });
       }
-    }, []);
-    
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem updating your favorites",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Prepare values needed for both views
+  const prices = getPriceDisplay();
+  const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
+
+  // Mobile view rendering
+  if (isMobile) {
     return (
       <div 
         ref={scrollRef}
-        className="pointer-events-auto overflow-y-auto"
+        className="pointer-events-auto overflow-y-auto relative"
         onScroll={handleScroll}
       >
-        <div className="flex items-center h-14 px-4">
+        {/* Fixed back button that stays visible while scrolling */}
+        <div className="fixed top-4 left-4 z-50">
           <Button 
-            variant="ghost" 
+            variant="ghost"
+            size="sm"
             onClick={() => router.push('/listings')}
-            className="flex items-center gap-2"
+            className="h-9 w-9 p-0 rounded-full backdrop-blur-sm shadow-sm flex items-center justify-center bg-black/20 hover:bg-black/30"
+            aria-label="Back to listings"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to search
+            <ArrowLeft className="h-5 w-5 text-white" />
           </Button>
         </div>
+
+        {/* Fixed favorite button in top right */}
+        <div className="fixed top-4 right-4 z-50">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleFavoriteToggle}
+            disabled={isLoading}
+            className="h-9 w-9 p-0 rounded-full backdrop-blur-sm shadow-sm flex items-center justify-center bg-black/20 hover:bg-black/30"
+            aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Heart 
+              className={cn(
+                "h-5 w-5",
+                isFavorited ? "fill-red-500 text-red-500" : "text-white"
+              )}
+            />
+          </Button>
+        </div>
+
+        {/* Content with appropriate padding */}
         <div className="space-y-2">
           {property.listingImages?.map((image: string, index: number) => (
             <div key={index} className="relative w-full aspect-[4/3]">
@@ -277,6 +393,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                 className="object-cover"
                 onClick={() => handleLightboxOpen(index)}
               />
+              
               {index === 0 && isSold && (
                 <div className="absolute top-4 right-4">
                   <Badge variant="destructive" className="px-3 py-1.5 text-base font-semibold">SOLD</Badge>
@@ -297,14 +414,17 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           index={listingImageIdx}
         />
         <DrawerDialogDemo property={property} />
+        
+        {/* Sign in modal */}
+        <SignInModal 
+          isOpen={showSignIn} 
+          onClose={() => setShowSignIn(false)}
+        />
       </div>
     );
   }
 
   // Desktop view
-  const prices = getPriceDisplay();
-  const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
-
   return (
     <div className="w-full">
       {/* Navigation Toolbar */}
@@ -552,6 +672,12 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
         slides={lightboxSlides}
         render={{ slide: NextJsImage }}
         index={listingImageIdx}
+      />
+      
+      {/* Sign in modal */}
+      <SignInModal 
+        isOpen={showSignIn} 
+        onClose={() => setShowSignIn(false)}
       />
     </div>
   );

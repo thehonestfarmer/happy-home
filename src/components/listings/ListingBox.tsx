@@ -208,16 +208,6 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
   // Minimum swipe distance in pixels
   const minSwipeDistance = 50;
 
-  // Log the entire property for debugging
-  useEffect(() => {
-    console.log('Property info:', {
-      id: property.id,
-      hasImages: Boolean(property.listingImages),
-      imageCount: property.listingImages?.length || 0,
-      firstImage: property.listingImages?.[0] || 'none',
-    });
-  }, [property]);
-
   // Ensure we have valid image URLs
   const rawImages = property.listingImages || [];
   // Ensure they're valid strings and limit to first 4
