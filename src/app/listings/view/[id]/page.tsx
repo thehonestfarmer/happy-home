@@ -4,7 +4,7 @@ import { useCallback, useRef, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Copy, Heart } from "lucide-react";
+import { ArrowLeft, Copy, Heart, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import NextJsImage from "@/components/ui/nextjsimage";
 import { DrawerDialogDemo } from "@/app/InquiryDialog";
@@ -19,6 +19,8 @@ import { parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRE
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cn } from "@/lib/utils";
 import { SignInModal } from "@/components/auth/SignInModal";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 /**
  * Format date string to match buildDate format
@@ -28,40 +30,64 @@ import { SignInModal } from "@/components/auth/SignInModal";
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return 'Not specified';
 
+  // Try to create a Date object from the string
+  let date: Date | null = null;
+
   // Try to extract a date with common formats: YYYY.MM.DD, MM/DD/YYYY, YYYY/MM/DD, etc.
   const dateRegex = /(\d{4})[-./](\d{1,2})[-./](\d{1,2})|(\d{1,2})[-./](\d{1,2})[-./](\d{4})/;
   const match = dateStr.match(dateRegex);
 
   if (match) {
-    // Process YYYY.MM.DD format
     if (match[1] && match[2] && match[3]) {
-      return `${match[1]}.${match[2]}.${match[3]}`;
-    }
-    // Process MM/DD/YYYY format
-    else if (match[4] && match[5] && match[6]) {
-      return `${match[6]}.${match[4]}.${match[5]}`;
+      // YYYY.MM.DD format
+      const year = parseInt(match[1]);
+      const month = parseInt(match[2]) - 1; // Month is 0-indexed in Date
+      const day = parseInt(match[3]);
+      date = new Date(year, month, day);
+    } else if (match[4] && match[5] && match[6]) {
+      // MM/DD/YYYY format
+      const month = parseInt(match[4]) - 1; // Month is 0-indexed in Date
+      const day = parseInt(match[5]);
+      const year = parseInt(match[6]);
+      date = new Date(year, month, day);
     }
   }
 
   // Try to parse Japanese dates like "令和6年12月22日" or "平成6年12月22日"
-  const japaneseEraMatch = dateStr.match(/(令和|平成|昭和)(\d+)年(\d+)月(\d+)日/);
-  if (japaneseEraMatch) {
-    const [_, era, yearInEra, month, day] = japaneseEraMatch;
-    let year = parseInt(yearInEra);
+  if (!date) {
+    const japaneseEraMatch = dateStr.match(/(令和|平成|昭和)(\d+)年(\d+)月(\d+)日/);
+    if (japaneseEraMatch) {
+      const [_, era, yearInEra, month, day] = japaneseEraMatch;
+      let year = parseInt(yearInEra);
 
-    // Convert Japanese era to western year
-    if (era === '令和') { // Reiwa era (2019-present)
-      year += 2018;
-    } else if (era === '平成') { // Heisei era (1989-2019)
-      year += 1988;
-    } else if (era === '昭和') { // Showa era (1926-1989)
-      year += 1925;
+      // Convert Japanese era to western year
+      if (era === '令和') { // Reiwa era (2019-present)
+        year += 2018;
+      } else if (era === '平成') { // Heisei era (1989-2019)
+        year += 1988;
+      } else if (era === '昭和') { // Showa era (1926-1989)
+        year += 1925;
+      }
+
+      date = new Date(year, parseInt(month) - 1, parseInt(day));
     }
-
-    return `${year}.${month}.${day}`;
   }
 
-  // If no match, return the original string
+  // If we successfully created a Date object, format it according to the user's locale
+  if (date && !isNaN(date.getTime())) {
+    try {
+      // Use Intl.DateTimeFormat to format the date according to the user's locale
+      return new Intl.DateTimeFormat(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }).format(date);
+    } catch (e) {
+      console.error('Error formatting date:', e);
+    }
+  }
+
+  // If we couldn't parse the date or formatting failed, return the original string
   return dateStr;
 }
 
@@ -144,6 +170,98 @@ function ListingPageSkeleton() {
   );
 }
 
+/**
+ * Custom image gallery modal component for desktop view
+ */
+interface ImageGalleryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  images: string[];
+  initialIndex: number;
+  onImageClick: (index: number) => void;
+}
+
+function ImageGalleryModal({ isOpen, onClose, images, initialIndex = 0, onImageClick }: ImageGalleryModalProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Reset current index when modal opens with new initial index
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentIndex(initialIndex);
+      // Scroll to the initial image
+      if (containerRef.current) {
+        const imageElement = containerRef.current.children[initialIndex] as HTMLElement;
+        if (imageElement) {
+          imageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [isOpen, initialIndex]);
+
+  // Handle keyboard navigation - only keep Escape functionality
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+      
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-6xl p-0 bg-black/95 border-none">
+        <VisuallyHidden>
+          <DialogTitle>Property Image Gallery</DialogTitle>
+        </VisuallyHidden>
+        <div className="relative h-[85vh] w-full flex flex-col">
+          {/* Header with close button and counter */}
+          <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <div className="text-white font-medium">
+              {currentIndex + 1} / {images.length}
+            </div>
+            <button 
+              onClick={onClose}
+              className="p-2 bg-black/50 text-white rounded-full hover:bg-black/70"
+              aria-label="Close gallery"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          
+          {/* Scrollable image container */}
+          <div 
+            ref={containerRef}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
+            {images.map((image, index) => (
+              <div 
+                key={index}
+                className="relative w-full aspect-[4/3]"
+                onClick={() => setCurrentIndex(index)}
+              >
+                <Image
+                  src={image}
+                  alt={`Property image ${index + 1}`}
+                  fill
+                  className="object-contain"
+                  loading="lazy"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 interface PropertyViewProps {
   property: ListingType;
   listingId: string;
@@ -159,6 +277,10 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClientComponentClient();
   const [isMobile, setIsMobile] = useState(false);
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
+  const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
+  const [showLightbox, setShowLightbox] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   // Create refs at the top level - they'll be used only in mobile view
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -211,17 +333,24 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
 
   const handleLightboxOpen = useCallback(
     (sIdx: number) => {
-      setDisplayState({
-        ...displayState,
-        lightboxListingIdx: [parseInt(listingId), sIdx]
-      });
+      if (isMobile) {
+        // Mobile uses the existing lightbox behavior
+        setDisplayState({
+          ...displayState,
+          lightboxListingIdx: [parseInt(listingId), sIdx]
+        });
+      } else {
+        // Desktop uses our new custom modal
+        setGalleryInitialIndex(sIdx);
+        setGalleryModalOpen(true);
+      }
     },
-    [setDisplayState, listingId, displayState],
+    [setDisplayState, listingId, displayState, isMobile],
   );
 
   const lightboxSlides = (property.listingImages ?? []).map((i: string) => ({
-    width: 3840,
-    height: 5760,
+    width: 5760,  // Increased from 3840
+    height: 8640, // Increased from 5760
     src: i,
   }));
 
@@ -341,6 +470,11 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   const prices = getPriceDisplay();
   const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
 
+  const handleImageClick = useCallback((index: number) => {
+    setLightboxIndex(index);
+    setShowLightbox(true);
+  }, []);
+
   // Mobile view rendering
   if (isMobile) {
     return (
@@ -403,6 +537,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           ))}
         </div>
 
+        <DrawerDialogDemo property={property} />
         <Lightbox
           open={displayState.lightboxListingIdx !== null}
           close={() => setDisplayState({
@@ -413,7 +548,6 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           render={{ slide: NextJsImage }}
           index={listingImageIdx}
         />
-        <DrawerDialogDemo property={property} />
 
         {/* Sign in modal */}
         <SignInModal
@@ -501,13 +635,14 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             </div>
             
             {/* Short Description - Added this section */}
-            {property.shortDescription && (
-              <div className="text-muted-foreground p-4 bg-muted/30 border rounded-md mb-4">
-                <p className="italic">{property.shortDescription}</p>
+            {/* {property.shortDescription && (
+              <div className="text-muted-foreground p-6 bg-muted/50 border rounded-md mb-4 shadow-md">
+                <p className="text-lg font-semibold italic">{property.shortDescription}</p>
               </div>
-            )}
+            )} */}
 
             {/* Key Features */}
+              <h2 className="text-lg font-semibold mb-2">Key features</h2>
             <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="text-center">
                 <div className="font-semibold">{parseLayout(property.layout)}</div>
@@ -553,6 +688,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             </div>
 
             {/* Utilities and Schools Tables */}
+              <h2 className="text-lg font-semibold mb-2">Details</h2>
             <div className="mt-6">
               <div className="border rounded-md overflow-hidden">
                 <table className="w-full text-sm">
@@ -672,15 +808,42 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
         </div>
       </div>
 
+      {/* Mobile View: Use the existing Lightbox */}
+      {isMobile && (
+        <Lightbox
+          open={displayState.lightboxListingIdx !== null}
+          close={() => setDisplayState({
+            ...displayState,
+            lightboxListingIdx: null
+          })}
+          slides={lightboxSlides}
+          render={{ slide: NextJsImage }}
+          index={listingImageIdx}
+        />
+      )}
+
+      {/* Desktop View: Use our new custom modal */}
+      {!isMobile && (
+        <ImageGalleryModal 
+          isOpen={galleryModalOpen}
+          onClose={() => setGalleryModalOpen(false)}
+          images={property.listingImages || []}
+          initialIndex={galleryInitialIndex}
+          onImageClick={handleImageClick}
+        />
+      )}
+
+      {/* Lightbox for both mobile and desktop */}
       <Lightbox
-        open={displayState.lightboxListingIdx !== null}
-        close={() => setDisplayState({
-          ...displayState,
-          lightboxListingIdx: null
-        })}
+        open={showLightbox}
+        close={() => setShowLightbox(false)}
         slides={lightboxSlides}
         render={{ slide: NextJsImage }}
-        index={listingImageIdx}
+        index={lightboxIndex}
+        carousel={{
+          imageFit: "contain",
+          preload: 1
+        }}
       />
 
       {/* Sign in modal */}

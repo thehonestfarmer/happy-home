@@ -80,7 +80,7 @@ export function DrawerDialogDemo({ property }: { property: any }) {
   // Use propertyTitle as the main title if available, otherwise use address
   const propertyTitle = property.propertyTitle || (property.address ? property.address.split(",")[0] : "Property");
   const addressDisplay = property.address || "Address unavailable";
-  const snapPoints = [0.6, 0.96];
+  const snapPoints = [0.4, 0.6, 0.96];
   const [snap, setSnap] = React.useState<number | string | null>(snapPoints[0]);
   
   // Listen for scroll events on the listing images and snap drawer to smallest size
@@ -161,10 +161,6 @@ export function DrawerDialogDemo({ property }: { property: any }) {
         </DrawerContent>
       </Drawer>
 
-      <ActionButtons 
-        onCopy={handleCopyLink}
-        onEmail={handleMailto}
-      />
     </>
   );
 }
