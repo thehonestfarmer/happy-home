@@ -220,39 +220,6 @@ const getPropertyHighlights = (listing: Listing): string[] => {
   return highlights.slice(0, 4);
 };
 
-// Format a short description from the aboutProperty or propertyCaption fields
-const formatShortDescription = (listing: Listing): string => {
-  // Prefer propertyCaption when available, as it's better formatted
-  const textToUse = listing.propertyCaption || listing.aboutProperty;
-  
-  if (!textToUse) return '';
-  
-  // Remove emoji characters which can confuse character counting
-  const cleanText = textToUse.replace(/[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
-  
-  // Extract first paragraph (stop at first double newline)
-  const firstParagraph = cleanText.split('\n\n')[0];
-  
-  // Limit to ~100 characters and add ellipsis if needed
-  if (firstParagraph.length <= 100) return firstParagraph;
-  
-  // Try to cut at a sentence or punctuation boundary
-  const truncated = firstParagraph.substring(0, 100);
-  const lastPunctuation = Math.max(
-    truncated.lastIndexOf('.'), 
-    truncated.lastIndexOf('!'),
-    truncated.lastIndexOf('?'),
-    truncated.lastIndexOf(',')
-  );
-  
-  if (lastPunctuation > 60) {
-    return firstParagraph.substring(0, lastPunctuation + 1) + '...';
-  }
-  
-  // If no good punctuation break point found, just truncate at 100 chars
-  return truncated + '...';
-};
-
 // Skeleton loader component for FeaturedListings
 const FeaturedListingsSkeleton = () => {
   return (
@@ -272,18 +239,13 @@ const FeaturedListingsSkeleton = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-card rounded-lg overflow-hidden shadow-md h-[550px] flex flex-col">
+          <div key={i} className="bg-card rounded-lg overflow-hidden shadow-md h-[440px] flex flex-col">
             <div className="relative h-[220px] flex-shrink-0 bg-muted animate-pulse"></div>
             <div className="p-4 flex flex-col flex-grow space-y-4">
               <div className="h-6 bg-muted animate-pulse rounded w-3/4"></div>
               <div className="h-8 bg-muted animate-pulse rounded w-1/2"></div>
-              <div className="h-4 bg-muted animate-pulse rounded w-full"></div>
-              <div className="h-4 bg-muted animate-pulse rounded w-full"></div>
-              <div className="h-4 bg-muted animate-pulse rounded w-4/5"></div>
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, j) => (
-                  <div key={j} className="h-4 bg-muted animate-pulse rounded w-4/5"></div>
-                ))}
+              <div className="space-y-2 mt-auto">
+                <div className="h-4 bg-muted animate-pulse rounded w-4/5"></div>
               </div>
               <div className="h-10 bg-muted animate-pulse rounded mt-auto"></div>
             </div>
@@ -336,13 +298,9 @@ export const FeaturedListings = () => {
         // Generate title using the normalized listing
         const title = generatePropertyTitle(normalizedListing);
         
-        // Generate description from propertyCaption or aboutProperty
-        const description = formatShortDescription(normalizedListing);
-        
         return {
           id: listing.id,
           title,
-          description,
           price: listing.price,
           buildArea: listing.buildSqMeters || listing.buildArea || 'N/A',
           landArea: listing.landSqMeters || listing.landArea || 'N/A',
@@ -409,15 +367,8 @@ export const FeaturedListings = () => {
                   {formatPriceWithCurrency(property.price, selectedCurrency)}
                 </p>
                 
-                {/* Description */}
-                {property.description && (
-                  <p className="text-muted-foreground text-sm line-clamp-3">
-                    {property.description}
-                  </p>
-                )}
-                
                 {/* Property details with icons */}
-                <div className="space-y-2 mt-2">
+                <div className="space-y-2 mt-auto">
                   <div className="flex items-center gap-6 text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                       <Home className="h-4 w-4" />

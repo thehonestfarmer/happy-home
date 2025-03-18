@@ -98,7 +98,6 @@ export function useLoadListings() {
 
     fetchListings();
   }, []);
-  console.log(listings);
 
   return {
     listings,
