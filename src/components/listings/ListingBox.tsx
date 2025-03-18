@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Home, Map, LayoutGrid, Calendar, Clock } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 import { useAppContext } from "@/AppContext";
 import { Card } from "@/components/ui/card";
@@ -204,6 +204,13 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
   // Touch handling state
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  // Add startY and currentY to track vertical movement
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchCurrentY, setTouchCurrentY] = useState<number | null>(null);
+  // Add isSwiping state to track when a swipe is in progress
+  const [isSwiping, setIsSwiping] = useState(false);
+  // Add a ref to track whether we've prevented default during this touch sequence
+  const preventedDefault = useRef(false);
   
   // Minimum swipe distance in pixels
   const minSwipeDistance = 50;
@@ -217,30 +224,50 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
 
   // Touch event handlers
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Reset prevention tracking
+    preventedDefault.current = false;
+    
+    // Store both X and Y positions
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
-    // Don't prevent default here to allow other touch behaviors to work normally
+    setTouchStartY(e.targetTouches[0].clientY);
+    setTouchCurrentY(e.targetTouches[0].clientY);
+    setIsSwiping(false);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    // Always update current X position
     setTouchEnd(e.targetTouches[0].clientX);
+    setTouchCurrentY(e.targetTouches[0].clientY);
     
-    // Prevent scroll when user is swiping horizontally on the carousel
-    if (touchStart !== null) {
+    // Only check for horizontal swipes if we have multiple images
+    if (touchStart !== null && touchStartY !== null && displayImages.length > 1) {
       const horizontalDistance = Math.abs(e.targetTouches[0].clientX - touchStart);
-      const verticalDistance = Math.abs(e.targetTouches[0].pageY - e.targetTouches[0].clientY);
+      const verticalDistance = Math.abs(e.targetTouches[0].clientY - touchStartY);
       
-      // If horizontal swipe is more significant than vertical movement
-      // and we have multiple images (so carousel interaction makes sense)
-      if (horizontalDistance > verticalDistance && horizontalDistance > 10 && displayImages.length > 1) {
-        // Prevent default to stop page scrolling
-        e.preventDefault();
-        e.stopPropagation();
+      // If clearly a horizontal swipe (significantly more horizontal than vertical movement)
+      if (horizontalDistance > 10 && horizontalDistance > verticalDistance * 1.5) {
+        // Mark that we're in a swiping state
+        if (!isSwiping) {
+          setIsSwiping(true);
+        }
+        
+        // Try to prevent default - might not work on all mobile browsers
+        if (!preventedDefault.current) {
+          try {
+            e.preventDefault();
+            preventedDefault.current = true;
+          } catch (err) {
+            // Some browsers might throw an error when preventDefault is called
+            // on passive events, just ignore it
+          }
+          e.stopPropagation();
+        }
       }
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (!touchStart || !touchEnd) return;
     
     const distance = touchStart - touchEnd;
@@ -254,11 +281,28 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
         // Swipe right, show previous image
         goToPreviousImage();
       }
+      
+      // If this was a valid swipe, make sure we stop event propagation
+      e.stopPropagation();
     }
     
-    // Reset touch positions
+    // Reset all touch positions and state
     setTouchStart(null);
     setTouchEnd(null);
+    setTouchStartY(null);
+    setTouchCurrentY(null);
+    setIsSwiping(false);
+    preventedDefault.current = false;
+  };
+
+  // Add touchCancel handler to reset state when touch is canceled
+  const handleTouchCancel = () => {
+    setTouchStart(null);
+    setTouchEnd(null);
+    setTouchStartY(null);
+    setTouchCurrentY(null);
+    setIsSwiping(false);
+    preventedDefault.current = false;
   };
 
   // Handle image error
@@ -331,9 +375,12 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
           role="region"
           aria-roledescription="carousel"
           aria-label="Property images"
+          // Add touch-action CSS property to improve mobile browser behavior
+          style={{ touchAction: displayImages.length > 1 ? 'pan-y' : 'auto' }}
         >
           {/* Display number of images (1/4) for accessibility */}
           {displayImages.length > 1 && (
@@ -351,12 +398,19 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
                 priority
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className={`object-cover ${isSold ? 'opacity-90' : ''}`}
-                style={{ objectPosition: 'center' }}
+                style={{ 
+                  objectPosition: 'center',
+                  // Apply touch-action CSS directly to the image as well
+                  touchAction: displayImages.length > 1 ? 'pan-y' : 'auto'
+                }}
                 onClick={handleImageClick}
                 onError={handleImageError}
                 onTouchStart={(e) => {
-                  // Stop propagation to parent handlers that might cause scrolling
-                  e.stopPropagation();
+                  // Prevent the default behavior that might interfere with our custom handling
+                  if (displayImages.length > 1) {
+                    // Try to prevent click events that might interfere with swiping
+                    e.stopPropagation();
+                  }
                   handleTouchStart(e);
                 }}
                 draggable={false}
