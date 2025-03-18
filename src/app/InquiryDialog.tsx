@@ -127,7 +127,7 @@ export function DrawerDialogDemo({ property }: { property: any }) {
   // Use propertyTitle as the main title if available, otherwise use address
   const propertyTitle = property.propertyTitle || (property.address ? property.address.split(",")[0] : "Property");
   const addressDisplay = property.address || "Address unavailable";
-  const snapPoints = [0.5, 0.68, 0.96];
+  const snapPoints = [0.5, 0.68, 1.12];
   const [snap, setSnap] = React.useState<number | string | null>(snapPoints[0]);
   
   // Listen for scroll events on the listing images and snap drawer to smallest size
@@ -186,7 +186,7 @@ export function DrawerDialogDemo({ property }: { property: any }) {
         // modal={false}
         // preventScrollRestoration={false}
       >
-        <DrawerContent className="pb-[72px] max-w-full">
+        <DrawerContent className="pb-[72px] max-w-full h-full">
           <DrawerHeader className="text-left">
             <DrawerTitle>
               <div className={isSold ? 'text-red-600' : ''}>
@@ -198,7 +198,7 @@ export function DrawerDialogDemo({ property }: { property: any }) {
             </DrawerDescription>
           </DrawerHeader>
           
-          <div className="flex-1 overflow-y-auto overflow-x-hidden w-full">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden w-full h-full">
             <ListingDetailContent 
               property={property} 
               handleMailto={handleMailto} 
@@ -256,8 +256,8 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
-    <div className="flex flex-col w-full max-w-full md:grid md:grid-cols-[240px_1fr] md:p-4">
-      <div className={`bg-white rounded-lg shadow-sm ${isDesktop ? 'p-4' : 'p-2.5'}`}>
+    <div className="flex flex-col w-full h-full md:grid md:grid-cols-[240px_1fr] md:p-4">
+      <div className={`bg-white rounded-lg shadow-sm ${isDesktop ? 'p-4' : 'p-2.5'} h-auto`}>
         {/* Price section (enhanced for mobile) */}
         <div className={`${isDesktop ? 'mb-4' : 'mb-2'} ${isSold ? 'text-red-600' : ''}`}>
           <div className="text-xl font-bold">{prices.primary}</div>
@@ -309,17 +309,18 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
         </div>
       </div>
 
-      <div className="flex flex-col flex-1 overflow-hidden w-full">
-        <div className={`bg-white w-full ${isDesktop ? 'p-4' : 'p-3'}`}>
+      <div className="flex flex-col flex-1 w-full h-full">
+        {/* About this home section */}
+        <div className={`bg-white w-full ${isDesktop ? 'p-4' : 'p-3'} mb-3`}>
           <h2 className={`font-semibold text-black ${isDesktop ? 'text-lg mb-2' : 'text-base mb-1.5'}`}>
             About this home
           </h2>
           {property.propertyCaption ? (
-            <div className="text-muted-foreground whitespace-pre-line p-3 bg-muted/30 border rounded-md">
+            <div className="text-muted-foreground bg-muted/30 border rounded-md p-3 min-h-[100px]">
               {property.propertyCaption}
             </div>
           ) : property.listingDetail ? (
-            <ul className="list-disc pl-5 space-y-1.5 text-muted-foreground p-3 bg-muted/30 border rounded-md">
+            <ul className="list-disc pl-5 space-y-1.5 text-muted-foreground p-3 bg-muted/30 border rounded-md min-h-[100px]">
               {property.listingDetail.split('★')
                 .filter((item: string) => item.trim().length > 0)
                 .map((item: string, index: number) => (
@@ -330,13 +331,14 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
               }
             </ul>
           ) : (
-            <p className="text-muted-foreground p-3 bg-muted/30 border rounded-md">No details available for this property.</p>
+            <p className="text-muted-foreground p-3 bg-muted/30 border rounded-md min-h-[100px]">No details available for this property.</p>
           )}
         </div>
 
-        {/* Utilities and Schools Table */}
-        <div className={`w-full max-w-full ${isDesktop ? 'p-4 pt-0' : 'p-3 pt-0'}`}>
-          <div className="border rounded-md overflow-hidden w-full max-w-full">
+        {/* Tables Container - Scrollable if needed */}
+        <div className={`w-full overflow-y-auto flex-1 ${isDesktop ? 'px-4' : 'px-3'}`}>
+          {/* Utilities Table */}
+          <div className="border rounded-md overflow-hidden w-full mb-3">
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="bg-muted">
@@ -360,7 +362,8 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
             </table>
           </div>
 
-          <div className="border rounded-md overflow-hidden mt-3 w-full">
+          {/* Schools Table */}
+          <div className="border rounded-md overflow-hidden w-full mb-3">
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="bg-muted">
@@ -380,7 +383,8 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
             </table>
           </div>
           
-          <div className="border rounded-md overflow-hidden mt-3 w-full">
+          {/* Property Information Table */}
+          <div className="border rounded-md overflow-hidden w-full mb-3">
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="bg-muted">

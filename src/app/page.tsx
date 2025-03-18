@@ -7,19 +7,19 @@ import { CtaSection } from "@/components/home/CtaSection";
 import Header from "./header";
 
 export default function HomePage() {
-  
+
   return (
 
     <>
-              <Header />
-    <main>
-      <HeroSection />
-      <FeaturedListings />
-      <AboutSection />
-      <GuidesSection />
-      <FaqSection />
-      <CtaSection />
-    </main>
+      <Header />
+      <main>
+        <HeroSection />
+        <FeaturedListings />
+        <AboutSection />
+        <GuidesSection />
+        <FaqSection />
+        <CtaSection />
+      </main>
     </>
   );
 }

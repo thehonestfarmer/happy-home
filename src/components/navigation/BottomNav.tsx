@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   {
     label: "Find Homes",
-    href: "/",
+    href: "/listings",
     icon: Home
   },
   {
@@ -37,7 +37,7 @@ export function BottomNav() {
         <div className="grid grid-cols-3 h-16">
           {navItems.map((item) => {
             const isActive = pathname === item.href || 
-              (item.href === '/' && pathname === '/listings');
+              (item.href === '/listings' && pathname.startsWith('/listings/'));
               
             return (
               <Link
