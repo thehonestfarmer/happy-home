@@ -116,7 +116,7 @@ export default function Header() {
         🚧 This site is currently under construction. There might be some rough edges, but we're working on it! 🚧
       </div>
       
-      <header className="sticky top-0 bg-primary text-primary-foreground py-4 z-50">
+      <header className="bg-primary text-primary-foreground py-4 z-50">
         <div className="flex justify-between items-center px-4">
           <Link href="/" prefetch={false}>
             <h1 className="text-2xl font-bold">Happy Home Japan</h1>

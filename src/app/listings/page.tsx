@@ -4,7 +4,7 @@ import { FeatureFlags } from "@/lib/featureFlags";
 
 export default function ListingsPage() {
   return (
-    <main className="h-[calc(100vh-64px)] flex flex-col lg:flex-row">
+    <main className="h-full flex flex-col lg:flex-row">
       {/* Listings section - takes full width when map is disabled */}
       <div className={`${FeatureFlags.showMap ? 'lg:w-7/12 lg:max-w-[960px]' : 'w-full'}`}>
         <ListingsGrid />
