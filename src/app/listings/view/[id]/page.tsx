@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -226,9 +226,36 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   // Mobile view
   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
     const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const lastScrollPosition = useRef(0);
+    const lastScrollTime = useRef(0);
+    
+    // Function to handle scroll events with throttling
+    const handleScroll = useCallback(() => {
+      const now = Date.now();
+      // Throttle to max once every 150ms for performance
+      if (now - lastScrollTime.current > 150) {
+        if (scrollRef.current) {
+          const currentPosition = scrollRef.current.scrollTop;
+          
+          // Any scroll action (up or down) should collapse the drawer
+          if (Math.abs(currentPosition - lastScrollPosition.current) > 10) {
+            // Send event to collapse the drawer regardless of scroll direction
+            window.dispatchEvent(new CustomEvent('listing-images-scroll'));
+          }
+          
+          lastScrollPosition.current = currentPosition;
+          lastScrollTime.current = now;
+        }
+      }
+    }, []);
     
     return (
-      <div className="pointer-events-auto overflow-y-auto">
+      <div 
+        ref={scrollRef}
+        className="pointer-events-auto overflow-y-auto"
+        onScroll={handleScroll}
+      >
         <div className="flex items-center h-14 px-4">
           <Button 
             variant="ghost" 

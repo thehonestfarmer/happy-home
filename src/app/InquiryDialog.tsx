@@ -83,6 +83,22 @@ export function DrawerDialogDemo({ property }: { property: any }) {
   const snapPoints = [0.6, 0.96];
   const [snap, setSnap] = React.useState<number | string | null>(snapPoints[0]);
   
+  // Listen for scroll events on the listing images and snap drawer to smallest size
+  React.useEffect(() => {
+    const handleImageScroll = () => {
+      // Always snap to the smallest size (first snap point) on any scroll event
+      setSnap(snapPoints[0]);
+    };
+    
+    // Add event listener for custom scroll event
+    window.addEventListener('listing-images-scroll', handleImageScroll);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('listing-images-scroll', handleImageScroll);
+    };
+  }, [snapPoints]);
+  
   // Get the selected currency from the property or default to USD
   const selectedCurrency = property.selectedCurrency || 'USD' as Currency;
 
