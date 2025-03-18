@@ -1,9 +1,18 @@
 "use client";
 import Link from "next/link";
 import { Home, Map, LayoutGrid, Calendar, Clock } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
 
 import { useAppContext } from "@/AppContext";
 import { Card } from "@/components/ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { type CarouselApi } from "@/components/ui/carousel";
 import {
   Currency,
   Listing,
@@ -187,6 +196,97 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
   const { filterState } = useAppContext();
   const selectedCurrency = filterState.priceRange.currency || "USD";
   const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
+  
+  // Simple image carousel state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // Track images that fail to load
+  const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
+  // Touch handling state
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  
+  // Minimum swipe distance in pixels
+  const minSwipeDistance = 50;
+
+  // Log the entire property for debugging
+  useEffect(() => {
+    console.log('Property info:', {
+      id: property.id,
+      hasImages: Boolean(property.listingImages),
+      imageCount: property.listingImages?.length || 0,
+      firstImage: property.listingImages?.[0] || 'none',
+    });
+  }, [property]);
+
+  // Ensure we have valid image URLs
+  const rawImages = property.listingImages || [];
+  // Ensure they're valid strings and limit to first 4
+  const displayImages = rawImages.length > 0 
+    ? rawImages.filter(img => typeof img === 'string' && img.trim() !== '').slice(0, 4)
+    : ['/placeholder-property.jpg'];
+
+  // Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isSwipe = Math.abs(distance) > minSwipeDistance;
+    
+    if (isSwipe && displayImages.length > 1) {
+      if (distance > 0) {
+        // Swipe left, show next image
+        goToNextImage();
+      } else {
+        // Swipe right, show previous image
+        goToPreviousImage();
+      }
+    }
+    
+    // Reset touch positions
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  // Handle image error
+  const handleImageError = () => {
+    console.error("Failed to load image:", displayImages[currentImageIndex]);
+    setFailedImages(prev => ({ ...prev, [currentImageIndex]: true }));
+  };
+
+  // Navigation functions
+  const goToPreviousImage = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setCurrentImageIndex(prev => 
+      prev === 0 ? displayImages.length - 1 : prev - 1
+    );
+  };
+
+  const goToNextImage = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setCurrentImageIndex(prev => 
+      prev === displayImages.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   // Format price in millions
   const formatPriceWithCurrency = (price: number | string, currency: Currency): string => {
@@ -211,40 +311,139 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
   const relativeListedDate = property.dates?.datePosted 
     ? formatRelativeTime(extractDateFromString(property.dates.datePosted))
     : 'N/A';
+    
+  // Handle navigation to the detail page
+  const handleNavigation = (e: React.MouseEvent) => {
+    // Let the navigation happen naturally
+  };
 
   return (
-    <Link href={`/listings/view/${property.id}`} className="block h-full">
-      <Card className={`group hover:shadow-md h-full transition-shadow duration-200 ${isSold ? 'border-red-200' : ''}`}>
-        <div className="relative w-full aspect-[16/9] sm:aspect-[16/10] md:aspect-[16/9]">
-          <Image
-            src={property.listingImages?.[0] || '/placeholder-property.jpg'}
-            alt={`Property listing ${property.id || 'image'}`}
-            fill
-            priority
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className={`object-cover group-hover:scale-105 transition-transform duration-200 ${isSold ? 'opacity-90' : ''}`}
-            style={{ objectPosition: 'center' }}
-          />
+    <Card className={`h-full transition-shadow duration-200 ${isSold ? 'border-red-200' : ''}`}>
+      <div className="relative w-full aspect-[16/9] sm:aspect-[16/10] md:aspect-[16/9] overflow-hidden group">
+        {/* Simple carousel */}
+        <div 
+          className="relative w-full h-full"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Property images"
+        >
+          {/* Display number of images (1/4) for accessibility */}
+          {displayImages.length > 1 && (
+            <div className="absolute top-2 left-2 z-10 text-xs bg-black/40 text-white px-1.5 py-0.5 rounded-sm sm:hidden">
+              {currentImageIndex + 1}/{displayImages.length}
+            </div>
+          )}
+          
+          <div className="absolute inset-0 bg-gray-100">
+            {!failedImages[currentImageIndex] ? (
+              <Image
+                src={displayImages[currentImageIndex]}
+                alt={`Property listing ${property.id || 'image'} ${currentImageIndex + 1}`}
+                fill
+                priority
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className={`object-cover ${isSold ? 'opacity-90' : ''}`}
+                style={{ objectPosition: 'center' }}
+                onClick={handleImageClick}
+                onError={handleImageError}
+                draggable={false}
+                role="img"
+                aria-roledescription="slide"
+                aria-label={`Image ${currentImageIndex + 1} of ${displayImages.length}`}
+              />
+            ) : (
+              // Fallback for failed images
+              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                <div className="text-gray-400 flex flex-col items-center">
+                  <Home className="h-12 w-12 mb-2" />
+                  <span className="text-sm font-medium">Image not available</span>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Visual indicator for swipe position */}
+          {touchStart !== null && touchEnd !== null && Math.abs(touchStart - touchEnd) > 20 && (
+            <div 
+              className={`absolute inset-y-0 w-12 bg-black/10 transition-opacity duration-200 ${touchStart > touchEnd ? 'right-0' : 'left-0'}`}
+              style={{ opacity: Math.min(0.5, Math.abs(touchStart - touchEnd) / 200) }}
+              aria-hidden="true"
+            />
+          )}
+          
+          {displayImages.length > 1 && (
+            <>
+              <button
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white/90 z-10 h-7 w-7 sm:h-8 sm:w-8 rounded-full hidden sm:flex items-center justify-center shadow-sm hover:shadow transition-all sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                onClick={goToPreviousImage}
+                aria-label="View previous image"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+              
+              <button
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white/90 z-10 h-7 w-7 sm:h-8 sm:w-8 rounded-full hidden sm:flex items-center justify-center shadow-sm hover:shadow transition-all sm:opacity-0 sm:group-hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                onClick={goToNextImage}
+                aria-label="View next image"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
+              
+              {/* Image indicators */}
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10 sm:opacity-70 sm:group-hover:opacity-100 transition-opacity duration-200">
+                {displayImages.map((_, index) => (
+                  <button
+                    key={index}
+                    aria-label={`View image ${index + 1} of ${displayImages.length}`}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-white focus-visible:ring-offset-1 ${
+                      currentImageIndex === index 
+                        ? 'bg-white scale-110' 
+                        : 'bg-white/50 hover:bg-white/70'
+                    }`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setCurrentImageIndex(index);
+                    }}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          
           {isSold && (
-            <div className="absolute top-3 right-3">
+            <div className="absolute top-3 right-3 z-10">
               <Badge variant="destructive" className="px-2 py-0.5 text-sm font-semibold">SOLD</Badge>
             </div>
           )}
         </div>
-        <div className={`p-3 flex flex-col gap-2 mt-2`}>
+      </div>
+
+      <Link href={`/listings/view/${property.id}`} className="block">
+        <div className={`p-3 flex flex-col gap-2 mt-2 group hover:bg-gray-50 transition-colors duration-200 rounded-b-lg cursor-pointer`}>
           <div className="flex justify-between items-start gap-2">
             <div className="flex flex-col min-w-0">
               <div className="text-xl font-bold truncate md:text-2xl">
                 {formatPriceWithCurrency(property.price, selectedCurrency)}
               </div>
-              <div className="text-base font-semibold text-gray-800 truncate md:text-lg">
-                {generatePropertyTitle(property)}
+              <div className="text-base font-semibold text-gray-800 truncate md:text-lg group-hover:text-primary transition-colors duration-200">
+                {propertyTitle}
               </div>
               <div className="text-sm font-medium text-gray-500 truncate">
                 {locationDisplay}
               </div>
             </div>
-            <div className="flex-shrink-0 pr-2">
+            <div 
+              className="flex-shrink-0 pr-2" 
+              onClick={(e) => e.stopPropagation()}
+            >
               <FavoriteButton 
                 listingId={property.id} 
                 variant="ghost"
@@ -287,7 +486,7 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             </div>
           </div>
         </div>
-      </Card>
-    </Link>
+      </Link>
+    </Card>
   );
 }
