@@ -33,10 +33,7 @@ const extractCity = (address: string): string => {
 
 // Extract only the city/district from an address (no prefecture)
 const extractFormattedLocation = (address: string): string => {
-  console.log("extractFormattedLocation input:", address);
-  
   if (!address) {
-    console.log("Address is empty or undefined");
     return '';
   }
   
@@ -47,7 +44,6 @@ const extractFormattedLocation = (address: string): string => {
   if (inLocationMatch) {
     // Only use the first part (city) and ignore the region/prefecture
     const location = inLocationMatch[1];
-    console.log("Found 'in Location' pattern:", location);
     return location;
   }
   
@@ -59,19 +55,16 @@ const extractFormattedLocation = (address: string): string => {
   
   for (const city of cityNames) {
     if (address.includes(city)) {
-      console.log(`Found city name: ${city}`);
       return city;
     }
   }
   
   // Split address by commas
   const parts = address.split(',').map(part => part.trim());
-  console.log("Address parts:", parts);
   
   // If we have multiple parts, just use the city/ward part (second last)
   if (parts.length >= 2) {
     const cityOrWard = parts[parts.length - 2]; // Second last part is usually city or ward
-    console.log("Extracted city/ward:", cityOrWard);
     return cityOrWard;
   }
   
@@ -82,12 +75,10 @@ const extractFormattedLocation = (address: string): string => {
     const startPos = Math.max(0, cityMatch.index - 20);
     const endPos = cityMatch.index + cityMatch[0].length;
     const cityPart = address.substring(startPos, endPos).trim();
-    console.log("Extracted city part:", cityPart);
     return cityPart;
   }
   
   // If all else fails, just return a smaller portion of the address
-  console.log("Using fallback formatting");
   if (address.length > 20) {
     return address.substring(0, 20) + '...';
   }
@@ -112,14 +103,6 @@ const formatPriceWithCurrency = (priceStr: string | number, currency: Currency):
 
 // Helper to generate a meaningful title based on property characteristics
 const generatePropertyTitle = (listing: Listing): string => {
-  console.log("generatePropertyTitle input:", {
-    id: listing.id,
-    layout: listing.layout,
-    floorPlan: listing.floorPlan,
-    englishAddress: listing.englishAddress,
-    address: listing.address
-  });
-  
   // If the property has a propertyTitle field, use it
   if (listing.propertyTitle) {
     return listing.propertyTitle;
@@ -133,7 +116,6 @@ const generatePropertyTitle = (listing: Listing): string => {
   
   const title = `${layoutText} in ${locationText}`;
   
-  console.log("Generated title:", title);
   return title;
 };
 
@@ -170,15 +152,6 @@ const formatDate = (dateStr?: string | null): string => {
 const getPropertyHighlights = (listing: Listing): string[] => {
   const highlights: string[] = [];
   
-  // Debug what we have in the listing
-  console.log('Getting highlights for listing:', {
-    id: listing.id,
-    originalAddress: listing.originalAddress ? 'present' : 'missing',
-    dates: listing.dates ? JSON.stringify(listing.dates) : 'missing',
-    facilities: listing.facilities ? JSON.stringify(listing.facilities) : 'missing',
-    schools: listing.schools ? JSON.stringify(listing.schools) : 'missing'
-  });
-  
   // Check for renovation date
   if (listing.dates?.dateRenovated) {
     highlights.push(`Renovated: ${listing.dates.dateRenovated}`);
@@ -213,8 +186,6 @@ const getPropertyHighlights = (listing: Listing): string[] => {
     
     highlights.push(...meaningfulDetails);
   }
-  
-  console.log('Generated highlights:', highlights);
   
   // Limit to max 4 highlights
   return highlights.slice(0, 4);
@@ -275,13 +246,6 @@ export const FeaturedListings = () => {
 
   const featuredListings = useMemo(() => {
     if (!listings || listings.length === 0) return [];
-    
-    console.log("Raw listings data:", listings.slice(0, 3).map(l => ({
-      id: l.id,
-      hasEnglishAddress: !!l.englishAddress,
-      hasAddress: !!l.address,
-      hasOriginalAddress: !!l.originalAddress
-    })));
     
     // Take the first three non-duplicate, non-sold listings
     return listings
@@ -356,6 +320,7 @@ export const FeaturedListings = () => {
                 src={property.imageUrl}
                 alt={property.title || "Property image"}
                 fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className="object-cover"
               />
             </div>
@@ -370,18 +335,18 @@ export const FeaturedListings = () => {
                 
                 {/* Property details with icons */}
                 <div className="space-y-2 mt-auto">
-                  <div className="flex items-center gap-6 text-muted-foreground">
+                  <div className="grid grid-cols-3 text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                       <LayoutGrid className="h-4 w-4" />
-                      <span>{property.layout}</span>
+                      <span className="truncate">{property.layout}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 justify-center">
                       <Home className="h-4 w-4" />
-                      <span>{property.buildArea}</span>
+                      <span className="truncate">{property.buildArea}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 justify-end">
                       <Map className="h-4 w-4" />
-                      <span>{property.landArea}</span>
+                      <span className="truncate">{property.landArea}</span>
                     </div>
                   </div>
                 </div>
