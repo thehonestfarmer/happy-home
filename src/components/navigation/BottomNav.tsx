@@ -12,7 +12,7 @@ const navItems = [
     icon: Home
   },
   {
-    label: "Find",
+    label: "Browse",
     href: "/listings",
     icon: Search
   },
