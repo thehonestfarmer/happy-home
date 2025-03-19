@@ -175,10 +175,10 @@ export function ListingsGrid() {
           return true;
         } else if (showForSale) {
           // Only show for-sale listings
-          return !isListingSold;
+          return !listing.isSold;
         } else if (showSold) {
           // Only show sold listings
-          return isListingSold;
+          return listing.isSold;
         } else {
           // If neither is selected (edge case), show nothing
           return false;
@@ -204,7 +204,6 @@ export function ListingsGrid() {
   }, [
     listings,
     filterState.showSold,
-    filterState.showForSale,
     filterState.priceRange.min,
     filterState.priceRange.max,
     filterState.layout.minLDK,
