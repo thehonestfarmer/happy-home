@@ -7,6 +7,7 @@ import Header from "../header";
 export default function ListingsPage() {
   return (
     <div className="flex flex-col min-h-screen">
+      <Header />
         
       {/* Main content */}
       <main className="flex-1 flex flex-col lg:flex-row">

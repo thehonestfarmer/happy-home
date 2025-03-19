@@ -166,15 +166,28 @@ export function ListingsGrid() {
         const showForSale = filterState.showForSale !== false; // Default to true
         const showSold = filterState.showSold === true; // Default to false
         
+        // Normalize the isSold property to handle different value types
+        // If listing.isSold is undefined/null/false, consider it as "for sale"
+        const isListingSold = listing.isSold === true || listing.isDetailSoldPresent === true;
+        
+        // Debug logging to understand what's happening
+        console.log('Filter status:', { 
+          showForSale, 
+          showSold, 
+          rawIsSold: listing.isSold,
+          normalizedIsSold: isListingSold,
+          listingId: listing.id || listing.listingDetailUrl 
+        });
+        
         if (showForSale && showSold) {
           // Show all listings when both options are selected
           return true;
         } else if (showForSale) {
           // Only show for-sale listings
-          return !listing.isSold;
+          return !isListingSold;
         } else if (showSold) {
           // Only show sold listings
-          return listing.isSold;
+          return isListingSold;
         } else {
           // If neither is selected (edge case), show nothing
           return false;
@@ -200,6 +213,7 @@ export function ListingsGrid() {
   }, [
     listings,
     filterState.showSold,
+    filterState.showForSale,
     filterState.priceRange.min,
     filterState.priceRange.max,
     filterState.layout.minLDK,
@@ -230,7 +244,7 @@ export function ListingsGrid() {
   // Extract NoResults into a memoized component outside of the render logic
   const NoResults = useMemo(() => {
     return () => {
-      if (!isDefaultFilterState(filterState)) {
+      if (filteredAndSortedListings.length === 0) {
         return (
           <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
             <p className="text-lg font-medium">
@@ -262,7 +276,7 @@ export function ListingsGrid() {
         </div>
       );
     };
-  }, [filterState, handleResetFilters]);
+  }, [filterState, handleResetFilters, filteredAndSortedListings]);
 
   // Dynamic row height calculation based on viewport width
   const getRowHeight = (width: number): number => {

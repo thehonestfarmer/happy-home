@@ -9,33 +9,57 @@ import { ChevronDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 export function ForSaleFilterContent() {
   const { filterState, setFilterState } = useAppContext();
   
-  // Track both states explicitly
-  const showForSale = filterState.showForSale !== false; // Default to true if undefined
-  const showSold = filterState.showSold === true; // Default to false if undefined
+  // Track both states, ensuring we handle undefined/null values correctly
+  // Default showForSale to true if it's not explicitly false
+  const showForSale = filterState.showForSale !== false;
+  // Default showSold to false if not explicitly true
+  const showSold = filterState.showSold === true;
+  
+  console.log('[ForSaleFilter] Current filter state:', { 
+    showForSale, 
+    showSold, 
+    rawShowForSale: filterState.showForSale,
+    rawShowSold: filterState.showSold
+  });
   
   // Update ForSale state
   const updateForSaleState = (checked: boolean) => {
-    // Create updated filter state
-    const updatedState: FilterState = {
-      ...filterState,
-      showForSale: !!checked
-    };
-    setFilterState(updatedState);
+    console.log('[ForSaleFilter] Updating ForSale state to:', checked);
+    // Create a deep copy to ensure all properties are maintained
+    const newFilterState: FilterState = JSON.parse(JSON.stringify(filterState));
+    // Update the specific property
+    newFilterState.showForSale = checked;
+    
+    console.log('[ForSaleFilter] New filter state will be:', newFilterState);
+    // Pass the new state object directly to setFilterState
+    setFilterState(newFilterState);
   };
   
   // Update Sold state
   const updateSoldState = (checked: boolean) => {
-    // Create updated filter state
-    const updatedState: FilterState = {
-      ...filterState,
-      showSold: !!checked
-    };
-    setFilterState(updatedState);
+    console.log('[ForSaleFilter] Updating Sold state to:', checked);
+    // Create a deep copy to ensure all properties are maintained
+    const newFilterState: FilterState = JSON.parse(JSON.stringify(filterState));
+    // Update the specific property
+    newFilterState.showSold = checked;
+    
+    console.log('[ForSaleFilter] New filter state will be:', newFilterState);
+    // Pass the new state object directly to setFilterState
+    setFilterState(newFilterState);
   };
+  
+  // Log changes when filter state updates
+  useEffect(() => {
+    console.log('[ForSaleFilter] Filter state changed:', { 
+      showForSale: filterState.showForSale,
+      showSold: filterState.showSold 
+    });
+  }, [filterState.showForSale, filterState.showSold]);
   
   return (
     <div className="flex flex-col space-y-3">
@@ -62,9 +86,9 @@ export function ForSaleFilterContent() {
 export function ForSaleFilter() {
   const { filterState } = useAppContext();
   
-  // Track both states explicitly
-  const showForSale = filterState.showForSale !== false; // Default to true if undefined
-  const showSold = filterState.showSold === true; // Default to false if undefined
+  // Track both states, ensuring we handle undefined/null values correctly
+  const showForSale = filterState.showForSale !== false;
+  const showSold = filterState.showSold === true;
   
   // Determine the button text based on selected options
   const getFilterText = () => {
