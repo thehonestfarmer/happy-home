@@ -170,15 +170,6 @@ export function ListingsGrid() {
         // If listing.isSold is undefined/null/false, consider it as "for sale"
         const isListingSold = listing.isSold === true || listing.isDetailSoldPresent === true;
         
-        // Debug logging to understand what's happening
-        console.log('Filter status:', { 
-          showForSale, 
-          showSold, 
-          rawIsSold: listing.isSold,
-          normalizedIsSold: isListingSold,
-          listingId: listing.id || listing.listingDetailUrl 
-        });
-        
         if (showForSale && showSold) {
           // Show all listings when both options are selected
           return true;
