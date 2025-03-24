@@ -1322,9 +1322,8 @@ export function MapDisplay({
               closeButton={!fullScreenMode} // Remove close button in fullScreenMode
               anchor={chosenAnchor}
             >
-              <div className={`p-3 pt-2.5 ${isMobileView ? 'min-w-[220px] max-w-[280px]' : 'min-w-[250px]'}`} style={{ 
-                marginBottom: isMobileView ? '4px' : '0',  // Reduced space below popup content to adjust y-position
-                transform: 'translateY(-8px) translateX(23px)'  // Added translateX to move popup 23px to the right
+              <div className={`pt-2.5 ${isMobileView ? 'min-w-[220px] max-w-[280px]' : ''}`} style={{ 
+                marginBottom: isMobileView ? '' : '0',  // Reduced space below popup content to adjust y-position
               }}>
                 {/* Preview Image */}
                 {listing.listingImages && listing.listingImages.length > 0 && (
