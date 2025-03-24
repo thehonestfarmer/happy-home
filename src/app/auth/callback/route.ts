@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Return HTML that closes the popup
+  // Return HTML that closes the popup and redirects to the stored path
   return new NextResponse(
     `
     <html>
@@ -26,7 +26,14 @@ export async function GET(request: Request) {
             window.opener.postMessage('signInComplete', window.location.origin);
             window.close();
           } else {
-            window.location.href = '/';
+            // Check for stored redirect path
+            const storedPath = localStorage.getItem('authRedirectPath');
+            if (storedPath) {
+              localStorage.removeItem('authRedirectPath');
+              window.location.href = storedPath;
+            } else {
+              window.location.href = '/';
+            }
           }
         </script>
       </body>

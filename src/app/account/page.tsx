@@ -70,6 +70,10 @@ export default function AccountPage() {
 
   const handleGoogleLogin = async () => {
     try {
+      // Store current URL to return to this page after auth
+      const currentPath = window.location.pathname;
+      localStorage.setItem('authRedirectPath', currentPath);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
