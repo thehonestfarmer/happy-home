@@ -30,14 +30,15 @@ interface UploadStatus {
 
 interface ListingData {
   id: string;
-  englishAddress: string;
-  originalAddress: string;
+  addresses: string;
+  address?: string;
   tags: string[];
   details: string[];
   price: string;
   floorPlan: string;
   buildArea: string;
   landArea: string;
+  listingDetailUrl?: string;
   listingImages?: string[];
 }
 
@@ -127,7 +128,7 @@ export default function InstagramPostsPage() {
 
     const query = searchQuery.toLowerCase();
     const filtered = Object.entries(listings).reduce((acc, [id, listing]) => {
-      if (listing.englishAddress.toLowerCase().includes(query)) {
+      if ((listing.address || listing.addresses || '').toLowerCase().includes(query)) {
         acc[id] = listing;
       }
       return acc;
@@ -144,25 +145,20 @@ export default function InstagramPostsPage() {
       const response = await fetch('/batch_test_results.json');
       const data = await response.json();
       
-      if (data.newListings) {
-        // Update the ID for each listing
-        const listingsWithIds = Object.entries(data.newListings).reduce((acc, [id, listing]) => {
-          acc[id] = {
-            ...listing as ListingData,
-            id
-          };
-          return acc;
-        }, {} as Record<string, ListingData>);
+      // Handle both old and new format
+      const listingsData = data.newListings ? data.newListings : data;
         
-        setListings(listingsWithIds);
-        setFilteredListings(listingsWithIds);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to load listings - invalid format",
-          variant: "destructive",
-        });
-      }
+      // Update the ID for each listing
+      const listingsWithIds = Object.entries(listingsData).reduce((acc, [id, listing]) => {
+        acc[id] = {
+          ...listing as ListingData,
+          id
+        };
+        return acc;
+      }, {} as Record<string, ListingData>);
+      
+      setListings(listingsWithIds);
+      setFilteredListings(listingsWithIds);
     } catch (error) {
       toast({
         title: "Error",
@@ -650,7 +646,7 @@ export default function InstagramPostsPage() {
                   <SelectContent>
                     {Object.entries(filteredListings).map(([id, listing]) => (
                       <SelectItem key={id} value={id}>
-                        {listing.englishAddress}
+                        {listing.addresses}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -661,7 +657,7 @@ export default function InstagramPostsPage() {
               {currentListing && (
                 <div className="bg-muted/40 p-4 rounded-md space-y-2">
                   <div className="flex justify-between">
-                    <h3 className="font-medium">{currentListing.englishAddress}</h3>
+                    <h3 className="font-medium">{currentListing.addresses}</h3>
                     <span className="text-primary">{currentListing.price}</span>
                   </div>
                   <p className="text-sm text-gray-600">

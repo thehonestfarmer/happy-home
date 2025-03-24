@@ -53,35 +53,27 @@ function validateScrapedData(data: any): data is ScrapedData {
 }
 
 function hasListingsChanged(oldListings: ListingsData, newListings: ListingsData): boolean {
-  if (Object.keys(oldListings.newListings).length !== Object.keys(newListings.newListings).length) {
+  if (Object.keys(oldListings).length !== Object.keys(newListings).length) {
     console.log('Number of listings changed');
     return true;
   }
 
   // Deep comparison of each listing
-  for (const [id, newListing] of Object.entries(newListings.newListings)) {
-    const oldListing = oldListings.newListings[id];
-    
-    // If listing doesn't exist in old data
+  for (const [id, newListing] of Object.entries(newListings)) {
+    const oldListing = oldListings[id];
     if (!oldListing) {
       console.log(`New listing found: ${id}`);
       return true;
     }
 
-    // Compare each property - using type-safe property access
-    const propsToCompare: (keyof Listing)[] = [
-      'id', 'addresses', 'address', 'tags', 'listingDetail', 
-      'prices', 'layout', 'buildSqMeters', 'landSqMeters',
-      'listingImages', 'recommendedText', 'isDetailSoldPresent'
-    ];
-    
-    for (const key of propsToCompare) {
-      if (JSON.stringify(newListing[key]) !== JSON.stringify(oldListing[key])) {
-        console.log(`Changes detected in listing ${id}, property: ${key}`);
-        console.log('Old:', oldListing[key]);
-        console.log('New:', newListing[key]);
-        return true;
-      }
+    // Compare a few key fields to detect changes
+    if (
+      oldListing.addresses !== newListing.addresses ||
+      oldListing.prices !== newListing.prices ||
+      oldListing.layout !== newListing.layout
+    ) {
+      console.log(`Listing changed: ${id}`);
+      return true;
     }
   }
 
@@ -105,15 +97,18 @@ async function readListingsFile(): Promise<ListingsData> {
     
     if (!fs.existsSync(listingsPath)) {
       console.log('No existing listings file found. Creating new one.');
-      return { newListings: {} };
+      return {}; // Return empty object for new ListingsData format
     }
     
     const data = fs.readFileSync(listingsPath, 'utf8');
-    return JSON.parse(data);
+    const parsedData = JSON.parse(data);
+    
+    // Handle both formats - if newListings exists, extract it; otherwise use as-is
+    return parsedData.newListings ? parsedData.newListings : parsedData;
   } catch (error) {
     console.error('Error reading all-listings.json:', error);
     // Return empty object if file doesn't exist or can't be read
-    return { newListings: {} };
+    return {}; // Return empty object for new ListingsData format
   }
 }
 
@@ -169,13 +164,12 @@ export async function POST(request: Request) {
     // Merge with existing listings
     const mergedListings = await mergeListings(existingListingsData, scrapedData);
 
-    console.log(`Existing listings: ${Object.keys(existingListingsData.newListings).length}`);
+    console.log(`Existing listings: ${Object.keys(existingListingsData).length}`);
     console.log(`New listings: ${scrapedData.addresses.length}`);
 
     // Check if there were any changes
     if (
-      Object.keys(existingListingsData.newListings).length ===
-        Object.keys(mergedListings.newListings).length &&
+      Object.keys(existingListingsData).length === Object.keys(mergedListings).length &&
       scrapedData.addresses.length === 0
     ) {
       console.log('No changes detected, skipping save');
@@ -233,43 +227,26 @@ export async function GET() {
     
     console.log("Starting listings update process");
 
-    // Initialize Redis connection
-    // const connection = await initRedisConnection();
+    // For development, we'll just read the listings file and run a simplified process
+    const currentListings = await readListingsFile();
+    console.log(`Current listings count: ${Object.keys(currentListings).length}`);
     
-    // Create the listing queue
-    // const listingQueue = new Queue("listing-scraper", { connection });
+    // Log the start of a simulated scrape
+    console.log("Initiated simulated scrape process. In a real implementation, this would trigger scrapers.");
     
-    // Add a job to scrape the search pages
-    // This will be a starting point that triggers the rest of the process
-    // await listingQueue.add(
-    //   "scrape-search-pages",
-    //   {
-    //     baseUrl: "https://happy-home.co.jp/bukken/residential/list/",
-    //     pagesCount: 5, // Start with the first 5 pages
-    //   },
-    //   {
-    //     attempts: 3,
-    //     backoff: {
-    //       type: "exponential",
-    //       delay: 1000, // 1 second initial delay
-    //     },
-    //     removeOnComplete: true,
-    //     removeOnFail: false,
-    //   }
-    // );
-    
-    console.log("Listings update job added to queue");
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: 'GET endpoint for scraping',
-      data: {} 
+    // Return success response
+    return NextResponse.json({
+      success: true,
+      message: "Scrape process initiated",
+      data: {
+        currentListingsCount: Object.keys(currentListings).length
+      }
     });
   } catch (error) {
-    console.error('Error in GET route:', error);
-    return NextResponse.json({ 
-      success: false, 
-      message: error instanceof Error ? error.message : 'Unknown error',
+    console.error('Error starting scrape process:', error);
+    return NextResponse.json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to start scrape process',
       data: {}
     }, { status: 500 });
   }

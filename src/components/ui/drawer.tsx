@@ -22,13 +22,9 @@ const Drawer = ({
       snapPoints={snapPoints}
       activeSnapPoint={activeSnapPoint}
       setActiveSnapPoint={setActiveSnapPoint}
-      dismissible={false}
-      // onDrag={(event, percentageDragged) => {
-      //   console.log(event, percentageDragged);
-      // }}
+      dismissible={true}
       snapToSequentialPoint
       modal={false}
-      preventScrollRestoration={false}
       {...props}
     />
   );
@@ -58,20 +54,24 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
 
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & { showHandle?: boolean }
+>(({ className, children, showHandle = true, ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
         "fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[10px] border bg-background",
-        "min-h-[40vh] max-h-[80vh]",
+        "min-h-[40vh] max-h-[80vh] touch-pan-y",
         className,
       )}
       {...props}
     >
-      <div className="mx-auto mt-8 h-2 w-[100px] rounded-full bg-muted" />
+      {showHandle && (
+        <div className="mx-auto mt-3 mb-1 h-1.5 w-[40px] rounded-full bg-muted/80" 
+             style={{ touchAction: "none" }}
+        />
+      )}
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>

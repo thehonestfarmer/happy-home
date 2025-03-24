@@ -14,6 +14,10 @@ export interface Listing {
 }
 
 export interface ListingsData {
+  [key: string]: Listing;
+}
+
+export interface LegacyListingsData {
   newListings: {
     [key: string]: Listing;
   };

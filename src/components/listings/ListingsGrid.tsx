@@ -33,7 +33,8 @@ const isDefaultFilterState = (filterState: FilterState) => {
 };
 
 interface ListingsGridProps {
-  listings: Listing[];
+  listings?: Listing[];
+  onSelectProperty?: (id: string | null) => void;
 }
 
 const Grid = _Grid as unknown as FC<GridProps>;
@@ -41,11 +42,11 @@ const AutoSizer = _AutoSizer as unknown as FC<AutoSizerProps>;
 
 // Add the missing parsePriceJPY function
 const parsePriceJPY = (price: string): number => {
-  // return parseJapanesePrice(price);
-  return 1000
+  // Don't return a constant value - actually parse the price
+  return parseJapanesePrice(price);
 };
 
-export function ListingsGrid() {
+export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
   const { isLoading, error, listings } = useListings();
   const { filterState, setFilterState, displayState } = useAppContext();
   // Create a ref for the Grid component
@@ -136,6 +137,17 @@ export function ListingsGrid() {
   const filteredAndSortedListings = useMemo(() => {
     if (!listings) return [];
     
+    // Check for hidden listings in localStorage
+    let hiddenListings: string[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        hiddenListings = JSON.parse(localStorage.getItem('hiddenListings') || '[]');
+      } catch (error) {
+        console.error('Error parsing hidden listings:', error);
+        hiddenListings = [];
+      }
+    }
+    
     const filteredListings = listings 
       .filter((listing) => !listing.isDuplicate)
       .filter((listing) => {
@@ -183,9 +195,15 @@ export function ListingsGrid() {
           // If neither is selected (edge case), show nothing
           return false;
         }
-      });
+      })
+      // Mark listings as hidden if they're in the hiddenListings array
+      .map(listing => ({
+        ...listing,
+        isHidden: listing.id ? hiddenListings.includes(listing.id) : false
+      }));
 
-    return filteredListings.sort((a, b) => {
+    // First sort by the selected sort option
+    const sortedListings = filteredListings.sort((a, b) => {
       switch (displayState.sortBy) {
         case 'price-asc': {
           const priceA = parsePriceJPY(a.price);
@@ -197,9 +215,27 @@ export function ListingsGrid() {
           const priceB = parsePriceJPY(b.price);
           return priceB - priceA;
         }
+        case 'newest': {
+          // For newest, assume listings with higher IDs are newer
+          // If you have timestamps, use those instead
+          const idA = parseInt(a.id || '0', 10);
+          const idB = parseInt(b.id || '0', 10);
+          return idB - idA; // Descending order (newest first)
+        }
         default:
-          return 0;
+          // Default to newest if no valid sort option
+          const idA = parseInt(a.id || '0', 10);
+          const idB = parseInt(b.id || '0', 10);
+          return idB - idA;
       }
+    });
+    
+    // Then prioritize non-hidden listings
+    return sortedListings.sort((a, b) => {
+      // If one is hidden and the other isn't, put the non-hidden one first
+      if (a.isHidden && !b.isHidden) return 1;
+      if (!a.isHidden && b.isHidden) return -1;
+      return 0; // Otherwise keep the original sort order
     });
   }, [
     listings,
@@ -310,6 +346,13 @@ export function ListingsGrid() {
     return 3; // Desktop
   };
 
+  // Add a function to handle clicking on a property
+  const handlePropertyClick = (listing: Listing) => {
+    if (onSelectProperty && listing.id) {
+      onSelectProperty(listing.id);
+    }
+  };
+
   function cellRenderer({ columnIndex, key, rowIndex, style, width }: {
     columnIndex: number;
     key: string;
@@ -329,18 +372,14 @@ export function ListingsGrid() {
       return 8; // Consistent padding for all screen sizes
     };
     
+    // Render the listing card
     return (
-      <div 
-        style={{
-          ...style,
-          padding: `${getPadding()}px`,
-          boxSizing: 'border-box',
-        }} 
-        key={key}
-      >
+      <div key={key} style={Object.assign({}, style, { padding: getPadding() })} className="outline-none">
         <ListingBox
           property={listing}
           handleLightboxOpen={() => {}}
+          onClick={() => handlePropertyClick(listing)}
+          isHidden={listing.isHidden}
         />
       </div>
     );

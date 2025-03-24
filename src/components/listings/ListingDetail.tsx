@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShareIcon, Copy } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import NextJsImage from "@/components/ui/nextjsimage";
-import { DrawerDialogDemo } from "@/app/InquiryDialog";
+import { PropertyDetailView } from "@/app/PropertyDetailView";
 import { useAppContext } from "@/AppContext";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -107,7 +107,7 @@ export function ListingDetail({ listing }: ListingDetailProps) {
           </div>
           <Separator />
           <p className="whitespace-pre-wrap">{listing.description}</p>
-          <DrawerDialogDemo />
+          <PropertyDetailView property={listing} />
         </div>
       </div>
 

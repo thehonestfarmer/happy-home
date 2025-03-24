@@ -122,3 +122,21 @@
   }
 }
 
+/* Special styling for ListingBox inside drawer */
+.listings-drawer-content .group {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+}
+
+.listings-drawer-content .group > div {
+  height: auto !important;
+}
+
+/* Ensure all content is visible */
+.listings-drawer-content img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+

@@ -13,19 +13,22 @@ export async function GET() {
       throw new Error('No listings data found');
     }
 
-    return NextResponse.json(listings);
+    return NextResponse.json({ 
+      success: true, 
+      listings 
+    });
   } catch (error) {
     console.error('Error fetching listings:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch listings' }, 
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch listings' }, 
       { status: 500 }
     );
   }
 }
 
-export async function PUT(request: Request) {
+export async function POST(request: Request) {
   try {
-    const listings = await request.json();
+    const { listings } = await request.json();
     let localFileSaved = false;
     
     // Save to local file first
@@ -85,7 +88,7 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Error updating listings:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update listings' }, 
+      { success: false, error: error instanceof Error ? error.message : 'Failed to update listings' }, 
       { status: 500 }
     );
   }

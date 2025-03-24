@@ -59,31 +59,31 @@ export function useLoadListings() {
         }
         
         // Extract the actual listings data from the response
-        const listingsData = responseData.data as ListingsData;
+        const listingsData = responseData.data;
         
         if (!listingsData) {
           throw new Error('Invalid listings data format');
         }
         
-        // Process listings similar to before
+        // Process listings from the updated format (directly, without newListings key)
         const processedListings = Object.entries(listingsData).map(([id, item]) => {
-          const listingImages = item.listingImages || [];
+          const listingImages = (item as any).listingImages || [];
 
           // Calculate full price in JPY
-          const price = parseJapanesePrice(item.price || '0');
-
-          // Convert JPY to USD using exchange rate utility
-          const priceUsd = convertCurrency(price, "JPY", "USD");
+          const price = parseJapanesePrice((item as any).price || '0');
 
           // Process listingDetail if it exists
-          const listingDetail = item.listingDetail ? formatListingDetail(item.listingDetail) : '';
+          const listingDetail = (item as any).listingDetail ? formatListingDetail((item as any).listingDetail) : '';
+          
+          // Use listingDetail URL as listingDetailUrl if it exists
+          const listingDetailUrl = (item as any).listingDetail || '';
 
           return {
-            ...item,
+            ...(item as any),
             listingImages,
             price,
-            priceUsd,
             listingDetail,
+            listingDetailUrl,
           };
         });
 

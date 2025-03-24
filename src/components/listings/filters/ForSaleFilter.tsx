@@ -20,13 +20,6 @@ export function ForSaleFilterContent() {
   // Default showSold to false if not explicitly true
   const showSold = filterState.showSold === true;
   
-  console.log('[ForSaleFilter] Current filter state:', { 
-    showForSale, 
-    showSold, 
-    rawShowForSale: filterState.showForSale,
-    rawShowSold: filterState.showSold
-  });
-  
   // Update ForSale state
   const updateForSaleState = (checked: boolean) => {
     console.log('[ForSaleFilter] Updating ForSale state to:', checked);
@@ -35,7 +28,6 @@ export function ForSaleFilterContent() {
     // Update the specific property
     newFilterState.showForSale = checked;
     
-    console.log('[ForSaleFilter] New filter state will be:', newFilterState);
     // Pass the new state object directly to setFilterState
     setFilterState(newFilterState);
   };

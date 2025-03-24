@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Copy, Heart, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import NextJsImage from "@/components/ui/nextjsimage";
-import { DrawerDialogDemo } from "@/app/InquiryDialog";
+import { PropertyDetailView } from "@/app/PropertyDetailView";
 import { useAppContext, DisplayState } from "@/AppContext";
 import { useListings } from "@/contexts/ListingsContext";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { SignInModal } from "@/components/auth/SignInModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { MapDisplay } from "@/components/map/MapPlaceholder";
 
 /**
  * Format date string to match buildDate format
@@ -158,6 +159,11 @@ function ListingPageSkeleton() {
             <div>
               <Skeleton className="h-6 w-40 mb-4" />
               <Skeleton className="h-24 w-full" />
+            </div>
+            {/* Map Skeleton */}
+            <div>
+              <Skeleton className="h-6 w-40 mb-4" />
+              <Skeleton className="h-[400px] w-full rounded-md" />
             </div>
           </div>
           <div className="space-y-6">
@@ -514,7 +520,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             />
           </Button>
         </div>
-
+        
         {/* Content with appropriate padding */}
         <div className="space-y-2">
           {property.listingImages?.map((image: string, index: number) => (
@@ -537,7 +543,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           ))}
         </div>
 
-        <DrawerDialogDemo property={property} />
+        <PropertyDetailView property={property} />
         <Lightbox
           open={displayState.lightboxListingIdx !== null}
           close={() => setDisplayState({
@@ -685,6 +691,23 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
               ) : (
                 <p className="text-muted-foreground p-4 bg-muted/30 border rounded-md">No details available for this property.</p>
               )}
+            </div>
+
+            {/* Property Location Map */}
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Property Location</h2>
+              <div className="border rounded-md overflow-hidden h-[400px]">
+                {property.coordinates?.lat && property.coordinates?.long ? (
+                  <MapDisplay 
+                    listings={[property]} 
+                    singlePropertyMode={true} 
+                  />
+                ) : (
+                  <div className="h-full bg-muted/30 flex items-center justify-center flex-col gap-2">
+                    <p className="text-muted-foreground">Location coordinates not available</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Utilities and Schools Tables */}

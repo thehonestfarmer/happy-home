@@ -194,9 +194,9 @@ export default function ScraperPage() {
   };
 
   return (
-    <div className="container py-10">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Scraper Management</h1>
+    <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-h-[calc(100vh-4rem)]">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">Scraper Management</h1>
         <Link href="/admin">
           <Button variant="outline" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
@@ -205,35 +205,86 @@ export default function ScraperPage() {
         </Link>
       </div>
       
-      <Tabs defaultValue="failed-jobs">
-        <TabsList>
-          <TabsTrigger value="failed-jobs">Failed Jobs</TabsTrigger>
+      <Tabs defaultValue="new-scrape" className="w-full space-y-6">
+        <TabsList className="mb-2">
           <TabsTrigger value="new-scrape">New Scrape</TabsTrigger>
+          <TabsTrigger value="failed-jobs" className="relative">
+            Failed Jobs
+            {failedJobs.length > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-white">
+                {failedJobs.length > 99 ? '99+' : failedJobs.length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="failed-jobs">
+        <TabsContent value="new-scrape" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="px-6">
+              <CardTitle>Start New Scrape</CardTitle>
+              <CardDescription>
+                Trigger a new scraping run to fetch the latest listings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6">
+              <p className="mb-4">
+                This will start a new scraping process to fetch the latest listings from the website.
+                The process will run in the background and may take several minutes to complete.
+              </p>
+              <p className="mb-4">
+                You can monitor the progress in the server logs. Failed jobs will appear in the Failed Jobs tab.
+                {failedJobs.length > 0 && (
+                  <span className="ml-2 text-destructive font-medium">
+                    There {failedJobs.length === 1 ? 'is' : 'are'} currently {failedJobs.length} failed {failedJobs.length === 1 ? 'job' : 'jobs'}.
+                  </span>
+                )}
+              </p>
+            </CardContent>
+            <CardFooter className="px-6 py-4">
+              <Button 
+                onClick={startNewScrape}
+                disabled={isStartingScrape}
+                className="w-full sm:w-auto"
+              >
+                {isStartingScrape ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Scraping
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="failed-jobs" className="space-y-4">
+          <Card className="overflow-hidden">
+            <CardHeader className="px-6">
               <CardTitle>Failed Jobs</CardTitle>
               <CardDescription>
                 Jobs that failed during scraping. You can retry them or clear the list.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-6">
               {isLoadingJobs ? (
-                <div className="text-center py-4">
+                <div className="text-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
                   <p className="text-muted-foreground">Loading failed jobs...</p>
                 </div>
               ) : failedJobs.length === 0 ? (
-                <div className="text-center py-4">
+                <div className="text-center py-8">
                   <AlertCircle className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-medium mb-2">No Failed Jobs</h3>
                   <p className="text-muted-foreground">All scraping jobs are running smoothly</p>
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center space-x-2 mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -242,8 +293,8 @@ export default function ScraperPage() {
                       {selectedJobs.length === failedJobs.length ? "Deselect All" : "Select All"}
                     </Button>
                     
-                    <div className="flex items-center space-x-2 ml-auto">
-                      <Label htmlFor="worker-count" className="text-sm">Workers:</Label>
+                    <div className="flex items-center gap-2 ml-auto">
+                      <Label htmlFor="worker-count" className="text-sm whitespace-nowrap">Workers:</Label>
                       <Input
                         id="worker-count"
                         type="number"
@@ -251,13 +302,13 @@ export default function ScraperPage() {
                         max="10"
                         value={workerCount}
                         onChange={(e) => setWorkerCount(Number(e.target.value))}
-                        className="w-16 h-8"
+                        className="w-20 h-8"
                       />
                     </div>
                   </div>
                   
-                  <div className="border rounded-md overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
+                  <div className="border rounded-md overflow-auto">
+                    <table className="w-full divide-y divide-gray-200">
                       <thead className="bg-muted">
                         <tr>
                           <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Select</th>
@@ -280,9 +331,9 @@ export default function ScraperPage() {
                               />
                             </td>
                             <td className="px-4 py-2 font-mono text-xs">{job.id.substring(0, 8)}...</td>
-                            <td className="px-4 py-2 font-mono text-xs truncate max-w-[200px]">{job.url}</td>
+                            <td className="px-4 py-2 font-mono text-xs truncate max-w-[150px] sm:max-w-[200px]">{job.url}</td>
                             <td className="px-4 py-2 text-xs">{formatDate(job.failedAt)}</td>
-                            <td className="px-4 py-2 text-xs truncate max-w-[200px]">{job.reason}</td>
+                            <td className="px-4 py-2 text-xs truncate max-w-[150px] sm:max-w-[200px]">{job.reason}</td>
                             <td className="px-4 py-2 text-xs">{job.retryCount}</td>
                           </tr>
                         ))}
@@ -292,11 +343,12 @@ export default function ScraperPage() {
                 </>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between">
+            <CardFooter className="flex flex-col sm:flex-row sm:justify-between gap-3 px-6 py-4">
               <Button 
                 variant="destructive" 
                 onClick={clearAllFailedJobs}
                 disabled={isClearing || failedJobs.length === 0}
+                className="w-full sm:w-auto"
               >
                 {isClearing ? (
                   <>
@@ -314,6 +366,7 @@ export default function ScraperPage() {
               <Button 
                 onClick={retrySelectedJobs} 
                 disabled={isRetrying || selectedJobs.length === 0}
+                className="w-full sm:w-auto"
               >
                 {isRetrying ? (
                   <>
@@ -324,45 +377,6 @@ export default function ScraperPage() {
                   <>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Retry Selected ({selectedJobs.length})
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="new-scrape">
-          <Card>
-            <CardHeader>
-              <CardTitle>Start New Scrape</CardTitle>
-              <CardDescription>
-                Trigger a new scraping run to fetch the latest listings
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">
-                This will start a new scraping process to fetch the latest listings from the website.
-                The process will run in the background and may take several minutes to complete.
-              </p>
-              <p className="mb-4">
-                You can monitor the progress in the server logs. Failed jobs will appear in the Failed Jobs tab.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={startNewScrape}
-                disabled={isStartingScrape}
-                className="w-full"
-              >
-                {isStartingScrape ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Starting...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Start Scraping
                   </>
                 )}
               </Button>

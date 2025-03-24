@@ -113,7 +113,7 @@ export default function Header() {
     <>
       {/* Construction Banner */}
       <div className="w-full bg-amber-500 text-black py-1.5 text-center text-sm font-medium">
-        🚧 This site is currently under construction. There might be some rough edges, but we're working on it! 🚧
+        🚧 Work in Progress! 🚧
       </div>
       
       <header className="bg-primary text-primary-foreground py-4 relative">

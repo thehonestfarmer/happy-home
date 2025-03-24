@@ -14,6 +14,7 @@ import { Toast } from "@/components/ui/toast";
 import { ListingsProvider } from "@/contexts/ListingsContext";
 import { Toaster } from "@/components/ui/toaster";
 import { BottomNav } from "@/components/navigation/BottomNav";
+import { DebugMenu } from "@/components/debug/DebugMenu";
 
 const fontHeading = Inter({
   subsets: ["latin"],
@@ -127,6 +128,7 @@ export default function RootLayout({
                 {children}
                 <BottomNav />
               </div>
+              <DebugMenu />
             </ListingsProvider>
           </AppProvider>
         </SidebarProvider>

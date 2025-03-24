@@ -34,7 +34,7 @@ async function retryFailedScrapes(
       const additionalDetails = await scrapeListingPage(failed.url);
       
       if (additionalDetails && !(additionalDetails instanceof Error)) {
-        const listing = mergedListings.newListings[failed.id];
+        const listing = mergedListings[failed.id];
         if (listing) {
           listing.listingImages = additionalDetails.listingImages;
           listing.recommendedText = additionalDetails.recommendedText;
@@ -73,11 +73,14 @@ export async function readListings(): Promise<ListingsData> {
       
       const filePath = path.join(process.cwd(), '/public/batch_test_results.json');
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      console.log(`Read ${Object.keys(data).length} listings from local file`);
-      return data;
+      
+      // Extract listings from newListings if present, otherwise use as-is
+      const listings = data.newListings ? data.newListings : data;
+      console.log(`Read ${Object.keys(listings).length} listings from local file`);
+      return listings;
     } catch (error) {
       console.error('Error reading local listings file:', error);
-      return { newListings: {} };
+      return {};
     }
   }
 
@@ -90,7 +93,7 @@ export async function readListings(): Promise<ListingsData> {
 
     if (!listingsBlob) {
       console.log('No existing listings blob found, creating new data');
-      return { newListings: {} };
+      return {};
     }
 
     // Get the blob content
@@ -99,7 +102,10 @@ export async function readListings(): Promise<ListingsData> {
       throw new Error('Failed to fetch blob');
     }
 
-    const listings = await response.json() as ListingsData;
+    const data = await response.json();
+    
+    // Extract listings from newListings if present, otherwise use as-is
+    const listings = data.newListings ? data.newListings : data;
     console.log(`Read ${Object.keys(listings).length} existing listings from blob`);
     console.log(`Blob URL: ${listingsBlob.url}`);
     console.log(`Last updated: ${listingsBlob.uploadedAt}`);
@@ -107,7 +113,7 @@ export async function readListings(): Promise<ListingsData> {
     return listings;
   } catch (error) {
     console.error('Error reading listings from blob:', error);
-    return { newListings: {} };
+    return {};
   }
 }
 
@@ -116,19 +122,17 @@ export async function mergeListings(
   scrapedData: ScrapedData
 ): Promise<ListingsData> {
   console.log('\n=== Starting Merge Process ===');
-  console.log(`Existing listings: ${Object.keys(existingListings.newListings).length}`);
+  console.log(`Existing listings: ${Object.keys(existingListings).length}`);
   console.log(`New scraped items: ${scrapedData.addresses.length}`);
 
-  const mergedListings: ListingsData = { 
-    newListings: { ...existingListings.newListings } 
-  };
+  const mergedListings: ListingsData = { ...existingListings };
 
   // Track failed scrapes for retry
   const failedScrapes: FailedScrape[] = [];
 
   // Create map of existing addresses for quick lookup
   const addressMap = new Map(
-    Object.values(existingListings.newListings)
+    Object.values(existingListings)
       .filter(listing => listing.addresses)
       .map(listing => [listing.addresses.toLowerCase(), listing.id])
   );
@@ -228,8 +232,8 @@ export async function mergeListings(
         updatedCount++;
       }
 
-      mergedListings.newListings[newListing.id] = {
-        ...mergedListings.newListings[newListing.id],
+      mergedListings[newListing.id] = {
+        ...mergedListings[newListing.id],
         ...newListing
       };
     } catch (error) {
@@ -250,7 +254,7 @@ export async function mergeListings(
   console.log(`Duplicate addresses skipped: ${duplicateCount}`);
   console.log(`Errors: ${errorCount}`);
   console.log(`Failed scrapes: ${failedScrapes.filter(f => f.attempts >= MAX_RETRY_ATTEMPTS).length}`);
-  console.log(`Total listings after merge: ${Object.keys(mergedListings.newListings).length}`);
+  console.log(`Total listings after merge: ${Object.keys(mergedListings).length}`);
 
   return mergedListings;
 } 

@@ -192,10 +192,23 @@ const formatRelativeTime = (date: Date | null | undefined): string => {
   }
 };
 
-export function ListingBox({ property, handleLightboxOpen }: { property: Listing, handleLightboxOpen: any }) {
+export function ListingBox({ 
+  property, 
+  handleLightboxOpen,
+  onClick,
+  isHidden = false
+}: { 
+  property: Listing, 
+  handleLightboxOpen: any,
+  onClick?: () => void,
+  isHidden?: boolean
+}) {
   const { filterState } = useAppContext();
   const selectedCurrency = filterState.priceRange.currency || "USD";
   const isSold = Boolean(property.isSold || property.isDetailSoldPresent);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [api, setApi] = useState<CarouselApi>();
+  const cardRef = useRef<HTMLDivElement>(null);
   
   // Simple image carousel state
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -265,18 +278,37 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
     ? formatRelativeTime(extractDateFromString(property.dates.datePosted))
     : 'N/A';
     
-  // Generate a property description based on the property details
-  const propertyDescription = generatePropertyDescription(property);
+  // Get property description (if available)
+  // @ts-ignore - shortDescription may exist but not be defined in the type
+  const propertyDescription = property.shortDescription || '';
   
-  // Handle navigation to the detail page
-  const handleNavigation = (e: React.MouseEvent) => {
-    // Let the navigation happen naturally
+  // Ensure the property ID is available for navigation
+  const propertyId = property.id || '';
+
+  // Handle card click
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (onClick) {
+      onClick();
+    }
   };
 
   return (
-    <Card className={`h-full transition-shadow duration-200 hover:shadow-md rounded-xl overflow-hidden ${isSold ? 'border-red-200' : ''}`}>
+    <Card 
+      className={`
+        group overflow-hidden border rounded-lg shadow-sm hover:shadow-md transition-shadow
+        relative w-full h-full bg-background text-foreground flex flex-col
+        ${onClick ? 'cursor-pointer' : ''}
+        ${isHidden ? 'opacity-60' : ''}
+      `}
+      ref={cardRef}
+      onClick={handleCardClick}
+    >
+      {isHidden && (
+        <Badge className="absolute top-2 left-2 z-20 bg-gray-600 text-white">Hidden</Badge>
+      )}
+      
+      {/* Image carousel section - with fixed aspect ratio */}
       <div className="relative w-full aspect-[16/9] sm:aspect-[16/10] md:aspect-[16/9] overflow-hidden group">
-        {/* Simple carousel */}
         <div 
           className="relative w-full h-full"
           role="region"
@@ -290,32 +322,38 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             </div>
           )}
           
-          <div className="absolute inset-0 bg-gray-100">
-            {!failedImages[currentImageIndex] ? (
-              <Image
-                src={displayImages[currentImageIndex]}
-                alt={`Property listing ${property.id || 'image'} ${currentImageIndex + 1}`}
-                fill
-                priority
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className={`object-cover ${isSold ? 'opacity-90' : ''}`}
-                style={{ objectPosition: 'center' }}
-                onClick={handleImageClick}
-                onError={handleImageError}
-                draggable={false}
-                role="img"
-                aria-roledescription="slide"
-                aria-label={`Image ${currentImageIndex + 1} of ${displayImages.length}`}
-              />
-            ) : (
-              // Fallback for failed images
-              <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                <div className="text-gray-400 flex flex-col items-center">
-                  <Home className="h-12 w-12 mb-2" />
-                  <span className="text-sm font-medium">Image not available</span>
+          {/* Image container - add data-link to allow navigation */}
+          <div 
+            className="absolute inset-0 bg-gray-100 cursor-pointer"
+            data-link="true"
+          >
+            <Link href={`/listings/view/${propertyId}`} passHref>
+              {!failedImages[currentImageIndex] ? (
+                <Image
+                  src={displayImages[currentImageIndex]}
+                  alt={`Property listing ${property.id || 'image'} ${currentImageIndex + 1}`}
+                  fill
+                  priority
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className={`object-cover ${isSold ? 'opacity-90' : ''}`}
+                  style={{ objectPosition: 'center' }}
+                  onClick={handleImageClick}
+                  onError={handleImageError}
+                  draggable={false}
+                  role="img"
+                  aria-roledescription="slide"
+                  aria-label={`Image ${currentImageIndex + 1} of ${displayImages.length}`}
+                />
+              ) : (
+                // Fallback for failed images
+                <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                  <div className="text-gray-400 flex flex-col items-center">
+                    <Home className="h-12 w-12 mb-2" />
+                    <span className="text-sm font-medium">Image not available</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </Link>
           </div>
           
           {displayImages.length > 1 && (
@@ -370,8 +408,12 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
         </div>
       </div>
 
-      <Link href={`/listings/view/${property.id}`} className="block">
-        <div className={`p-3 flex flex-col gap-2 mt-2 group hover:bg-green-50 bg-green-50/30 transition-colors duration-200 rounded-b-lg cursor-pointer`}>
+      {/* Property details section - MOVED OUTSIDE the image container */}
+      <div 
+        className="p-3 flex flex-col gap-2 mt-2 group hover:bg-green-50 bg-green-50/30 transition-colors duration-200 rounded-b-lg cursor-pointer"
+        data-link="true"
+      >
+        <Link href={`/listings/view/${propertyId}`} passHref>
           <div className="flex justify-between items-start gap-2">
             <div className="flex flex-col min-w-0">
               <div className="text-xl font-bold truncate md:text-2xl">
@@ -430,15 +472,8 @@ export function ListingBox({ property, handleLightboxOpen }: { property: Listing
             </div>
             
           </div>
-        </div>
-      </Link>
+        </Link>
+      </div>
     </Card>
   );
 }
-
-// Function to generate sample property descriptions
-const generatePropertyDescription = (property: Listing): string => {
-  // Using optional chaining to safely access the property, even if it doesn't exist on the type
-  // @ts-ignore - Property may not be explicitly defined in the type but exists in the data
-  return property.shortDescription || '';
-};
