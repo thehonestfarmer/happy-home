@@ -42,7 +42,7 @@ export function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
           
           {/* Drawer panel - auto height with max constraint */}
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-xl flex flex-col max-h-[80vh]"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-xl flex flex-col max-h-[85vh]"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -71,7 +71,7 @@ export function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
             </div>
             
             {/* Drawer content - scrollable if needed */}
-            <div className="overflow-y-auto p-4 bg-gray-50/50">
+            <div className="overflow-y-auto p-4 pb-24 bg-gray-50/50">
               <div className="space-y-6">
                 {/* Price and other filters */}
                 <FilterHeader />
@@ -81,7 +81,7 @@ export function BottomDrawer({ isOpen, onClose }: BottomDrawerProps) {
             </div>
             
             {/* Drawer footer with actions - sticky */}
-            <div className="border-t bg-white p-4 shadow-[0_-2px_4px_rgba(0,0,0,0.05)] sticky bottom-0 z-10">
+            <div className="border-t bg-white p-4 shadow-[0_-2px_4px_rgba(0,0,0,0.05)] sticky bottom-0 z-50">
               <div className="flex justify-between">
                 <Button
                   variant="outline"
