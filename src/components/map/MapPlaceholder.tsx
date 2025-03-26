@@ -1291,6 +1291,7 @@ export function MapDisplay({
                             case "AUD":
                               return `A$${Math.round(convertedPrice).toLocaleString()}`;
                             case "JPY":
+                              return `¥${(convertedPrice / 1_000_000).toFixed(1)}M`;
                             default:
                               return `¥${Math.round(priceJPY).toLocaleString()}`;
                           }

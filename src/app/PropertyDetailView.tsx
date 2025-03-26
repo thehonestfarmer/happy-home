@@ -270,7 +270,7 @@ function ActionButtons({ onCopy, onEmail }: {
   );
 }
 
-export function PropertyDetailView({ property }: { property: any }) {
+export function PropertyDetailView({ property, selectedCurrency, hidePopup }: { property: any, selectedCurrency?: Currency, hidePopup?: boolean }) {
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -325,8 +325,8 @@ export function PropertyDetailView({ property }: { property: any }) {
     };
   }, [snapPoints]);
 
-  // Get the selected currency from the property or default to USD
-  const selectedCurrency = property.selectedCurrency || 'USD' as Currency;
+  // Use the passed selectedCurrency or default to USD
+  const currencyToUse = selectedCurrency || 'USD' as Currency;
 
   // Restore drawer state when navigating back from map view
   React.useEffect(() => {
@@ -361,12 +361,12 @@ export function PropertyDetailView({ property }: { property: any }) {
   const buildYear = extractBuildYear(property.buildDate);
   const layoutDisplay = parseLayout(property.layout);
   const buildAreaDisplay = property.buildSqMeters
-    ? formatArea(property.buildSqMeters, selectedCurrency, false).split(' ')[0]
+    ? formatArea(property.buildSqMeters, currencyToUse, false).split(' ')[0]
     : 'N/A';
   const landAreaDisplay = property.landSqMeters
-    ? formatArea(property.landSqMeters, selectedCurrency, false).split(' ')[0]
+    ? formatArea(property.landSqMeters, currencyToUse, false).split(' ')[0]
     : 'N/A';
-  const specsSubtitle = `${layoutDisplay} LDK · ${buildAreaDisplay}${selectedCurrency === 'USD' ? 'ft²' : 'm²'} · ${buildYear}`;
+  const specsSubtitle = `${layoutDisplay} LDK · ${buildAreaDisplay}${currencyToUse === 'USD' ? 'ft²' : 'm²'} · ${buildYear}`;
 
   if (isDesktop) {
     return (
@@ -385,6 +385,7 @@ export function PropertyDetailView({ property }: { property: any }) {
             handleMailto={handleMailto}
             property={property}
             selectedCurrency={selectedCurrency}
+            hidePopup={hidePopup}
           />
         </DialogContent>
       </Dialog>
@@ -397,9 +398,9 @@ export function PropertyDetailView({ property }: { property: any }) {
   // Format price display for the title
   const getPriceDisplay = () => {
     const priceJPY = parseJapanesePrice(property.price ?? "0");
-    const primaryPrice = selectedCurrency === "JPY"
+    const primaryPrice = currencyToUse === "JPY"
       ? `¥${(priceJPY / 1_000_000).toFixed(2)}M`
-      : formatPrice(convertCurrency(priceJPY, "JPY", selectedCurrency), selectedCurrency);
+      : formatPrice(convertCurrency(priceJPY, "JPY", currencyToUse), currencyToUse);
     return primaryPrice;
   };
 
@@ -433,11 +434,12 @@ export function PropertyDetailView({ property }: { property: any }) {
             className="flex-1 overflow-y-auto overflow-x-hidden w-full h-full pb-24"
           >
             <ListingDetailContent
-              property={property}
               handleMailto={handleMailto}
-              selectedCurrency={selectedCurrency}
+              property={property}
+              selectedCurrency={currencyToUse}
               drawerContentRef={drawerContentRef}
               snap={snap}
+              hidePopup={hidePopup}
             />
           </div>
         </DrawerContent>
@@ -450,12 +452,13 @@ export function PropertyDetailView({ property }: { property: any }) {
   );
 }
 
-function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD', drawerContentRef, snap }: {
+function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD', drawerContentRef, snap, hidePopup }: {
   property: any,
   handleMailto: () => void,
   selectedCurrency?: Currency,
   drawerContentRef?: React.RefObject<HTMLDivElement>,
-  snap?: number | string | null
+  snap?: number | string | null,
+  hidePopup?: boolean
 }) {
   // Format price display based on selected currency
   const getPriceDisplay = () => {
@@ -627,7 +630,7 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
                   initialLongitude={property.coordinates?.long}
                   maintainMapPosition={false}
                   useSimpleMarker={true}
-                  hidePopup={true}
+                  hidePopup={hidePopup ?? true}
                 />
                 <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
                   {/* This div creates a subtle hover effect */}

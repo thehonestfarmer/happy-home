@@ -546,7 +546,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
           ))}
         </div>
 
-        <PropertyDetailView property={property} />
+        <PropertyDetailView property={property} selectedCurrency={selectedCurrency} hidePopup={true} />
         <Lightbox
           open={displayState.lightboxListingIdx !== null}
           close={() => setDisplayState({
@@ -837,6 +837,11 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                   View Original Listing →
                 </a>
               </div>
+            </div>
+
+            <div className="border rounded-md p-4 text-center mb-3 bg-white shadow-sm">
+              <h3 className="text-base font-semibold mb-3">Property Information</h3>
+              <PropertyDetailView property={property} hidePopup={true} selectedCurrency={selectedCurrency} />
             </div>
           </div>
         </div>
