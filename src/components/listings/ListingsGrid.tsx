@@ -409,7 +409,6 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
 
   return (
     <>
-      <ListingsToolbar />
       <div className="flex-1">
         {filteredAndSortedListings.length > 0 ? (
           <div className="h-[calc(100vh-50px)]">

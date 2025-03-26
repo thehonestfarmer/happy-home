@@ -627,6 +627,7 @@ function ListingDetailContent({ property, handleMailto, selectedCurrency = 'USD'
                   initialLongitude={property.coordinates?.long}
                   maintainMapPosition={false}
                   useSimpleMarker={true}
+                  hidePopup={true}
                 />
                 <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
                   {/* This div creates a subtle hover effect */}

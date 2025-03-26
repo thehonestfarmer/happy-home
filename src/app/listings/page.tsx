@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ListingsGrid } from "@/components/listings/ListingsGrid";
 import { ListingsMapView } from "@/components/map/ListingsMapView";
 import { MobileMapView } from "@/components/map/MobileMapView";
@@ -16,6 +16,26 @@ export default function ListingsPage() {
   const [currentZoom, setCurrentZoom] = useState(10);
   // Change default to false so map will auto-position on first load
   const [maintainMapPosition, setMaintainMapPosition] = useState(false);
+  // Add state to track device view
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  // Check if we're in mobile view on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkMobile = () => {
+        setIsMobileView(window.innerWidth < 1024); // 1024px is the 'lg' breakpoint in Tailwind
+      };
+      
+      // Check on mount
+      checkMobile();
+      
+      // Add resize listener
+      window.addEventListener('resize', checkMobile);
+      
+      // Clean up
+      return () => window.removeEventListener('resize', checkMobile);
+    }
+  }, []); // Empty dependency array to run only on mount
 
   // Handler for map movement
   const handleMapMove = (evt: any) => {
@@ -24,14 +44,34 @@ export default function ListingsPage() {
     setCurrentZoom(evt.viewState.zoom);
   };
 
-  // Handler for selecting a property
+  // Handler for selecting a property from the grid
   const handleSelectProperty = (id: string | null) => {
     // Set the maintain position flag to true to keep current map position
     setMaintainMapPosition(true);
     setSelectedPropertyId(id);
-    // Don't show property popup by default when selecting from the listings page
-    // This prevents the popup from appearing and makes sure only the drawer is shown
-    setShowPropertyPopup(false);
+    
+    // Only hide property popup in mobile view
+    // In desktop view, we want to show both the drawer and the popup
+    if (isMobileView) {
+      setShowPropertyPopup(false);
+    } else {
+      setShowPropertyPopup(true); // Explicitly show popup in desktop view
+    }
+  };
+
+  // New handler specifically for map pin selection
+  const handlePinSelect = (listing: Listing) => {
+    // When a pin is clicked on the map
+    setSelectedPropertyId(listing.id || null);
+    setMaintainMapPosition(true);
+    
+    // In desktop view, we want to show the popup
+    if (!isMobileView) {
+      setShowPropertyPopup(true);
+    } else {
+      // In mobile view, we don't show popups, only drawer
+      setShowPropertyPopup(false);
+    }
   };
 
   // Handler for toggling property popup
@@ -75,6 +115,8 @@ export default function ListingsPage() {
                   customZoom={currentZoom}
                   onMove={handleMapMove}
                   maintainMapPosition={maintainMapPosition}
+                  onPinSelect={handlePinSelect}
+                  isMobileView={isMobileView}
                 />
               </div>
             </div>

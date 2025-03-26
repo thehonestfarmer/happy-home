@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Draft } from "immer";
 import { parseJapanesePrice, convertCurrency, formatPrice, EXCHANGE_RATES, CURRENCY_SYMBOLS, Listing as ListingType, formatArea, parseLayout } from "@/lib/listing-utils";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cn } from "@/lib/utils";
+import { cn, useScrollAnchor } from "@/lib/utils";
 import { SignInModal } from "@/components/auth/SignInModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
@@ -195,8 +195,8 @@ function ImageGalleryModal({ isOpen, onClose, images, initialIndex = 0, onImageC
   useEffect(() => {
     if (isOpen) {
       setCurrentIndex(initialIndex);
-      // Scroll to the initial image
-      if (containerRef.current) {
+      // Scroll to the initial image only on mobile devices
+      if (containerRef.current && window.innerWidth < 1024) {
         const imageElement = containerRef.current.children[initialIndex] as HTMLElement;
         if (imageElement) {
           imageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -287,6 +287,9 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  
+  // Use our new scroll anchor hook, disabled for mobile
+  const scrollAnchorRef = useScrollAnchor(isMobile);
 
   // Create refs at the top level - they'll be used only in mobile view
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -567,6 +570,9 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   // Desktop view
   return (
     <div className="w-full">
+      {/* Scroll anchor reference div - place at the top */}
+      <div ref={scrollAnchorRef} className="scroll-anchor" />
+      
       {/* Navigation Toolbar */}
       <div className="flex items-center justify-between h-14 px-4 border-b">
         <Button
@@ -699,8 +705,13 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
               <div className="border rounded-md overflow-hidden h-[400px]">
                 {property.coordinates?.lat && property.coordinates?.long ? (
                   <MapDisplay 
+                    currentRoute={`/listings/view/${listingId}`}
                     listings={[property]} 
-                    singlePropertyMode={true} 
+                    singlePropertyMode={true}
+                    initialLatitude={property.coordinates?.lat}
+                    initialLongitude={property.coordinates?.long}
+                    maintainMapPosition={true}
+                    hidePopup={isMobile}
                   />
                 ) : (
                   <div className="h-full bg-muted/30 flex items-center justify-center flex-col gap-2">

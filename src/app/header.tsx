@@ -17,6 +17,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import Image from "next/image";
+import { ListingsToolbar } from "@/components/listings/ListingsToolbar";
+function ConditionalToolbar({ path }: { path: string }) {
+  if (path === '/listings') {
+    return <ListingsToolbar />;
+  }
+  return null;
+}
 
 export default function Header() {
   const [showSignIn, setShowSignIn] = useState(false);
@@ -144,6 +151,7 @@ export default function Header() {
           </div>
         </div>
       </header>
+      <ConditionalToolbar path={pathname} />
 
       {/* V2 Sign In Modal */}
       {FeatureFlags.showV2Features && (
