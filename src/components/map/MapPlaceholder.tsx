@@ -974,7 +974,6 @@ export function MapDisplay({
       </div>
     );
   }
-  console.log(">>>>>> RENDERING")
 
   return (
     <div
@@ -1272,27 +1271,38 @@ export function MapDisplay({
                     `}>
                       <span className="whitespace-nowrap">
                         {(() => {
+                          // Get the raw price in JPY
+                          const priceJPY = parseJapanesePrice(listing.price);
+                          
                           // Get the selected currency from filterState
                           const currency = filterState.priceRange.currency || "USD";
+                          
                           // Convert price to the selected currency
                           const convertedPrice = currency === "JPY"
                             ? priceJPY
                             : convertCurrency(priceJPY, "JPY", currency);
-
+                          
                           // Format price based on currency
                           switch (currency) {
                             case "USD":
-                              return `$${Math.round(convertedPrice / 1000)}k`;
+                              return `$${Math.round(convertedPrice).toLocaleString()}`;
                             case "EUR":
-                              return `€${Math.round(convertedPrice / 1000)}k`;
+                              return `€${Math.round(convertedPrice).toLocaleString()}`;
                             case "AUD":
-                              return `A$${Math.round(convertedPrice / 1000)}k`;
+                              return `A$${Math.round(convertedPrice).toLocaleString()}`;
                             case "JPY":
                             default:
-                              return `¥${Math.round(priceJPY / 1000000)}M`;
+                              return `¥${Math.round(priceJPY).toLocaleString()}`;
                           }
                         })()}
                       </span>
+                      
+                      {/* Show original price in smaller text if it's converted */}
+                      {/* {filterState.priceRange.currency !== "JPY" && (
+                        <span className="text-xs text-gray-400 ml-1">
+                          (¥{Math.round(parseJapanesePrice(listing.price)).toLocaleString()})
+                        </span>
+                      )} */}
 
                       {/* Triangle pointer at bottom of price bubble */}
                       <div className={`
@@ -1437,11 +1447,6 @@ export function MapDisplay({
                     </div>
                   )}
 
-                  {/* Price Information */}
-                  <div className="flex items-center text-xs">
-                    <span className="text-gray-500 mr-2 min-w-[65px]">Price:</span>
-                    <span className="font-medium">{listing.price}</span>
-                  </div>
                 </div>
 
                 {/* Sold Status - keep this */}
