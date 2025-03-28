@@ -9,7 +9,7 @@ import { uploadListings } from '../update-listings/listings-manager';
  * endpoint with the proper authentication
  */
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   console.log('Vercel Cron trigger received at', new Date().toISOString());
 
   try {

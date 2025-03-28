@@ -65,7 +65,7 @@ async function isJapanese404Page(url: string): Promise<boolean> {
         await browser.close();
     }
 }
-export async function POST(request: Request) {
+export async function GET(request: Request) {
     console.log('Vercel Cron trigger received at', new Date().toISOString());
     sendSlackNotification('Starting update-coords cron job', 'Update Coords', true);
 

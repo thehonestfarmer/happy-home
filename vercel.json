@@ -3,7 +3,6 @@
     {
       "path": "/api/cron/trigger-update", 
       "schedule": "30 16 * * *",
-      "httpMethod": "POST",
       "headers": {
         "x-vercel-cron": "@VERCEL_CRON_SECRET"
       }
@@ -11,7 +10,6 @@
     {
       "path": "/api/cron/update-coords", 
       "schedule": "0 17 * * *",
-      "httpMethod": "POST",
       "headers": {
         "x-vercel-cron": "@VERCEL_CRON_SECRET"
       }
