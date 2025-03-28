@@ -11,6 +11,7 @@ import { uploadListings } from '../update-listings/listings-manager';
 
 export async function GET(request: Request) {
   console.log('Vercel Cron trigger received at', new Date().toISOString());
+  sendSlackNotification('Starting trigger-update cron job', 'Trigger Update', true);
 
   try {
     // Optional: Verify this request is from Vercel Cron using the Cron Secret
