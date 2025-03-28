@@ -370,25 +370,26 @@ export function PropertyDetailView({ property, selectedCurrency, hidePopup }: { 
 
   if (isDesktop) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline">View Property Details</Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{propertyTitle}</DialogTitle>
-            <DialogDescription>
-              {specsSubtitle}
-            </DialogDescription>
-          </DialogHeader>
-          <ListingDetailContent
-            handleMailto={handleMailto}
-            property={property}
-            selectedCurrency={selectedCurrency}
-            hidePopup={hidePopup}
-          />
-        </DialogContent>
-      </Dialog>
+      null
+      // <Dialog open={open} onOpenChange={setOpen}>
+      //   <DialogTrigger asChild>
+      //     <Button variant="outline">View Property Details</Button>
+      //   </DialogTrigger>
+      //   <DialogContent className="sm:max-w-[425px]">
+      //     <DialogHeader>
+      //       <DialogTitle>{propertyTitle}</DialogTitle>
+      //       <DialogDescription>
+      //         {specsSubtitle}
+      //       </DialogDescription>
+      //     </DialogHeader>
+      //     <ListingDetailContent
+      //       handleMailto={handleMailto}
+      //       property={property}
+      //       selectedCurrency={selectedCurrency}
+      //       hidePopup={hidePopup}
+      //     />
+      //   </DialogContent>
+      // </Dialog>
     );
   }
 

@@ -64,14 +64,29 @@ function AnchorStyle({ anchor }: { anchor: string }) {
 // Note: Popup positioning is now handled by the determinePopupAnchor function
 
 // Shinkansen stations from Tokyo to Niigata with verified coordinates
+// const shinkansenStations = [
+//   { name: "Tokyo", coordinates: [139.7644909, 35.6812996] },
+//   { name: "Omiya", coordinates: [139.6214374, 35.9060296] },
+//   { name: "Kumagaya", coordinates: [139.3853, 36.1393899] },
+//   { name: "Takasaki", coordinates: [139.0100874, 36.3228267] },
+//   { name: "Echigo-Yuzawa", coordinates: [138.8070586, 36.9359839] },
+//   { name: "Urasa", coordinates: [138.9202298, 37.1674363] },
+//   { name: "Nagaoka", coordinates: [138.8514718, 37.448014] },
+//   { name: "Niigata", coordinates: [139.0617, 37.9122] }
+// ];
+
 const shinkansenStations = [
   { name: "Tokyo", coordinates: [139.7644909, 35.6812996] },
+  { name: "Ueno", coordinates: [139.7767, 35.7141] },
   { name: "Omiya", coordinates: [139.6214374, 35.9060296] },
   { name: "Kumagaya", coordinates: [139.3853, 36.1393899] },
+  { name: "Honjo-Waseda", coordinates: [139.1822, 36.2325] },
   { name: "Takasaki", coordinates: [139.0100874, 36.3228267] },
+  { name: "Jomo-Kogen", coordinates: [138.9681, 36.6414] },
   { name: "Echigo-Yuzawa", coordinates: [138.8070586, 36.9359839] },
   { name: "Urasa", coordinates: [138.9202298, 37.1674363] },
   { name: "Nagaoka", coordinates: [138.8514718, 37.448014] },
+  { name: "Tsubame-Sanjo", coordinates: [138.8468, 37.6486] },
   { name: "Niigata", coordinates: [139.0617, 37.9122] }
 ];
 

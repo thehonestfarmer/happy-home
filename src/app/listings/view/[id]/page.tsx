@@ -4,7 +4,7 @@ import { useCallback, useRef, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Copy, Heart, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Copy, Heart, X, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import NextJsImage from "@/components/ui/nextjsimage";
 import { PropertyDetailView } from "@/app/PropertyDetailView";
@@ -22,6 +22,7 @@ import { SignInModal } from "@/components/auth/SignInModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { MapDisplay } from "@/components/map/MapPlaceholder";
+import type { ViewStateChangeEvent } from "react-map-gl/mapbox";
 
 /**
  * Format date string to match buildDate format
@@ -190,7 +191,14 @@ interface ImageGalleryModalProps {
 function ImageGalleryModal({ isOpen, onClose, images, initialIndex = 0, onImageClick }: ImageGalleryModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+  const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Set up image refs array when images change
+  useEffect(() => {
+    // Initialize the refs array with the correct length
+    imageRefs.current = images.map(() => null);
+  }, [images]);
+
   // Reset current index when modal opens with new initial index
   useEffect(() => {
     if (isOpen) {
@@ -205,11 +213,16 @@ function ImageGalleryModal({ isOpen, onClose, images, initialIndex = 0, onImageC
     }
   }, [isOpen, initialIndex]);
 
+  // Function to set ref for each image element
+  const setImageRef = (el: HTMLDivElement | null, index: number) => {
+    imageRefs.current[index] = el;
+  };
+
   // Handle keyboard navigation - only keep Escape functionality
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
-      
+
       if (e.key === 'Escape') {
         onClose();
       }
@@ -218,6 +231,38 @@ function ImageGalleryModal({ isOpen, onClose, images, initialIndex = 0, onImageC
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
+
+  // Calculate which image is most visible based on scroll position
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+
+    // Find which image is most visible in the viewport
+    let maxVisibleArea = 0;
+    let mostVisibleIndex = currentIndex;
+
+    imageRefs.current.forEach((ref, index) => {
+      if (!ref) return;
+
+      const rect = ref.getBoundingClientRect();
+
+      // Calculate how much of the image is visible in the viewport
+      const visibleTop = Math.max(rect.top, containerRect.top);
+      const visibleBottom = Math.min(rect.bottom, containerRect.bottom);
+      const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+      const visibleArea = visibleHeight * rect.width;
+
+      if (visibleArea > maxVisibleArea) {
+        maxVisibleArea = visibleArea;
+        mostVisibleIndex = index;
+      }
+    });
+
+    if (mostVisibleIndex !== currentIndex) {
+      setCurrentIndex(mostVisibleIndex);
+    }
+  }, [currentIndex]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -231,7 +276,7 @@ function ImageGalleryModal({ isOpen, onClose, images, initialIndex = 0, onImageC
             <div className="text-white font-medium">
               {currentIndex + 1} / {images.length}
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 bg-black/50 text-white rounded-full hover:bg-black/70"
               aria-label="Close gallery"
@@ -239,17 +284,23 @@ function ImageGalleryModal({ isOpen, onClose, images, initialIndex = 0, onImageC
               <X className="h-6 w-6" />
             </button>
           </div>
-          
+
           {/* Scrollable image container */}
-          <div 
+          <div
             ref={containerRef}
             className="flex-1 overflow-y-auto p-4 space-y-4"
+            onScroll={handleScroll}
           >
             {images.map((image, index) => (
-              <div 
+              <div
                 key={index}
+                ref={(el) => setImageRef(el, index)}
+                data-index={index}
                 className="relative w-full aspect-[4/3]"
-                onClick={() => setCurrentIndex(index)}
+                onClick={() => {
+                  setCurrentIndex(index);
+                  if (onImageClick) onImageClick(index);
+                }}
               >
                 <Image
                   src={image}
@@ -287,7 +338,9 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  
+  // Add state for map zoom
+  const [mapZoom, setMapZoom] = useState<number | undefined>(undefined);
+
   // Use our new scroll anchor hook, disabled for mobile
   const scrollAnchorRef = useScrollAnchor(isMobile);
 
@@ -339,6 +392,28 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
       }
     }
   }, []);
+
+  // Handler for map movement events
+  const handleMapMove = useCallback((evt: ViewStateChangeEvent) => {
+    // Update our local zoom state when the map is moved
+    setMapZoom(evt.viewState.zoom);
+  }, []);
+
+  // Function to handle increasing zoom
+  const handleZoomIn = () => {
+    setMapZoom(prev => {
+      const currentZoom = prev ?? 10;
+      return Math.min(currentZoom + 1, 19); // Max zoom is 19
+    });
+  };
+
+  // Function to handle decreasing zoom
+  const handleZoomOut = () => {
+    setMapZoom(prev => {
+      const currentZoom = prev ?? 10;
+      return Math.max(currentZoom - 1, 5); // Min zoom is 5
+    });
+  };
 
   const handleLightboxOpen = useCallback(
     (sIdx: number) => {
@@ -523,7 +598,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             />
           </Button>
         </div>
-        
+
         {/* Content with appropriate padding */}
         <div className="space-y-2">
           {property.listingImages?.map((image: string, index: number) => (
@@ -572,7 +647,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
     <div className="w-full">
       {/* Scroll anchor reference div - place at the top */}
       <div ref={scrollAnchorRef} className="scroll-anchor" />
-      
+
       {/* Navigation Toolbar */}
       <div className="flex items-center justify-between h-14 px-4 border-b">
         <Button
@@ -645,7 +720,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                 <p className="text-muted-foreground">{property.address || "Address unavailable"}</p>
               </div>
             </div>
-            
+
             {/* Short Description - Added this section */}
             {/* {property.shortDescription && (
               <div className="text-muted-foreground p-6 bg-muted/50 border rounded-md mb-4 shadow-md">
@@ -654,7 +729,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             )} */}
 
             {/* Key Features */}
-              <h2 className="text-lg font-semibold mb-2">Key features</h2>
+            <h2 className="text-lg font-semibold mb-2">Key features</h2>
             <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="text-center">
                 <div className="font-semibold">{parseLayout(property.layout)}</div>
@@ -702,17 +777,43 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             {/* Property Location Map */}
             <div>
               <h2 className="text-lg font-semibold mb-2">Property Location</h2>
-              <div className="border rounded-md overflow-hidden h-[400px]">
+              <div className="border rounded-md overflow-hidden h-[400px] relative">
                 {property.coordinates?.lat && property.coordinates?.long ? (
-                  <MapDisplay 
-                    currentRoute={`/listings/view/${listingId}`}
-                    listings={[property]} 
-                    singlePropertyMode={true}
-                    initialLatitude={property.coordinates?.lat}
-                    initialLongitude={property.coordinates?.long}
-                    maintainMapPosition={true}
-                    hidePopup={isMobile}
-                  />
+                  <>
+                    <MapDisplay
+                      currentRoute={`/listings/view/${listingId}`}
+                      listings={[property]}
+                      singlePropertyMode={true}
+                      initialLatitude={property.coordinates?.lat}
+                      initialLongitude={property.coordinates?.long}
+                      maintainMapPosition={true}
+                      hidePopup={isMobile}
+                      customZoom={mapZoom}
+                      onMove={handleMapMove}
+                    />
+
+                    {/* Zoom controls overlay */}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 w-8 p-0 rounded-full shadow-md bg-white hover:bg-gray-100 flex items-center justify-center"
+                        onClick={handleZoomIn}
+                        aria-label="Zoom in"
+                      >
+                        <span className="text-md font-bold text-gray-700">+</span>
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-8 w-8 p-0 rounded-full shadow-md bg-white hover:bg-gray-100 flex items-center justify-center"
+                        onClick={handleZoomOut}
+                        aria-label="Zoom out"
+                      >
+                        <span className="text-md font-bold text-gray-700">−</span>
+                      </Button>
+                    </div>
+                  </>
                 ) : (
                   <div className="h-full bg-muted/30 flex items-center justify-center flex-col gap-2">
                     <p className="text-muted-foreground">Location coordinates not available</p>
@@ -722,7 +823,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
             </div>
 
             {/* Utilities and Schools Tables */}
-              <h2 className="text-lg font-semibold mb-2">Details</h2>
+            <h2 className="text-lg font-semibold mb-2">Details</h2>
             <div className="mt-6">
               <div className="border rounded-md overflow-hidden">
                 <table className="w-full text-sm">
@@ -839,10 +940,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
               </div>
             </div>
 
-            <div className="border rounded-md p-4 text-center mb-3 bg-white shadow-sm">
-              <h3 className="text-base font-semibold mb-3">Property Information</h3>
-              <PropertyDetailView property={property} hidePopup={true} selectedCurrency={selectedCurrency} />
-            </div>
+            <PropertyDetailView property={property} hidePopup={true} selectedCurrency={selectedCurrency} />
           </div>
         </div>
       </div>
@@ -863,7 +961,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
 
       {/* Desktop View: Use our new custom modal */}
       {!isMobile && (
-        <ImageGalleryModal 
+        <ImageGalleryModal
           isOpen={galleryModalOpen}
           onClose={() => setGalleryModalOpen(false)}
           images={property.listingImages || []}
