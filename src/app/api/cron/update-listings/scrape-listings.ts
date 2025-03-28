@@ -3,6 +3,7 @@ import translate from "translate";
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from 'uuid';
+import { readListings } from './listings-manager';
 
 // Helper function to generate a unique ID
 function generateUniqueId(): string {
@@ -207,20 +208,20 @@ async function mergeListings() {
       if (value && !value.address && typeof key === 'string') {
         value.address = key;
       }
-      
+
       // Check if we already have this listing (by original address)
       let existingKey = null;
       if (value.original && value.original.address) {
         // Look through existing data to find if we have this original address
         for (const [existingDataKey, existingValue] of Object.entries(mergedData)) {
-          if (existingValue.original && 
-              existingValue.original.address === value.original.address) {
+          if (existingValue.original &&
+            existingValue.original.address === value.original.address) {
             existingKey = existingDataKey;
             break;
           }
         }
       }
-      
+
       if (existingKey) {
         // We found the listing by original address - update it, but keep its key
         mergedData[existingKey] = {
@@ -239,7 +240,7 @@ async function mergeListings() {
         }
 
         updatedCount++;
-        
+
         // If the translated address is different from the existing key,
         // we should consider updating the key eventually
         if (existingKey !== key && key !== value.original.address) {
@@ -785,7 +786,7 @@ export async function scrapeListingsPage(page: puppeteer.Page, pageNum: number):
 }
 
 // Modified function to scrape all pages and batch translations at the end
-export async function scrapeAllListings(): Promise<ScrapedResult | null> {
+export async function scrapeAllListings(options: { pages: number }): Promise<ScrapedResult | null> {
   let browser: puppeteer.Browser | undefined;
   try {
     console.log("... launching puppeteer");
@@ -905,7 +906,9 @@ export async function scrapeAllListings(): Promise<ScrapedResult | null> {
 
     // Iterate through all pages
     const maxPages = parseInt(process.env.MAX_PAGES || String(effectiveTotalPages), 10);
-    for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+    const pageOptions = options.pages === 0 ? maxPages : options.pages;
+    const pagesToScrape = Math.min(maxPages, pageOptions);
+    for (let pageNum = 1; pageNum <= pagesToScrape; pageNum++) {
       console.log(`Processing page ${pageNum} of ${maxPages}`);
 
       try {
@@ -1294,13 +1297,13 @@ interface EnhancedListing {
 }
 
 // Process listing details by visiting each listing's detail page URL
-async function initProcessListingDetails(newOutput: Record<string, EnhancedListing>) {
+export async function initProcessListingDetails(newOutput: Record<string, EnhancedListing>) {
   console.log("Starting process to extract detailed listing information...");
   try {
     // Check if we have data
     if (!newOutput || Object.keys(newOutput).length === 0) {
       console.error("No data found in new_output.json, please run the scraper first.");
-      return;
+      return {};
     }
 
     // Launch browser
@@ -1658,23 +1661,23 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
               'sewage',
               'drainage'
             ];
-            
+
             // Find elements that might contain utility information
             const utilityElements = Array.from(document.querySelectorAll('*')).filter(el => {
               const text = el.textContent || '';
               return utilityKeywords.some(keyword => text.includes(keyword)) && text.length < 100;
             });
-            
+
             // Helper function to clean and normalize utility text
             const cleanUtilityText = (text: string): string => {
               return text.replace(/：/g, ':').trim();
             };
-            
+
             // Process the utility elements
             if (utilityElements.length > 0) {
               utilityElements.forEach(el => {
                 const text = el.textContent || '';
-                
+
                 // Extract water information
                 if (text.includes('水道') || text.includes('上水') || text.includes('water supply')) {
                   if (!result.water) {
@@ -1691,7 +1694,7 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                     }
                   }
                 }
-                
+
                 // Extract gas information
                 if (text.includes('ガス') || text.includes('gas')) {
                   if (!result.gas) {
@@ -1707,7 +1710,7 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                     }
                   }
                 }
-                
+
                 // Extract sewage information
                 if (text.includes('下水') || text.includes('汚水') || text.includes('sewage')) {
                   if (!result.sewage) {
@@ -1721,7 +1724,7 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                     }
                   }
                 }
-                
+
                 // Extract grey water/drainage information
                 if (text.includes('雑排水') || text.includes('排水') || text.includes('drainage')) {
                   if (!result.greyWater) {
@@ -1733,7 +1736,7 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                 }
               });
             }
-            
+
             // If we haven't found all utilities, try looking in tables
             const tables = document.querySelectorAll('.spec_table, table');
             tables.forEach(table => {
@@ -1761,13 +1764,13 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                 }
               });
             });
-            
+
             // Clean up results to avoid urban planning data in utility fields
             const urbanPlanningTerms = [
               '都市計画', 'urban planning', 'coverage rate', 'volume rate',
               'school district', '学区', '小学校', '中学校'
             ];
-            
+
             for (const key of ['water', 'gas', 'sewage', 'greyWater'] as const) {
               if (result[key]) {
                 // If it contains urban planning info, it's likely not utility data
@@ -1776,7 +1779,7 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                 }
               }
             }
-            
+
           } catch (e) {
             console.error('Error extracting facilities:', e);
           }
@@ -1797,27 +1800,27 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
           try {
             // Look for school information in page text
             const pageText = document.body.textContent || '';
-            
+
             // More specific regex patterns for school names
             // Look for Japanese school names with explicit school type markers
             const primarySchoolPattern = /([^\s]+(?:市立|町立|区立|私立)?[^\s]*?小学校)/;
             const juniorHighSchoolPattern = /([^\s]+(?:市立|町立|区立|私立)?[^\s]*?中学校)/;
-            
+
             // Check for school district sections
             const schoolDistrictElements = Array.from(document.querySelectorAll('*')).filter(el => {
               const text = el.textContent || '';
-              return text.includes('学区') || 
-                     text.includes('school district') || 
-                     text.includes('通学区') ||
-                     (text.includes('小学校') && text.length < 30) ||
-                     (text.includes('中学校') && text.length < 30);
+              return text.includes('学区') ||
+                text.includes('school district') ||
+                text.includes('通学区') ||
+                (text.includes('小学校') && text.length < 30) ||
+                (text.includes('中学校') && text.length < 30);
             });
-            
+
             if (schoolDistrictElements.length > 0) {
               // Check parent elements for better context
               for (const el of schoolDistrictElements) {
                 const containerText = el.textContent || '';
-                
+
                 // Primary school
                 if (containerText.includes('小学校') && !result.primary) {
                   const primaryMatch = containerText.match(primarySchoolPattern);
@@ -1825,7 +1828,7 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                     result.primary = primaryMatch[0].trim();
                   }
                 }
-                
+
                 // Junior high school
                 if (containerText.includes('中学校') && !result.juniorHigh) {
                   const juniorMatch = containerText.match(juniorHighSchoolPattern);
@@ -1835,7 +1838,7 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                 }
               }
             }
-            
+
             // If still no results, try the old method but with better patterns
             if (!result.primary) {
               const primaryMatch = pageText.match(primarySchoolPattern);
@@ -1844,7 +1847,7 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                 result.primary = primaryMatch[0].trim();
               }
             }
-            
+
             if (!result.juniorHigh) {
               const juniorHighMatch = pageText.match(juniorHighSchoolPattern);
               if (juniorHighMatch) {
@@ -1874,7 +1877,7 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                         result.primary = schoolMatch ? schoolMatch[0].trim() : data;
                       }
                     }
-                    
+
                     if (header.includes('中学校') || (header.includes('学区') && header.includes('中')) || header.includes('junior high')) {
                       if (!result.juniorHigh && data) {
                         // Extract just the school name if possible
@@ -1886,28 +1889,28 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
                 });
               });
             }
-            
+
             // Clean up the extracted school names
             if (result.primary) {
               // If it contains urban planning info, it's likely not a school name
-              if (result.primary.includes('都市計画') || 
-                  result.primary.includes('urban planning') ||
-                  result.primary.includes('coverage') ||
-                  result.primary.includes('volume rate')) {
+              if (result.primary.includes('都市計画') ||
+                result.primary.includes('urban planning') ||
+                result.primary.includes('coverage') ||
+                result.primary.includes('volume rate')) {
                 result.primary = null;
               }
             }
-            
+
             if (result.juniorHigh) {
               // If it contains urban planning info, it's likely not a school name
-              if (result.juniorHigh.includes('都市計画') || 
-                  result.juniorHigh.includes('urban planning') ||
-                  result.juniorHigh.includes('coverage') ||
-                  result.juniorHigh.includes('volume rate')) {
+              if (result.juniorHigh.includes('都市計画') ||
+                result.juniorHigh.includes('urban planning') ||
+                result.juniorHigh.includes('coverage') ||
+                result.juniorHigh.includes('volume rate')) {
                 result.juniorHigh = null;
               }
             }
-            
+
           } catch (e) {
             console.error('Error extracting school districts:', e);
           }
@@ -1945,36 +1948,22 @@ async function initProcessListingDetails(newOutput: Record<string, EnhancedListi
     // Close the browser
     await browser.close();
 
-    // Write enhanced data to file
-    console.log("Writing enhanced data to enriched_listings.json...");
-    await fs.promises.writeFile(
-      "enriched_listings.json",
-      JSON.stringify(enhancedData, null, 2),
-      "utf-8"
-    );
-
     console.log(`\nDetail page extraction complete!`);
     console.log(`Successfully processed: ${successCount}/${totalListings} listings`);
     if (errorCount > 0) {
       console.log(`Errors encountered: ${errorCount}/${totalListings} listings`);
     }
 
-    console.log("\nAutomatically proceeding to translation...");
-    try {
-      await translateEnrichedData(enhancedData);
-      console.log("Translation complete!");
-    } catch (error) {
-      console.error("Error in translateEnrichedData:", error);
-    }
     return enhancedData;
 
   } catch (error) {
     console.error("Error in initProcessListingDetails:", error);
+    return {};
   }
 }
 
 // Function to translate the enriched data values
-async function translateEnrichedData(listings: Record<string, EnhancedListing>, listingKeysToTranslate?: string[]) {
+export async function translateEnrichedData(listings: Record<string, EnhancedListing>, listingKeysToTranslate?: string[]) {
   try {
     console.log("Starting to translate enriched listing data...");
 
@@ -1999,12 +1988,6 @@ async function translateEnrichedData(listings: Record<string, EnhancedListing>, 
 
     let processedCount = 0;
     let translatedFieldsCount = 0;
-
-    // Check if we should skip translations
-    if (process.env.SKIP_TRANSLATIONS === 'true') {
-      console.log("SKIP_TRANSLATIONS is set to true, skipping translation process");
-      return;
-    }
 
     // Prepare arrays for batch translation
     const fieldsToTranslate: {
@@ -2175,7 +2158,7 @@ async function translateEnrichedData(listings: Record<string, EnhancedListing>, 
                 buildDate: listing.buildDate
               };
             }
-            
+
             switch (field.fieldKey) {
               case 'address':
                 listing.address = translatedText;
@@ -2292,11 +2275,11 @@ async function translateEnrichedData(listings: Record<string, EnhancedListing>, 
 
     // Save the translated data
     console.log("Saving translated data to translated_listings.json...");
-    
+
     // Create a new object with translated address keys
     const translatedListings: Record<string, EnhancedListing> = {};
     const addressTranslations: Record<string, string> = {};
-    
+
     // First, collect all address translations
     for (const [originalKey, listing] of Object.entries(listings)) {
       if (listing.address && listing.original && listing.original.address) {
@@ -2304,36 +2287,58 @@ async function translateEnrichedData(listings: Record<string, EnhancedListing>, 
         addressTranslations[listing.original.address] = listing.address;
       }
     }
-    
+
     // Then create a new object with translated address keys
     for (const [originalKey, listing] of Object.entries(listings)) {
       // Use translated address as key if available, otherwise use original key
       const translatedKey = addressTranslations[originalKey] || originalKey;
-      
+
       // Create a new listing object with the address field set to match the translatedKey
       const updatedListing = {
         ...listing,
         // Ensure address field matches the key
         address: translatedKey
       };
-      
+
       translatedListings[translatedKey] = updatedListing;
     }
-    
-    // Write to file with translated keys
-    await fs.promises.writeFile(
-      "translated_listings.json",
-      JSON.stringify(translatedListings, null, 2),
-      "utf-8"
-    );
 
     console.log("Translation process complete!");
     console.log(`Total fields translated: ${translatedFieldsCount}`);
+    return translatedListings;
 
   } catch (error) {
     console.error("Error in translateEnrichedData:", error);
   }
 }
+
+
+
+
+export async function scrapeAndTransformNewListings(options: { pages: number }): Promise<Record<string, any>> {
+  try {
+    const scrapedData = await scrapeAllListings(options);
+
+    if (!scrapedData) {
+      console.error("No data was scraped");
+      return {};
+    }
+
+    const newListings = await compareAndGenerateNewListings(scrapedData);
+    if (!newListings) {
+      console.error("No new listings were generated");
+      return {}
+    }
+
+    return newListings;
+    
+  } catch (error: any) {
+    console.error("Error in scrapeAndTransformNewListings:", error);
+    return error
+  }
+}
+
+
 
 async function init() {
   try {
@@ -3642,64 +3647,64 @@ async function testBatchDetailPages(maxEntries = 0, concurrency = 3, maxRetries 
 // ... existing code ...
 
 // Parse command line arguments
-if (process.argv.includes('--run-all')) {
-  console.log("Running full optimized workflow...");
-  runFullWorkflow();
-} else if (process.argv.includes('--init')) {
-  console.log("Initializing scraping process...");
-  init();
-} else if (process.argv.includes('--test-detail-page')) {
-  console.log("Testing detail page scraping...");
-  const urlIndex = process.argv.indexOf('--test-detail-page');
-  const url = process.argv[urlIndex + 1];
-  if (url) {
-    testSingleDetailPage(url);
-  } else {
-    console.error("Error: No URL provided for --test-detail-page");
-    console.log("Usage: node scrape-listings.ts --test-detail-page [URL]");
-  }
-} else if (process.argv.includes('--test-batch') || process.argv.includes('--batch-detail-pages')) {
-  console.log("Testing batch detail pages...");
-  const batchArg = process.argv.includes('--test-batch') ? '--test-batch' : '--batch-detail-pages';
-  const batchIndex = process.argv.indexOf(batchArg);
+// if (process.argv.includes('--run-all')) {
+//   console.log("Running full optimized workflow...");
+//   runFullWorkflow();
+// } else if (process.argv.includes('--init')) {
+//   console.log("Initializing scraping process...");
+//   init();
+// } else if (process.argv.includes('--test-detail-page')) {
+//   console.log("Testing detail page scraping...");
+//   const urlIndex = process.argv.indexOf('--test-detail-page');
+//   const url = process.argv[urlIndex + 1];
+//   if (url) {
+//     testSingleDetailPage(url);
+//   } else {
+//     console.error("Error: No URL provided for --test-detail-page");
+//     console.log("Usage: node scrape-listings.ts --test-detail-page [URL]");
+//   }
+// } else if (process.argv.includes('--test-batch') || process.argv.includes('--batch-detail-pages')) {
+//   console.log("Testing batch detail pages...");
+//   const batchArg = process.argv.includes('--test-batch') ? '--test-batch' : '--batch-detail-pages';
+//   const batchIndex = process.argv.indexOf(batchArg);
 
-  // Default values
-  let maxEntries = 5;
-  let concurrency = 3;
-  let maxRetries = 3;
+//   // Default values
+//   let maxEntries = 5;
+//   let concurrency = 3;
+//   let maxRetries = 3;
 
-  // Extract batch size and input path if provided
-  const remainingArgs = process.argv.slice(batchIndex + 1);
+//   // Extract batch size and input path if provided
+//   const remainingArgs = process.argv.slice(batchIndex + 1);
 
-  // Check for maxEntries (first numerical argument)
-  if (remainingArgs.length > 0 && !isNaN(Number(remainingArgs[0]))) {
-    maxEntries = Number(remainingArgs[0]);
-  }
+//   // Check for maxEntries (first numerical argument)
+//   if (remainingArgs.length > 0 && !isNaN(Number(remainingArgs[0]))) {
+//     maxEntries = Number(remainingArgs[0]);
+//   }
 
-  // Check for concurrency (second numerical argument)
-  if (remainingArgs.length > 1 && !isNaN(Number(remainingArgs[1]))) {
-    concurrency = Number(remainingArgs[1]);
-  }
+//   // Check for concurrency (second numerical argument)
+//   if (remainingArgs.length > 1 && !isNaN(Number(remainingArgs[1]))) {
+//     concurrency = Number(remainingArgs[1]);
+//   }
 
-  // Check for maxRetries (third numerical argument)
-  if (remainingArgs.length > 2 && !isNaN(Number(remainingArgs[2]))) {
-    maxRetries = Number(remainingArgs[2]);
-  }
+//   // Check for maxRetries (third numerical argument)
+//   if (remainingArgs.length > 2 && !isNaN(Number(remainingArgs[2]))) {
+//     maxRetries = Number(remainingArgs[2]);
+//   }
 
-  // Start the batch processing
-  testBatchDetailPages(maxEntries, concurrency, maxRetries);
-} else {
-  console.log("No specific command provided. Usage:");
-  console.log("  --run-all               Run the optimized workflow (scrape all, but only process new listings)");
-  console.log("  --init                  Initialize scraping process");
-  console.log("  --test-detail-page URL  Test scraping a specific detail page");
-  console.log("  --test-batch            Test batch detail pages scraping");
-  console.log("  --batch-detail-pages    Process detail pages in batch mode");
-  console.log("    Options:");
-  console.log("    [maxEntries]          Maximum number of entries to process (default: 5)");
-  console.log("    [concurrency]         Number of concurrent requests (default: 3)");
-  console.log("    [maxRetries]          Maximum retry attempts per request (default: 3)");
-}
+//   // Start the batch processing
+//   testBatchDetailPages(maxEntries, concurrency, maxRetries);
+// } else {
+//   console.log("No specific command provided. Usage:");
+//   console.log("  --run-all               Run the optimized workflow (scrape all, but only process new listings)");
+//   console.log("  --init                  Initialize scraping process");
+//   console.log("  --test-detail-page URL  Test scraping a specific detail page");
+//   console.log("  --test-batch            Test batch detail pages scraping");
+//   console.log("  --batch-detail-pages    Process detail pages in batch mode");
+//   console.log("    Options:");
+//   console.log("    [maxEntries]          Maximum number of entries to process (default: 5)");
+//   console.log("    [concurrency]         Number of concurrent requests (default: 3)");
+//   console.log("    [maxRetries]          Maximum retry attempts per request (default: 3)");
+// }
 
 // ... existing code ...
 
@@ -3798,37 +3803,18 @@ async function extractListingImagesFromPage(page: any) {
   }
 }
 
-// Add this new function to run the optimized workflow
-async function runFullWorkflow() {
-  console.log('=== STARTING OPTIMIZED LISTING SCRAPE WORKFLOW ===');
-  console.log('This will scrape all listings but only process NEW details');
-
-  try {
-    // Step 1: Scrape all listings from all pages
-    console.log('\n=== STEP 1: SCRAPING ALL LISTINGS FROM ALL PAGES ===');
-    const scrapedData = await scrapeAllListings();
-
-    if (!scrapedData) {
-      console.error("No data was scraped. Exiting workflow.");
-      return;
-    }
-
-    console.log(`Total listings scraped: ${scrapedData.addresses.length}`);
-
+export async function compareAndGenerateNewListings(scrapedData: any) {
     // Step 2: Load existing data and find new listings
     console.log('\n=== STEP 2: IDENTIFYING NEW LISTINGS ===');
 
     // Load existing data from batch_test_results.json
     let existingData: Record<string, any> = {};
     try {
-      const existingDataRaw = await fs.promises.readFile(
-        "public/batch_test_results.json",
-        "utf-8"
-      );
-      existingData = JSON.parse(existingDataRaw);
+      existingData = await readListings(true);
       console.log(`Loaded existing data with ${Object.keys(existingData).length} listings`);
     } catch (error) {
       console.warn("Could not load batch_test_results.json, assuming no existing data", error);
+      return error
     }
 
     // Create a Set of original Japanese addresses for efficient lookup
@@ -3889,7 +3875,7 @@ async function runFullWorkflow() {
 
     if (newAddresses.length === 0) {
       console.log("No new listings to process. Exiting workflow.");
-      return;
+      return {};
     }
 
     // Log the new addresses for reference
@@ -3900,37 +3886,50 @@ async function runFullWorkflow() {
 
     // Step 3: Write only new listings to new_output.json for detail processing
     console.log('\n=== STEP 3: PREPARING NEW LISTINGS FOR DETAIL PROCESSING ===');
-    await fs.promises.writeFile(
-      "new_output.json",
-      JSON.stringify(transformedData, null, 2),
-      "utf-8",
-    );
+    console.log('transformedData', transformedData);
+    return transformedData
+}
 
-    console.log(`Wrote ${Object.keys(transformedData).length} new listings to new_output.json`);
+// Add this new function to run the optimized workflow
+async function runFullWorkflow() {
+  console.log('=== STARTING OPTIMIZED LISTING SCRAPE WORKFLOW ===');
+  console.log('This will scrape all listings but only process NEW details');
+
+  try {
+    // Step 1: Scrape all listings from all pages
+    console.log('\n=== STEP 1: SCRAPING ALL LISTINGS FROM ALL PAGES ===');
+    const scrapedData = await scrapeAllListings();
+
+    if (!scrapedData) {
+      console.error("No data was scraped. Exiting workflow.");
+      return;
+    }
+
+    console.log(`Total listings scraped: ${scrapedData.addresses.length}`);
 
     // Step 4: Process listing details (which includes translation)
     // This step will enrich the listings and translate them during the enrichment
     console.log('\n=== STEP 4: PROCESSING DETAILS FOR NEW LISTINGS (INCLUDES TRANSLATION) ===');
-    
+
     try {
       // Process listing details with the transformed data directly
       const enrichedData = await initProcessListingDetails(transformedData);
-      
+
       if (enrichedData) {
         // Step 4b: After enrichment and translation, copy the translated_listings.json back to new_output.json
         console.log('\n=== STEP 4b: COPYING TRANSLATED DATA TO NEW_OUTPUT.JSON ===');
-        
+
         try {
           // Read the translated data (which now has translated address keys)
           const translatedDataRaw = await fs.promises.readFile("translated_listings.json", "utf-8");
           const translatedData = JSON.parse(translatedDataRaw);
-          
+
           console.log(`Read ${Object.keys(translatedData).length} translated listings from translated_listings.json`);
-          
+
           // Step 4c: Generate creative content for the listings
           console.log('\n=== STEP 4c: GENERATING CREATIVE CONTENT FOR LISTINGS ===');
           let enhancedData = translatedData;
-          
+
           try {
             // Generate creative content for the listings
             enhancedData = await generateListingCreatives(translatedData);
@@ -3939,14 +3938,14 @@ async function runFullWorkflow() {
             console.error("Error generating creative content:", error);
             console.log("Continuing with original translated data");
           }
-          
+
           // Write the enhanced data back to new_output.json to be used in the merge
           await fs.promises.writeFile(
             "new_output.json",
             JSON.stringify(enhancedData, null, 2),
             "utf-8",
           );
-          
+
           console.log(`Successfully updated new_output.json with enriched and creative content`);
         } catch (error) {
           console.error("Error processing translated data or generating creative content:", error);
@@ -3985,11 +3984,11 @@ translate.engine = "google"; // Set translation engine to Google Translate
  * @param listings Record of enriched and translated listings
  * @returns The enhanced listings with creative content added
  */
-async function generateListingCreatives(
+export async function generateListingCreatives(
   listings: Record<string, any>
 ): Promise<Record<string, any>> {
   console.log("\n=== GENERATING CREATIVE CONTENT FOR LISTINGS ===");
-  
+
   if (Object.keys(listings).length === 0) {
     console.log("No listings to process for creative content generation");
     return listings;
@@ -3997,13 +3996,13 @@ async function generateListingCreatives(
 
   try {
     console.log(`Generating creative content for ${Object.keys(listings).length} listings...`);
-    
+
     // Create a pure copy of the listings to avoid mutation issues
     const enhancedListings = JSON.parse(JSON.stringify(listings));
-    
+
     // Step 1: Generate property titles
     console.log("Generating property titles...");
-    
+
     try {
       // Format listings for the title generator
       const propertyListingsForTitles = Object.entries(listings).map(([key, listing]: [string, any]) => {
@@ -4022,19 +4021,20 @@ async function generateListingCreatives(
           listingImages: listing.listingImages,
         };
       });
-      
+
       // Import needed for dynamically importing the Anthropic API functions
       // const { generateTitles } = await import("../../../../server/anthropic/api");
-      const { generateTitles } = { generateTitles: (a: any) => {
-        return {
-          titles: ["Title 1", "Title 2", "Title 3"]
+      const { generateTitles } = {
+        generateTitles: (a: any) => {
+          return {
+            titles: ["Title 1", "Title 2", "Title 3"]
+          }
         }
       }
-    }
-      
+
       // Generate titles
       const titleResponse = await generateTitles(propertyListingsForTitles);
-      
+
       // Match titles with their respective listings
       if (titleResponse?.titles && titleResponse.titles.length === propertyListingsForTitles.length) {
         Object.keys(enhancedListings).forEach((key, index) => {
@@ -4043,7 +4043,7 @@ async function generateListingCreatives(
           }
           enhancedListings[key].creatives.propertyTitle = titleResponse.titles[index];
         });
-        
+
         console.log(`Successfully generated ${titleResponse.titles.length} property titles`);
       } else {
         console.error("Title count mismatch with property count");
@@ -4051,70 +4051,87 @@ async function generateListingCreatives(
     } catch (error) {
       console.error("Error generating titles:", error);
     }
-    
+
     // Step 2: Generate captions and hashtags
     try {
       console.log("Generating property captions and hashtags...");
-      
+
       // Import needed for dynamically importing the Anthropic API functions
       // const { generateBatchCaptions } = await import("../../../../server/anthropic/api");
-      const { generateBatchCaptions } = { generateBatchCaptions: (a: any) => {
-        return {
-          captions: ["Caption 1", "Caption 2", "Caption 3"]
+      const { generateBatchCaptions } = {
+        generateBatchCaptions: (a: any) => {
+          return {
+            captions: ["Caption 1", "Caption 2", "Caption 3"]
+          }
         }
       }
-    }
-      
+
       const captionResponse = await generateBatchCaptions(enhancedListings);
-      
+
       // Add captions and hashtags to the respective listings
       for (const [address, content] of Object.entries(captionResponse)) {
         if (enhancedListings[address]) {
           if (!enhancedListings[address].creatives) {
             enhancedListings[address].creatives = {};
           }
-          const typedContent = content as { caption: string; hashtags: string[] };
-          enhancedListings[address].creatives.propertyCaption = typedContent.caption;
-          enhancedListings[address].creatives.hashTags = typedContent.hashtags;
+          // Fix type conversion by properly handling the content
+          if (Array.isArray(content)) {
+            // Handle array case (defensive coding)
+            enhancedListings[address].creatives.propertyCaption = content[0] || '';
+            enhancedListings[address].creatives.hashTags = content.slice(1) || [];
+          } else {
+            // Handle object case
+            const typedContent = content as { caption: string; hashtags: string[] };
+            enhancedListings[address].creatives.propertyCaption = typedContent.caption;
+            enhancedListings[address].creatives.hashTags = typedContent.hashtags;
+          }
         }
       }
-      
+
       console.log(`Successfully generated captions and hashtags for ${Object.keys(captionResponse).length} properties`);
     } catch (error) {
       console.error("Error generating captions:", error);
     }
-    
+
     // Step 3: Generate short descriptions
     try {
       console.log("Generating short descriptions...");
-      
+
       // Import needed for dynamically importing the Anthropic API functions
       // const { generateShortDescriptions } = await import("../../../../server/anthropic/api");
-      const { generateShortDescriptions } = { generateShortDescriptions: (a: any) => {
-        return {
-          shortDescriptions: ["Short Description 1", "Short Description 2", "Short Description 3"]
+      const { generateShortDescriptions } = {
+        generateShortDescriptions: (a: any) => {
+          return {
+            shortDescriptions: ["Short Description 1", "Short Description 2", "Short Description 3"]
+          }
         }
       }
-    }
-      
+
       const descriptionResponse = await generateShortDescriptions(enhancedListings);
-      
+
       // Add short descriptions to the respective listings
       for (const [address, content] of Object.entries(descriptionResponse)) {
         if (enhancedListings[address]) {
           if (!enhancedListings[address].creatives) {
             enhancedListings[address].creatives = {};
           }
-          const typedContent = content as { shortDescription: string };
-          enhancedListings[address].creatives.shortDescription = typedContent.shortDescription;
+          // Fix type conversion by properly handling the content
+          if (Array.isArray(content)) {
+            // Handle array case (defensive coding)
+            enhancedListings[address].creatives.shortDescription = content[0] || '';
+          } else {
+            // Handle object case
+            const typedContent = content as { shortDescription: string };
+            enhancedListings[address].creatives.shortDescription = typedContent.shortDescription;
+          }
         }
       }
-      
+
       console.log(`Successfully generated short descriptions for ${Object.keys(descriptionResponse).length} properties`);
     } catch (error) {
       console.error("Error generating short descriptions:", error);
     }
-    
+
     // Save a copy of the creatives data separately for potential future use
     await fs.promises.writeFile(
       "listing_creatives.json",
@@ -4122,7 +4139,8 @@ async function generateListingCreatives(
         Object.fromEntries(
           Object.entries(enhancedListings).map(([key, listing]) => [
             key,
-            listing.creatives || {}
+            // Fix the unknown type by adding proper type assertion
+            (listing as any).creatives || {}
           ])
         ),
         null,
@@ -4130,7 +4148,7 @@ async function generateListingCreatives(
       ),
       "utf-8"
     );
-    
+
     console.log("All creative content generated successfully");
     return enhancedListings;
   } catch (error) {

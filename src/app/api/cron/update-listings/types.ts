@@ -4,6 +4,7 @@ export interface Listing {
   address?: string;
   tags: string;
   listingDetail: string;
+  listingDetailUrl?: string;
   prices: string;
   layout: string;
   buildSqMeters: string;
@@ -11,6 +12,11 @@ export interface Listing {
   listingImages?: string[];
   recommendedText?: string[];
   isDetailSoldPresent?: boolean;
+  coordinates?: {
+    lat: number | null;
+    long: number | null;
+  };
+  removed?: boolean;
 }
 
 export interface ListingsData {

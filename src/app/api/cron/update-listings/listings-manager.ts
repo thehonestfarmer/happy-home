@@ -1,6 +1,9 @@
 import { list } from '@vercel/blob';
 import { scrapeListingPage } from './process-listings';
 import type { ListingsData, ScrapedData, Listing } from './types';
+import { put } from '@vercel/blob';
+import fs from 'fs';
+import path from 'path';
 
 interface FailedScrape {
   id: string;
@@ -16,12 +19,48 @@ async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export async function uploadListings(listings: ListingsData): Promise<void> {
+  try {
+    // Generate the filename with the specified format
+    const now = new Date();
+    const month = now.getMonth() + 1; // getMonth() returns 0-11
+    const day = now.getDate();
+    const year = now.getFullYear().toString().slice(-2); // Get last 2 digits of year
+    const timestamp = now.getTime();
+
+    const filename = `listings-${month}-${day}-${year}-${timestamp}.json`;
+
+    // Convert listings to JSON
+    const jsonContent = JSON.stringify(listings);
+
+    // Upload to Vercel Blob
+    const blob = await put(filename, new Blob([jsonContent], { type: 'application/json' }), {
+      access: 'public',
+    });
+
+    console.log(`Successfully uploaded listings to ${blob.url}`);
+    console.log(`Total listings uploaded: ${Object.keys(listings).length}`);
+  } catch (error) {
+    console.error('Error uploading listings to blob:', error);
+    throw error;
+  }
+}
+
+export async function writeListings(listings: ListingsData): Promise<void> {
+  if (process.env.NODE_ENV === 'development') {
+    const filePath = path.join(process.cwd(), '/public/batch_test_results.json');
+    fs.writeFileSync(filePath, JSON.stringify(listings, null, 2));
+  }
+
+  return
+}
+
 async function retryFailedScrapes(
-  failedScrapes: FailedScrape[], 
+  failedScrapes: FailedScrape[],
   mergedListings: ListingsData
 ): Promise<void> {
   console.log('\n=== Retrying Failed Scrapes ===');
-  
+
   for (const failed of failedScrapes) {
     if (failed.attempts >= MAX_RETRY_ATTEMPTS) {
       console.log(`❌ Max retries exceeded for ${failed.id}, skipping...`);
@@ -32,7 +71,7 @@ async function retryFailedScrapes(
     try {
       await sleep(RETRY_DELAY * failed.attempts); // Exponential backoff
       const additionalDetails = await scrapeListingPage(failed.url);
-      
+
       if (additionalDetails && !(additionalDetails instanceof Error)) {
         const listing = mergedListings[failed.id];
         if (listing) {
@@ -63,17 +102,17 @@ async function retryFailedScrapes(
   }
 }
 
-export async function readListings(): Promise<ListingsData> {
+export async function readListings(useBlob?: boolean): Promise<ListingsData> {
   // Check if in development mode
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'development' && !useBlob) {
     try {
       // Import local file system module
       const fs = require('fs');
       const path = require('path');
-      
+
       const filePath = path.join(process.cwd(), '/public/batch_test_results.json');
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      
+
       // Extract listings from newListings if present, otherwise use as-is
       const listings = data.newListings ? data.newListings : data;
       console.log(`Read ${Object.keys(listings).length} listings from local file`);
@@ -103,13 +142,13 @@ export async function readListings(): Promise<ListingsData> {
     }
 
     const data = await response.json();
-    
+
     // Extract listings from newListings if present, otherwise use as-is
     const listings = data.newListings ? data.newListings : data;
     console.log(`Read ${Object.keys(listings).length} existing listings from blob`);
     console.log(`Blob URL: ${listingsBlob.url}`);
     console.log(`Last updated: ${listingsBlob.uploadedAt}`);
-    
+
     return listings;
   } catch (error) {
     console.error('Error reading listings from blob:', error);
@@ -118,7 +157,7 @@ export async function readListings(): Promise<ListingsData> {
 }
 
 export async function mergeListings(
-  existingListings: ListingsData, 
+  existingListings: ListingsData,
   scrapedData: ScrapedData
 ): Promise<ListingsData> {
   console.log('\n=== Starting Merge Process ===');
@@ -184,7 +223,7 @@ export async function mergeListings(
       const tag = scrapedData.tags[index];
       console.log(`\nProcessing [${index}]: ${address}`);
       console.log(`Tag value: ${tag}`);
-      
+
       // Handle tags - now they're directly strings from the translation
       const newListing: Listing = {
         id: existingId || newId,
