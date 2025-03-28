@@ -11,7 +11,7 @@ import { uploadListings } from '../update-listings/listings-manager';
 
 export async function GET(request: Request) {
   console.log('Vercel Cron trigger received at', new Date().toISOString());
-  sendSlackNotification('Starting trigger-update cron job', 'Trigger Update', true);
+  sendSlackNotification(':robot_face: Starting trigger-update cron job', 'Trigger Update', true);
 
   try {
     // Optional: Verify this request is from Vercel Cron using the Cron Secret
@@ -31,15 +31,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
     }
 
-    // Check for content-type to determine how to parse the body
-    const contentType = request.headers.get('content-type');
-    console.log('Request content-type:', contentType);
-
+    // only check the first page for new listings
     const newListings = await scrapeAndTransformNewListings({ pages: 1 });
-    console.log('newListings', newListings);
+
     if (newListings instanceof Error) {
       console.error('Error in scrapeAndTransformNewListings:', newListings);
-      sendSlackError('Error in scrapeAndTransformNewListings', 'Trigger Update', { error: newListings instanceof Error ? newListings.message : 'Unknown error' });
+      sendSlackError(':interrobang:  Error in scrapeAndTransformNewListings', 'Trigger Update', { error: newListings instanceof Error ? newListings.message : 'Unknown error' });
       return NextResponse.json({
         success: false,
         message: newListings instanceof Error ? newListings.message : 'Unknown error'
@@ -47,27 +44,25 @@ export async function GET(request: Request) {
     }
 
     if (!newListings || Object.keys(newListings).length === 0) {
-      console.log('No new listings were generated');
-      sendSlackNotification('No new listings were generated', 'Trigger Update', false);
+      sendSlackNotification(':jar:  No new listings were generated', 'Trigger Update', false);
       return NextResponse.json({
         success: false,
         message: 'No new listings were generated'
       }, { status: 200 });
     }
 
-    console.log('New listings were generated', newListings);
-    const enrichedData = await initProcessListingDetails(newListings);
-    const enhancedData = await translateEnrichedData(enrichedData);
     try {
+      const enrichedData = await initProcessListingDetails(newListings);
+      const enhancedData = await translateEnrichedData(enrichedData);
       if (Object.keys(enhancedData as ListingData).length > 0) {
         await uploadListings(enhancedData as ListingData);
-        sendSlackNotification('Listings updated successfully', 'Trigger Update', false);
+        sendSlackNotification(`:check_mark:  Listings updated successfully\n\n${Object.keys(enhancedData as ListingData).length} listings added`, 'Trigger Update', false);
       }
     } catch (error) {
       console.error('Error in writeListings:', error);
-      sendSlackError('Error in writeListings', 'Trigger Update', { error: error instanceof Error ? error.message : 'Unknown error' });
+      sendSlackError(':interrobang:  Error in uploadListings', 'Trigger Update', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
-    
+
     return NextResponse.json({
       success: true,
       message: "Listings updated successfully"

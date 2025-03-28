@@ -67,7 +67,7 @@ async function isJapanese404Page(url: string): Promise<boolean> {
 }
 export async function GET(request: Request) {
     console.log('Vercel Cron trigger received at', new Date().toISOString());
-    sendSlackNotification('Starting update-coords cron job', 'Update Coords', true);
+    sendSlackNotification(':robot_face: Starting update-coords cron job', 'Update Coords', true);
 
     try {
         // Optional: Verify this request is from Vercel Cron using the Cron Secret
@@ -120,7 +120,7 @@ export async function GET(request: Request) {
                 await writeListings(currentListings);
                 await uploadListings(currentListings);
                 sendSlackNotification(
-                    `Removed ${removedListings.length} listings\n\nURLs:\n${removedListings.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
+                    `:sponge: Removed ${removedListings.length} listings\n\nURLs:\n${removedListings.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
                     'Update Coords',
                     true
                 );
@@ -132,7 +132,7 @@ export async function GET(request: Request) {
 
         if (propertiesWithMissingCoordinates.length > 0) {
             sendSlackNotification(
-                `Found ${propertiesWithMissingCoordinates.length} properties with missing coordinates\n\nURLs:\n${propertiesWithMissingCoordinates.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
+                `:mag: Found ${propertiesWithMissingCoordinates.length} properties with missing coordinates\n\nURLs:\n${propertiesWithMissingCoordinates.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
                 'Update Coords',
                 true
             );
@@ -140,7 +140,7 @@ export async function GET(request: Request) {
 
         if (removedListings.length === 0 && propertiesWithMissingCoordinates.length === 0) {
             sendSlackNotification(
-                'No listings removed or found with missing coordinates :saluting_face:',
+                ' :saluting_face: No listings removed or found with missing coordinates',
                 'Update Coords',
                 true
             );
