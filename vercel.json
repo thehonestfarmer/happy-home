@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/trigger-update", 
-      "schedule": "30 16 * * *"
+      "schedule": "30 9 * * *"
     },
     {
       "path": "/api/cron/update-coords", 
-      "schedule": "0 17 * * *"
+      "schedule": "0 10 * * *"
     }
   ]
 }
