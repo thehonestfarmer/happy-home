@@ -219,7 +219,7 @@ export function ListingBox({
   const rawImages = property.listingImages || [];
   // Ensure they're valid strings and limit to first 25 (increased from 4)
   const displayImages = rawImages.length > 0 
-    ? rawImages.filter(img => typeof img === 'string' && img.trim() !== '').slice(0, 25)
+    ? rawImages.filter(img => typeof img === 'string' && img.trim() !== '').slice(0, 5)
     : ['/placeholder-property.jpg'];
 
   // Handle image error

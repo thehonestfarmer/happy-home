@@ -383,8 +383,6 @@ export function MapDisplay({
       // Only update zoom state if selection is not in progress and not during double-tap zoom
       if (!isStationSelectionInProgress.current && !isDoubleTapZooming.current) {
         setZoom(customZoom);
-      } else {
-        console.log('[DEBUG-ZOOM] Ignoring customZoom update during selection or double-tap zoom');
       }
     }
   }, [customZoom, zoom]);
@@ -403,17 +401,11 @@ export function MapDisplay({
     // Detect potential double-tap zoom events
     if (isTouchEvent && hasZoomChanged) {
       if (!isDoubleTapZooming.current) {
-        console.log('[DEBUG-ZOOM] Potential double-tap zoom detected:', {
-          from: zoom,
-          to: evt.viewState.zoom,
-          eventSource
-        });
         isDoubleTapZooming.current = true;
 
         // Reset the double-tap flag after a short delay
         setTimeout(() => {
           isDoubleTapZooming.current = false;
-          console.log('[DEBUG-ZOOM] Double-tap zoom flag reset');
         }, 500);
       }
     }
@@ -435,31 +427,10 @@ export function MapDisplay({
     const isStationSelectionEvent = isStationSelectionInProgress.current;
 
     if (isStationSelectionEvent) {
-      console.log('[DEBUG-ZOOM] Handling map move during station selection:', {
-        eventType: evt.type,
-        eventSource: eventSource,
-        currentZoom: zoom,
-        newZoom: evt.viewState.zoom,
-        customZoom: customZoom,
-        stationSelection: isStationSelectionInProgress.current,
-        position: { lat: evt.viewState.latitude, lng: evt.viewState.longitude }
-      });
-
       // During station selection, we've already updated position
       // Don't update zoom, and don't call the parent onMove to avoid affecting zoom controls
       return;
     }
-
-    // For regular map movement, log and update everything
-    console.log('[DEBUG-ZOOM] Regular map movement:', {
-      eventType: evt.type,
-      eventSource: eventSource,
-      currentZoom: zoom,
-      newZoom: evt.viewState.zoom,
-      customZoom: customZoom,
-      position: { lat: evt.viewState.latitude, lng: evt.viewState.longitude },
-      isDoubleTapZoom: isDoubleTapZooming.current
-    });
 
     // Update zoom for regular movements
     setZoom(evt.viewState.zoom);
@@ -484,13 +455,11 @@ export function MapDisplay({
 
       // Check for double tap (time between taps < 300ms)
       if (timeDiff < 300) {
-        console.log('[DEBUG-ZOOM] Double tap detected');
         isDoubleTapZooming.current = true;
 
         // Reset the double-tap flag after processing completes
         setTimeout(() => {
           isDoubleTapZooming.current = false;
-          console.log('[DEBUG-ZOOM] Double-tap zoom flag reset after processing');
         }, 1000);
       }
 
@@ -760,16 +729,6 @@ export function MapDisplay({
     // Use the passed isMobileView prop directly (already set in parent component)
     const isDesktopView = !isMobileView;
 
-    console.log('[DEBUG] Marker clicked:', {
-      isListingsPage,
-      isDesktopView,
-      isMobileView,
-      listingId: listing.id,
-      currentRoute,
-      isAlreadySelected,
-      showPropertyPopup: effectiveShowPropertyPopup
-    });
-
     // Set the internal selected property regardless of view mode
     // This ensures the property is marked as selected in the map
     setInternalSelectedProperty(listing.id || null);
@@ -777,9 +736,6 @@ export function MapDisplay({
     // For desktop view on listings page, explicitly show the popup
     // and call onPinSelect to trigger the desktop handler
     if (isDesktopView) {
-      console.log('[DEBUG] Desktop marker click on listings page');
-
-      console.log(onPropertyPopupToggle)
       // Reset internal popup visibility if we're managing it ourselves
       if (!onPropertyPopupToggle) {
         setInternalPopupVisible(true);
@@ -800,7 +756,6 @@ export function MapDisplay({
 
     // Mobile view on listings page - only call onPinSelect for drawer
     if (isListingsPage && isMobileView) {
-      console.log('[DEBUG] Mobile marker click on listings page');
       if (onPinSelect) {
         onPinSelect(listing);
       }
@@ -809,7 +764,6 @@ export function MapDisplay({
 
     // For all other pages (non-listings pages), always ensure the popup is visible when marker is clicked
     // This fixes the issue where popup doesn't reappear after closing
-    console.log('[DEBUG-POPUP] Non-listings page marker click - ensuring popup is visible');
     if (onPropertyPopupToggle) {
       onPropertyPopupToggle(true);
     } else {
@@ -916,7 +870,6 @@ export function MapDisplay({
 
         // Double tap detection (quick touch under 300ms, and second touch within 300ms of first)
         if (elapsed < 300 && timeSinceLastTouch < 300) {
-          console.log('[DEBUG-ZOOM] Double-tap detected on map container');
           isDoubleTapZooming.current = true;
 
           // Calculate new zoom level (typically +1 from current zoom)
@@ -948,7 +901,6 @@ export function MapDisplay({
             // Reset the flag after processing is done
             setTimeout(() => {
               isDoubleTapZooming.current = false;
-              console.log('[DEBUG-ZOOM] Double-tap zoom processing completed');
             }, 500);
           }, 50);
         }
@@ -1100,15 +1052,8 @@ export function MapDisplay({
               // Set the station selection flag
               isStationSelectionInProgress.current = true;
 
-              console.log('[DEBUG-ZOOM] Station marker clicked:', {
-                station: station.name,
-                index,
-                currentZoom: zoom
-              });
-
               // Don't do anything if the station is already selected
               if (selectedStation === index) {
-                console.log('[DEBUG-ZOOM] Station already selected, not making changes');
                 isStationSelectionInProgress.current = false;
                 return;
               }
@@ -1124,7 +1069,6 @@ export function MapDisplay({
               // Use setTimeout to reset the flag after the event cycle completes
               setTimeout(() => {
                 isStationSelectionInProgress.current = false;
-                console.log('[DEBUG-ZOOM] Station selection completed, flag reset');
               }, 300);
 
               // Prevent event propagation if possible
@@ -1196,8 +1140,6 @@ export function MapDisplay({
             singlePropertyMode
           );
           
-          console.log(`[DEBUG-POPUP] Station ${shinkansenStations[selectedStation].name} popup anchor: ${chosenAnchor}`);
-          
           return (
             <Popup
               longitude={stationCoords[0]}
@@ -1208,7 +1150,6 @@ export function MapDisplay({
                 // Set the flag when closing station popup
                 isStationSelectionInProgress.current = true;
 
-                console.log('[DEBUG-ZOOM] Station popup closed, currentZoom:', zoom);
                 setInternalSelectedStation(null);
 
                 // Call external callback if provided
@@ -1219,7 +1160,6 @@ export function MapDisplay({
                 // Reset the flag after the event cycle
                 setTimeout(() => {
                   isStationSelectionInProgress.current = false;
-                  console.log('[DEBUG-ZOOM] Station selection flag reset after popup close');
                 }, 300);
               }}
               anchor={chosenAnchor}
@@ -1376,8 +1316,6 @@ export function MapDisplay({
             singlePropertyMode
           );
           
-          console.log(`[DEBUG-POPUP] Property popup anchor: ${chosenAnchor}`);
-          
           // In single property mode, show detailed popup automatically
           return (
             <Popup
@@ -1387,7 +1325,6 @@ export function MapDisplay({
               onClose={() => {
                 // In fullScreenMode, we don't want to allow closing the popup
                 if (fullScreenMode) {
-                  console.log('[DEBUG-POPUP] Ignoring popup close in fullScreenMode');
                   // Do nothing to prevent closing
                   return;
                 }

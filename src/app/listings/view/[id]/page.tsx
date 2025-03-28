@@ -301,6 +301,7 @@ function ImageGalleryModal({ isOpen, onClose, images, initialIndex = 0, onImageC
                   setCurrentIndex(index);
                   if (onImageClick) onImageClick(index);
                 }}
+                style={{ position: 'relative' }}
               >
                 <Image
                   src={image}
@@ -340,6 +341,8 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   // Add state for map zoom
   const [mapZoom, setMapZoom] = useState<number | undefined>(undefined);
+  // Add state for property popup visibility
+  const [showPropertyPopup, setShowPropertyPopup] = useState(true);
 
   // Use our new scroll anchor hook, disabled for mobile
   const scrollAnchorRef = useScrollAnchor(isMobile);
@@ -559,6 +562,11 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
     setShowLightbox(true);
   }, []);
 
+  // Add a handler for property popup toggling
+  const handlePropertyPopupToggle = useCallback((isVisible: boolean) => {
+    setShowPropertyPopup(isVisible);
+  }, []);
+
   // Mobile view rendering
   if (isMobile) {
     return (
@@ -602,7 +610,11 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
         {/* Content with appropriate padding */}
         <div className="space-y-2">
           {property.listingImages?.map((image: string, index: number) => (
-            <div key={index} className="relative w-full aspect-[4/3]">
+            <div 
+              key={index} 
+              className="relative w-full aspect-[4/3]" 
+              style={{ position: 'relative' }}
+            >
               <Image
                 src={image || '/placeholder-property.jpg'}
                 alt={`Property view ${index + 1}`}
@@ -667,7 +679,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
       {/* Image Gallery */}
       <div className="grid grid-cols-12 gap-1 h-[480px]">
         {/* Main large image */}
-        <div className="col-span-8 relative">
+        <div className="col-span-8 relative" style={{ position: 'relative' }}>
           <Image
             src={property.listingImages?.[0] || '/placeholder-property.jpg'}
             alt={property.propertyTitle || "Property image"}
@@ -686,7 +698,7 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
         {/* Right side grid */}
         <div className="col-span-4 grid grid-rows-2 gap-1">
           {property.listingImages?.slice(1, 5).map((image: string, index: number) => (
-            <div key={index} className="relative">
+            <div key={index} className="relative" style={{ position: 'relative' }}>
               <Image
                 src={image || '/placeholder-property.jpg'}
                 alt={`Property view ${index + 2}`}
@@ -787,9 +799,11 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
                       initialLatitude={property.coordinates?.lat}
                       initialLongitude={property.coordinates?.long}
                       maintainMapPosition={true}
-                      hidePopup={isMobile}
+                      hidePopup={false}
                       customZoom={mapZoom}
                       onMove={handleMapMove}
+                      showPropertyPopup={showPropertyPopup}
+                      onPropertyPopupToggle={handlePropertyPopupToggle}
                     />
 
                     {/* Zoom controls overlay */}
