@@ -72,16 +72,12 @@ export async function GET(request: Request) {
       const enrichedData = await initProcessListingDetails(newListings);
       const enhancedData = await translateEnrichedData(enrichedData);
       if (Object.keys(enhancedData as ListingData).length > 0) {
-        // this needs to be merged with the current listings
         const currentListings = await readListings(true);
-        const mergedListings = { ...currentListings, ...enhancedData };
 
-        await uploadListings(mergedListings as ListingData);
-        sendSlackNotification(`::white_check_mark: :  Listings updated successfully\n\n${Object.keys(enhancedData as ListingData).length} listings added`, ':gun: Trigger Update', 'success');
-
-        // Trigger the update-coords cron job
         console.log(`Current listings: ${Object.keys(currentListings).length}`);
-        await updateCoords(enhancedData as ListingData);
+        const updatedListings = await updateCoords(enhancedData as ListingData);
+        await uploadListings({ ...updatedListings, ...currentListings });
+        sendSlackNotification(`::white_check_mark: :  Listings updated successfully\n\n${Object.keys(enhancedData as ListingData).length} listings added`, ':gun: Trigger Update', 'success');
       }
     } catch (error) {
       console.error('Error in writeListings:', error);

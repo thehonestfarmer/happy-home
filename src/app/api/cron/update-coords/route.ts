@@ -103,19 +103,20 @@ export async function updateCoords(currentListings: ListingData) {
         }
     }
 
+    if (removedListings.length === 0 && propertiesWithMissingCoordinates.length === 0) {
+        sendSlackNotification(
+            ' :saluting_face: No listings removed or found with missing coordinates',
+            ':round_pushpin: Update Coords',
+            'info'
+        );
+    }
+
     if (removedListings.length > 0) {
-        try {
-            await writeListings(currentListings);
-            await uploadListings(currentListings);
-            sendSlackNotification(
-                `:sponge: Removed ${removedListings.length} listings\n\nURLs:\n${removedListings.map(p => p.listingDetailUrl || p.listingDetail).join('\n')}`,
-                ':round_pushpin: Update Coords',
-                'success'
-            );
-        } catch (error) {
-            console.error('Error writing or uploading listings:', error);
-            sendSlackError('Error writing or uploading listings', ':round_pushpin: Update Coords', { error: error instanceof Error ? error.message : 'Unknown error' });
-        }
+        sendSlackNotification(
+            `:sponge: Removing ${removedListings.length} listings\n\nURLs:\n${removedListings.map(p => p.listingDetailUrl || p.listingDetail).join('\n')}`,
+            ':round_pushpin: Update Coords',
+            'success'
+        );
     }
 
     if (propertiesWithMissingCoordinates.length > 0) {
@@ -128,24 +129,9 @@ export async function updateCoords(currentListings: ListingData) {
         console.log(`Fixing missing coordinates for ${propertiesWithMissingCoordinates.length} listings`);
         const updatedListings = await fixMissingCoordinates(currentListings);
         console.log(`Updated ${Object.entries(updatedListings ?? {}).length} listings with coordinates`);
-        if (updatedListings) {
-            await writeListings(updatedListings);
-            await uploadListings(updatedListings);
-            sendSlackNotification(
-                `:white_check_mark: Updated ${Object.entries(updatedListings).length} listings with coordinates\n\nURLs:\n${propertiesWithMissingCoordinates.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
-                ':round_pushpin: Update Coords',
-                'success'
-            );
-        }
+        return updatedListings;
     }
 
-    if (removedListings.length === 0 && propertiesWithMissingCoordinates.length === 0) {
-        sendSlackNotification(
-            ' :saluting_face: No listings removed or found with missing coordinates',
-            ':round_pushpin: Update Coords',
-            'info'
-        );
-    }
 
 }
 
