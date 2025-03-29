@@ -3,6 +3,7 @@ import { sendSlackNotification, sendSlackError } from '@/server/slack/notificati
 import { readListings, writeListings, uploadListings } from '../update-listings/listings-manager';
 import puppeteer from 'puppeteer';
 import { Listing } from '../update-listings/types';
+import { fixMissingCoordinates } from '../update-listings/fix-missing-coordinates';
 /**
 * This route handler is designed to be called by Vercel Cron Jobs
 * It verifies the Vercel signature (if present) and then calls the update-listings
@@ -66,9 +67,9 @@ async function isJapanese404Page(url: string): Promise<boolean> {
     }
 }
 
-export async function updateCoords() {
-    // we want to read the latest blob of data
-    const currentListings = await readListings(true);
+export async function updateCoords(currentListings: ListingData) {
+    console.log(`Updating coordinates for ${Object.entries(currentListings).length} listings`);
+
     // Filter properties with missing coordinates
     let propertiesWithMissingCoordinates: [string, Listing][] = Object.entries(currentListings)
         .filter(([_, property]) => !property.removed)
@@ -123,6 +124,19 @@ export async function updateCoords() {
             ':round_pushpin: Update Coords',
             'warning'
         );
+
+        console.log(`Fixing missing coordinates for ${propertiesWithMissingCoordinates.length} listings`);
+        const updatedListings = await fixMissingCoordinates(currentListings);
+        console.log(`Updated ${Object.entries(updatedListings ?? {}).length} listings with coordinates`);
+        if (updatedListings) {
+            await writeListings(updatedListings);
+            await uploadListings(updatedListings);
+            sendSlackNotification(
+                `:white_check_mark: Updated ${Object.entries(updatedListings).length} listings with coordinates\n\nURLs:\n${propertiesWithMissingCoordinates.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
+                ':round_pushpin: Update Coords',
+                'success'
+            );
+        }
     }
 
     if (removedListings.length === 0 && propertiesWithMissingCoordinates.length === 0) {
@@ -150,12 +164,13 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        await updateCoords();
+        const currentListings = await readListings(true);
+        await updateCoords(currentListings);
 
         // Return success response
         return NextResponse.json({
             success: true,
-            message: "Listings updated successfully"
+            message: "Coords-update job completed successfully"
         });
 
     } catch (error) {

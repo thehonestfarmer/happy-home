@@ -3803,6 +3803,8 @@ async function extractListingImagesFromPage(page: any) {
   }
 }
 
+const CHAOS_DELETE_COUNT = 1;
+
 export async function compareAndGenerateNewListings(scrapedData: any) {
     // Step 2: Load existing data and find new listings
     console.log('\n=== STEP 2: IDENTIFYING NEW LISTINGS ===');
@@ -3815,6 +3817,22 @@ export async function compareAndGenerateNewListings(scrapedData: any) {
     } catch (error) {
       console.warn("Could not load batch_test_results.json, assuming no existing data", error);
       return error
+    }
+
+    if (process.env.NODE_ENV === 'development' && process.env.CHAOS_MODE === 'true') {
+      // delete 4 random properties from existingData
+      const keys = Object.keys(existingData);
+      if (keys.length > 1) {
+        console.log(`CHAOS MODE: Randomly removing ${CHAOS_DELETE_COUNT} properties to simulate new listings`);
+        for (let i = 0; i < CHAOS_DELETE_COUNT; i++) {
+          const randomIndex = Math.floor(Math.random() * keys.length);
+          const keyToDelete = keys.splice(randomIndex, 1)[0];
+          console.log(`CHAOS MODE: Deleting property: ${keyToDelete}`);
+          delete existingData[keyToDelete];
+        }
+      } else {
+        console.log("CHAOS MODE: Not enough properties to delete");
+      }
     }
 
     // Create a Set of original Japanese addresses for efficient lookup
