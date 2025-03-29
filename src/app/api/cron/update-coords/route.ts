@@ -67,7 +67,7 @@ async function isJapanese404Page(url: string): Promise<boolean> {
 }
 export async function GET(request: Request) {
     console.log('Vercel Cron trigger received at', new Date().toISOString());
-    sendSlackNotification(':robot_face: Starting update-coords cron job', 'Update Coords', true);
+    sendSlackNotification(':robot_face: Starting update-coords cron job', ':round_pushpin: Update Coords', 'info');
 
     try {
         // Optional: Verify this request is from Vercel Cron using the Cron Secret
@@ -120,29 +120,29 @@ export async function GET(request: Request) {
                 await writeListings(currentListings);
                 await uploadListings(currentListings);
                 sendSlackNotification(
-                    `:sponge: Removed ${removedListings.length} listings\n\nURLs:\n${removedListings.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
-                    'Update Coords',
-                    true
+                    `:sponge: Removed ${removedListings.length} listings\n\nURLs:\n${removedListings.map(p => p.listingDetailUrl || p.listingDetail).join('\n')}`,
+                    ':round_pushpin: Update Coords',
+                    'success'
                 );
             } catch (error) {
                 console.error('Error writing or uploading listings:', error);
-                sendSlackError('Error writing or uploading listings', 'Update Coords', { error: error instanceof Error ? error.message : 'Unknown error' });
+                sendSlackError('Error writing or uploading listings', ':round_pushpin: Update Coords', { error: error instanceof Error ? error.message : 'Unknown error' });
             }
         }
 
         if (propertiesWithMissingCoordinates.length > 0) {
             sendSlackNotification(
                 `:mag: Found ${propertiesWithMissingCoordinates.length} properties with missing coordinates\n\nURLs:\n${propertiesWithMissingCoordinates.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
-                'Update Coords',
-                true
+                ':round_pushpin: Update Coords',
+                'warning'
             );
         }
 
         if (removedListings.length === 0 && propertiesWithMissingCoordinates.length === 0) {
             sendSlackNotification(
                 ' :saluting_face: No listings removed or found with missing coordinates',
-                'Update Coords',
-                true
+                ':round_pushpin: Update Coords',
+                'info'
             );
         }
 

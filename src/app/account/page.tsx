@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { usePathname } from "next/navigation";
 
 interface NotificationSettings {
   marketing: boolean;
@@ -18,6 +19,7 @@ interface NotificationSettings {
 
 export default function AccountPage() {
   const { user } = useAppContext();
+  const pathname = usePathname();
   const [notifications, setNotifications] = useState<NotificationSettings>({
     marketing: false,
     newListings: false,
@@ -71,13 +73,16 @@ export default function AccountPage() {
   const handleGoogleLogin = async () => {
     try {
       // Store current URL to return to this page after auth
-      const currentPath = window.location.pathname;
-      localStorage.setItem('authRedirectPath', currentPath);
+      localStorage.setItem('authRedirectPath', pathname);
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
@@ -101,7 +106,7 @@ export default function AccountPage() {
             </p>
             <Button
               variant="outline"
-              className="bg-black text-primary border-black hover:bg-primary hover:text-black transition-colors"
+              className="bg-black text-primary border-black hover:bg-primary hover:text-black transition-colors w-full sm:w-auto"
               onClick={handleGoogleLogin}
             >
               Sign in with Google
