@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/trigger-update", 
       "schedule": "0 */12 * * *"
+    },
+    {
+      "path": "/api/cron/update-coords", 
+      "schedule": "0 0 * * *"
     }
   ]
 }

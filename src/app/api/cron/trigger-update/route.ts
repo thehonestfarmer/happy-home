@@ -14,8 +14,6 @@ export async function GET(request: Request) {
   sendSlackNotification(':robot_face: Starting trigger-update cron job', ':gun: Trigger Update', 'info');
 
   try {
-    // Optional: Verify this request is from Vercel Cron using the Cron Secret
-    // This adds another layer of security
     const cronSignature = request.headers.get('x-vercel-cron');
     const cronSecret = process.env.VERCEL_CRON_SECRET;
 
