@@ -1017,7 +1017,8 @@ export default function Page() {
 
   const property = listingsById[params.id];
 
-  if (!property) {
+  // Check if property exists or is marked as removed
+  if (!property || property.removed) {
     return (
       <div className="container mx-auto p-4">
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">

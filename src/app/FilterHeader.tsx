@@ -1,7 +1,6 @@
 "use client";
 
 import { useAppContext } from "@/AppContext";
-import { FilterState } from "@/AppContext"; 
 import {
   Select,
   SelectContent,

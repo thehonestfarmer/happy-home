@@ -65,6 +65,76 @@ async function isJapanese404Page(url: string): Promise<boolean> {
         await browser.close();
     }
 }
+
+export async function updateCoords() {
+    // we want to read the latest blob of data
+    const currentListings = await readListings(true);
+    // Filter properties with missing coordinates
+    let propertiesWithMissingCoordinates: [string, Listing][] = Object.entries(currentListings)
+        .filter(([_, property]) => !property.removed)
+        .filter(([_, property]) => {
+            // Check if coordinates are missing or null
+            return (
+                !property.coordinates ||
+                property.coordinates.lat === null ||
+                property.coordinates.long === null
+            );
+        });
+
+    // just to track recently removed listings
+    let removedListings: Listing[] = [];
+    for (const [id, property] of propertiesWithMissingCoordinates) {
+        const url = property.listingDetailUrl || property.listingDetail;
+        const is404 = await isJapanese404Page(url);
+
+        if (!property.address) {
+            console.log(`Listing ${id} has no address`);
+            continue;
+        }
+
+        if (!(property.address in currentListings)) {
+            console.log(`Listing ${property.address} not found in current listings`);
+            continue;
+        } else if (is404) {
+            console.log(`${url} is a 404 page`);
+            currentListings[property.address].removed = true;
+            removedListings.push(property);
+        }
+    }
+
+    if (removedListings.length > 0) {
+        try {
+            await writeListings(currentListings);
+            await uploadListings(currentListings);
+            sendSlackNotification(
+                `:sponge: Removed ${removedListings.length} listings\n\nURLs:\n${removedListings.map(p => p.listingDetailUrl || p.listingDetail).join('\n')}`,
+                ':round_pushpin: Update Coords',
+                'success'
+            );
+        } catch (error) {
+            console.error('Error writing or uploading listings:', error);
+            sendSlackError('Error writing or uploading listings', ':round_pushpin: Update Coords', { error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+    }
+
+    if (propertiesWithMissingCoordinates.length > 0) {
+        sendSlackNotification(
+            `:mag: Found ${propertiesWithMissingCoordinates.length} properties with missing coordinates\n\nURLs:\n${propertiesWithMissingCoordinates.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
+            ':round_pushpin: Update Coords',
+            'warning'
+        );
+    }
+
+    if (removedListings.length === 0 && propertiesWithMissingCoordinates.length === 0) {
+        sendSlackNotification(
+            ' :saluting_face: No listings removed or found with missing coordinates',
+            ':round_pushpin: Update Coords',
+            'info'
+        );
+    }
+
+}
+
 export async function GET(request: Request) {
     console.log('Vercel Cron trigger received at', new Date().toISOString());
     sendSlackNotification(':robot_face: Starting update-coords cron job', ':round_pushpin: Update Coords', 'info');
@@ -80,71 +150,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // we want to read the latest blob of data
-        const currentListings = await readListings(true);
-        // Filter properties with missing coordinates
-        let propertiesWithMissingCoordinates: [string, Listing][] = Object.entries(currentListings)
-            .filter(([_, property]) => !property.removed)
-            .filter(([_, property]) => {
-                // Check if coordinates are missing or null
-                return (
-                    !property.coordinates ||
-                    property.coordinates.lat === null ||
-                    property.coordinates.long === null
-                );
-            });
-
-        // just to track recently removed listings
-        let removedListings: Listing[] = [];
-        for (const [id, property] of propertiesWithMissingCoordinates) {
-            const url = property.listingDetailUrl || property.listingDetail;
-            const is404 = await isJapanese404Page(url);
-
-            if (!property.address) {
-                console.log(`Listing ${id} has no address`);
-                continue;
-            }
-
-            if (!(property.address in currentListings)) {
-                console.log(`Listing ${property.address} not found in current listings`);
-                continue;
-            } else if (is404) {
-                console.log(`${url} is a 404 page`);
-                currentListings[property.address].removed = true;
-                removedListings.push(property);
-            }
-        }
-
-        if (removedListings.length > 0) {
-            try {
-                await writeListings(currentListings);
-                await uploadListings(currentListings);
-                sendSlackNotification(
-                    `:sponge: Removed ${removedListings.length} listings\n\nURLs:\n${removedListings.map(p => p.listingDetailUrl || p.listingDetail).join('\n')}`,
-                    ':round_pushpin: Update Coords',
-                    'success'
-                );
-            } catch (error) {
-                console.error('Error writing or uploading listings:', error);
-                sendSlackError('Error writing or uploading listings', ':round_pushpin: Update Coords', { error: error instanceof Error ? error.message : 'Unknown error' });
-            }
-        }
-
-        if (propertiesWithMissingCoordinates.length > 0) {
-            sendSlackNotification(
-                `:mag: Found ${propertiesWithMissingCoordinates.length} properties with missing coordinates\n\nURLs:\n${propertiesWithMissingCoordinates.map(([_, p]) => p.listingDetailUrl || p.listingDetail).join('\n')}`,
-                ':round_pushpin: Update Coords',
-                'warning'
-            );
-        }
-
-        if (removedListings.length === 0 && propertiesWithMissingCoordinates.length === 0) {
-            sendSlackNotification(
-                ' :saluting_face: No listings removed or found with missing coordinates',
-                ':round_pushpin: Update Coords',
-                'info'
-            );
-        }
+        await updateCoords();
 
         // Return success response
         return NextResponse.json({

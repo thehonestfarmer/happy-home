@@ -237,10 +237,10 @@ export default function FullScreenMapView() {
     );
   }
 
-  if (!property) {
+  if (!property || property.removed) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center">
-        <p className="text-muted-foreground mb-4">Property not found</p>
+        <p className="text-muted-foreground mb-4">Property not found or has been removed</p>
         <Button variant="outline" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
         </Button>

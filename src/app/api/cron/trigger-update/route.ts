@@ -3,6 +3,7 @@ import { scrapeAndTransformNewListings } from '../update-listings/scrape-listing
 import { sendSlackError, sendSlackNotification } from '@/server/slack/notifications';
 import { initProcessListingDetails, translateEnrichedData } from '../update-listings/scrape-listings';
 import { uploadListings } from '../update-listings/listings-manager';
+import { updateCoords } from '../update-coords/route';
 /**
  * This route handler is designed to be called by Vercel Cron Jobs
  * It verifies the Vercel signature (if present) and then calls the update-listings
@@ -48,6 +49,9 @@ export async function GET(request: Request) {
       if (Object.keys(enhancedData as ListingData).length > 0) {
         await uploadListings(enhancedData as ListingData);
         sendSlackNotification(`:check_mark:  Listings updated successfully\n\n${Object.keys(enhancedData as ListingData).length} listings added`, ':gun: Trigger Update', 'success');
+
+        // Trigger the update-coords cron job
+        await updateCoords();
       }
     } catch (error) {
       console.error('Error in writeListings:', error);
