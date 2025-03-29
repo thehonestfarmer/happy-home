@@ -1,8 +1,23 @@
 "use client";
-import { createContext, ReactNode, useContext, useEffect } from "react";
+import { createContext, ReactNode, useContext, useEffect, useRef } from "react";
 import { useImmer } from "use-immer";
 import { Currency } from "@/lib/listing-utils";
 import { createClientComponentClient, type User as SupabaseUser } from '@supabase/auth-helpers-nextjs';
+
+// Local storage key constants
+const FILTER_STATE_KEY = 'happyhome:filterState';
+
+// Utility function to safely check if localStorage is available
+const isLocalStorageAvailable = () => {
+  try {
+    const testKey = '__test__';
+    localStorage.setItem(testKey, testKey);
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
 
 interface PriceFilterState {
   selectedCurrency: Currency;
@@ -72,12 +87,18 @@ export type DisplayState = {
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  // Flag to track if initial load from localStorage is complete
+  const isInitialized = useRef(false);
+  // Check if localStorage is available
+  const canUseLocalStorage = isLocalStorageAvailable();
+
   const [displayState, setDisplayState] = useImmer<DisplayState>({
     lightboxListingIdx: null,
     drawerOpen: false,
     sortBy: 'newest',
   });
 
+  // Initialize with defaultFilterState, will be overridden by localStorage if available
   const [filterState, setFilterState] = useImmer<FilterState>(defaultFilterState);
 
   const [priceFilterState, setPriceFilterState] = useImmer<PriceFilterState>({
@@ -88,6 +109,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [user, setUser] = useImmer<SupabaseUser | null>(null);
   const [favorites, setFavorites] = useImmer<string[]>([]);
+
+  // Load filter state from localStorage on mount
+  useEffect(() => {
+    if (!canUseLocalStorage) {
+      isInitialized.current = true;
+      return;
+    }
+
+    try {
+      const savedFilterState = localStorage.getItem(FILTER_STATE_KEY);
+      if (savedFilterState) {
+        const parsedFilterState = JSON.parse(savedFilterState) as FilterState;
+        setFilterState(parsedFilterState);
+        console.log('[AppContext] Restored filter state from localStorage');
+      }
+    } catch (error) {
+      console.error('[AppContext] Error loading filter state from localStorage:', error);
+      // If there's an error, fall back to the default state (which is already set)
+    }
+    
+    // Mark initialization as complete
+    isInitialized.current = true;
+  }, []);
+
+  // Save filter state to localStorage when it changes
+  useEffect(() => {
+    // Skip saving during the initial load or if localStorage isn't available
+    if (!isInitialized.current || !canUseLocalStorage) return;
+    
+    try {
+      localStorage.setItem(FILTER_STATE_KEY, JSON.stringify(filterState));
+    } catch (error) {
+      console.error('[AppContext] Error saving filter state to localStorage:', error);
+    }
+  }, [filterState]);
 
   // Handle Supabase auth state
   useEffect(() => {

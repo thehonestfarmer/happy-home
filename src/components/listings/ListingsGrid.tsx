@@ -149,6 +149,8 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
     }
     
     const filteredListings = listings 
+      // Filter out any properties with removed flag
+      .filter((listing) => !listing.removed)
       .filter((listing) => !listing.isDuplicate)
       .filter((listing) => {
         if (filterState.priceRange.min || filterState.priceRange.max) {

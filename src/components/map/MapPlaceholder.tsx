@@ -480,6 +480,8 @@ export function MapDisplay({
     if (!sourceListings.length) return [];
 
     return sourceListings
+      // Filter out removed properties
+      .filter((listing) => !listing.removed)
       .filter((listing) => !listing.isDuplicate)
       .filter((listing) => {
         // Only include listings with coordinates

@@ -154,6 +154,7 @@ export interface Listing {
     listingDetail?: string;
     tags?: string;
     listingDetailUrl?: string;
+    removed?: boolean;
     
     // New properties from enhanced data
     buildSqMeters?: string;
