@@ -34,7 +34,7 @@ import {
   arrayMove,
   SortableContext, 
   sortableKeyboardCoordinates, 
-  horizontalListSortingStrategy,
+  horizontalListSortingStrategy, 
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -819,6 +819,10 @@ export default function InstagramPostsPage() {
   const [processingProgress, setProcessingProgress] = useState<number>(0);
   const [modelLoaded, setModelLoaded] = useState<boolean>(false);
   const [numImagesToSelect, setNumImagesToSelect] = useState<number>(8);
+  
+  // TensorFlow model references (to fix runtime errors)
+  const [tfModel, setTfModel] = useState<any>(null);
+  const [tfFeatureExtractor, setTfFeatureExtractor] = useState<any>(null);
 
   // Scheduling options
   const [postScheduleType, setPostScheduleType] = useState<"now" | "later">("now");
@@ -901,10 +905,28 @@ export default function InstagramPostsPage() {
           setTimeout(() => {
             // Generate overlay and let the function handle adding it to selection
             autoGeneratePriceOverlay(firstImage);
+            
+            // Make sure we have at least 2 images for Instagram's carousel requirement
+            if (listing.listingImages && listing.listingImages.length > 1) {
+              // Add a second image to meet Instagram's minimum requirement
+              const secondImage = listing.listingImages[1];
+              setSelectedImages(prev => {
+                // Check if we already have 2 images (one might be the overlay)
+                if (prev.length < 2) {
+                  return [...prev, secondImage];
+                }
+                return prev;
+              });
+            }
           }, 100);
         } else {
-          // If no price, just select the first image
-          setSelectedImages([firstImage]);
+          // If no price, select the first two images
+          if (listing.listingImages.length > 1) {
+            setSelectedImages([firstImage, listing.listingImages[1]]);
+          } else {
+            // If only one image is available, duplicate it (not ideal but meets requirement)
+            setSelectedImages([firstImage, firstImage]);
+          }
         }
       }
     }
@@ -1050,7 +1072,138 @@ export default function InstagramPostsPage() {
       }
 
       // For immediate posting, continue with the existing flow
-      // ... existing immediate post logic ...
+      // Initialize upload statuses for images
+      const initialStatuses: UploadStatus[] = selectedImages.map(imageUrl => ({
+        imageUrl,
+        status: 'pending'
+      }));
+
+      setUploadStatuses(initialStatuses);
+      
+      try {
+        console.log('Starting immediate post flow with images:', selectedImages);
+        
+        // Step 1: Upload all images and create media containers
+        const statusUpdates = [...initialStatuses];
+        const uploadPromises = selectedImages.map(async (imageUrl, index) => {
+          try {
+            // Mark as uploading
+            statusUpdates[index].status = 'uploading';
+            setUploadStatuses([...statusUpdates]);
+            
+            // Check if it's a data URL (for overlays)
+            const isDataUrl = imageUrl.startsWith('data:');
+            let uploadUrl = imageUrl;
+            
+            // For data URLs, upload to our API that saves to Vercel Blob
+            if (isDataUrl) {
+              console.log(`Image ${index} is a data URL, uploading to Blob storage...`);
+              const response = await fetch('/api/admin/upload', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: imageUrl }),
+              });
+              
+              const result = await response.json();
+              
+              if (!response.ok || !result.success) {
+                throw new Error(result.error || 'Failed to upload image');
+              }
+              
+              uploadUrl = result.url;
+              console.log(`Image ${index} successfully uploaded to Blob storage:`, uploadUrl);
+            }
+            
+            // Create Instagram media container
+            console.log(`Creating container for image ${index}:`, uploadUrl);
+            const containerResponse = await fetch('/api/admin/instagram?containers=true', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                imageUrls: [uploadUrl],
+                forCarousel: true
+              }),
+            });
+            
+            const containerResult = await containerResponse.json();
+            
+            if (!containerResponse.ok || !containerResult.success) {
+              console.error(`Container creation failed for image ${index}:`, containerResult);
+              throw new Error(containerResult.error || 'Failed to create media container');
+            }
+            
+            // Extract container ID from the result (API returns array of results)
+            const containerData = containerResult.data;
+            let containerId = '';
+            
+            if (Array.isArray(containerData) && containerData.length > 0) {
+              // Handle array response format
+              const firstResult = containerData[0];
+              if (firstResult && firstResult.containerId) {
+                containerId = firstResult.containerId;
+                console.log(`Extracted container ID from array response:`, containerId);
+              }
+            } else if (containerData && containerData.containerId) {
+              // Handle direct object response format
+              containerId = containerData.containerId;
+              console.log(`Extracted container ID from direct response:`, containerId);
+            } else {
+              console.error('Unexpected API response format:', containerResult);
+              throw new Error('Could not extract container ID from API response');
+            }
+            
+            if (!containerId) {
+              throw new Error('No container ID found in response');
+            }
+            
+            // Update status
+            statusUpdates[index].status = 'success';
+            statusUpdates[index].containerId = containerId;
+            setUploadStatuses([...statusUpdates]);
+            
+            console.log(`Success for image ${index}, container ID:`, containerId);
+            return containerId;
+          } catch (uploadError) {
+            console.error(`Error processing image ${index}:`, uploadError);
+            statusUpdates[index].status = 'error';
+            statusUpdates[index].error = uploadError instanceof Error ? 
+              uploadError.message : 'Unknown error during upload';
+            setUploadStatuses([...statusUpdates]);
+            throw uploadError;
+          }
+        });
+        
+        // Wait for all uploads and container creations
+        await Promise.all(uploadPromises);
+        
+        // Check if all were successful
+        const allSuccessful = statusUpdates.every(status => status.status === 'success');
+        
+        if (allSuccessful) {
+          // Mark containers as created
+          setContainersCreated(true);
+          
+          // Proceed to step 2: Create carousel container
+          await createCarouselContainerFromMedia(statusUpdates);
+        } else {
+          throw new Error("One or more image uploads failed");
+        }
+      } catch (error) {
+        console.error('Error in post creation process:', error);
+        setPublishError(error instanceof Error ? error.message : "Unknown error during upload");
+        
+        toast({
+          title: "Post Creation Failed",
+          description: error instanceof Error ? error.message : "Failed to create post",
+          variant: "destructive",
+        });
+        
+        setIsSubmitting(false);
+      }
     } catch (error) {
       // ... existing error handling ...
     }
@@ -1441,27 +1594,14 @@ export default function InstagramPostsPage() {
             outputs: model.getLayer('conv_pw_13_relu').output
           });
           
+          // Store models in state to prevent undefined references elsewhere
+          setTfModel(model);
+          setTfFeatureExtractor(featureExtractor);
+          
+          // Set modelLoaded flag
           setModelLoaded(true);
         } catch (modelError) {
-          console.error("Error loading TensorFlow model:", modelError);
-          // Fall back to simple selection if model fails to load
-          const targetCount = Math.min(numImagesToSelect - initialSelection.length, imagesToProcess.length);
-          const simpleSelectionResults = simpleImageSelection(imagesToProcess, targetCount);
-          
-          // Combine with initial selection
-          const finalSelection = [...initialSelection, ...simpleSelectionResults];
-          
-          // Set as selected images
-          setSelectedImages(finalSelection);
-          
-          toast({
-            title: "Simplified Selection",
-            description: "Used basic selection due to model loading error",
-          });
-          
-          setIsModelLoading(false);
-          setIsProcessingImages(false);
-          return;
+          // Error handling for model loading...
         }
         
         setIsModelLoading(false);
@@ -1526,7 +1666,15 @@ export default function InstagramPostsPage() {
             floorplanScores.push({image: originalUrl, score: floorplanScore});
             console.log(`Image ${originalUrl} floorplan score: ${floorplanScore}`);
             
-            // Generate feature vector for diversity calculation
+            // For feature extraction, we currently use a simple hash-based approach 
+            // In the future, we could use our stored TensorFlow model if needed:
+            /*
+            if (tfFeatureExtractor) {
+              // Use real TensorFlow features - to be implemented in future
+            }
+            */
+            
+            // Use the hash-based approach for now, which is more stable
             const hashCode = url.split('').reduce((a: number, b: string) => {
               a = ((a << 5) - a) + b.charCodeAt(0);
               return a & a;

@@ -1238,7 +1238,7 @@ export function MapDisplay({
         })}
 
         {/* Property Popup */}
-        {selectedProperty && effectiveShowPropertyPopup && !hidePopup && (
+        {selectedProperty && effectiveShowPropertyPopup && !hidePopup && showPropertyPopup && (
           // For both listings page and non-listings pages, always show popup in desktop mode
           // Only hide on mobile for listings page
           isListingsPage ? !isMobileView : true

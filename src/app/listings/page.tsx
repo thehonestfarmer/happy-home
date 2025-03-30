@@ -53,6 +53,8 @@ export default function ListingsPage() {
     const filtered = listings.filter(listing => {
       // Skip if invalid listing
       if (!listing) return false;
+      if (listing.removed) return false;
+      if (listing.coordinates?.lat === null || listing.coordinates?.long === null) return false;
       
       // Filter by favorites if enabled
       if (filterState.showOnlyFavorites) {

@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     
     // Get the listing data to verify image URLs
     const listings = await readListings(true);
-    const listing = listings.newListings[body.listingId];
+    const listing = listings[body.listingId];
     
     if (!listing) {
       return NextResponse.json({ 

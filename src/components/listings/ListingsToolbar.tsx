@@ -39,22 +39,19 @@ export function ListingsToolbar() {
   return (
     <div className="sticky top-4 z-10 hidden lg:block">
       <div className="p-3 bg-white border shadow-sm rounded-md">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="grid grid-cols-2 gap-2">
+        <div className="flex items-center justify-between space-x-4">
+          <div className="flex items-center space-x-3">
             <FavoritesFilter />
             <ForSaleFilter />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="w-full flex">
+            <div className="flex items-center">
               <CurrencySelector variant="toolbar" />
             </div>
             <PriceFilter />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
             <LDKFilter />
-            <SortSelect />
           </div>
-          <div className="flex items-center justify-end">
+          
+          <div className="flex items-center space-x-3">
+            <SortSelect />
             <Button
               variant="outline"
               size="sm"

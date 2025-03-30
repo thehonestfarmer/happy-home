@@ -75,7 +75,7 @@ export async function createMediaContainer(imageUrl: string, caption?: string, i
   }
 
   try {
-    console.log('Sending media container request:', JSON.stringify(requestBody, null, 2));
+    console.log('Sending media container request...');
     
     const response = await fetch(url, {
       method: 'POST',
