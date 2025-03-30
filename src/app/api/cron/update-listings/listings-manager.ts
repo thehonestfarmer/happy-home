@@ -102,25 +102,26 @@ async function retryFailedScrapes(
   }
 }
 
+async function readLocalListings(): Promise<ListingsData> {
+  try {
+
+    const filePath = path.join(process.cwd(), '/public/batch_test_results.json');
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+
+    // Extract listings from newListings if present, otherwise use as-is
+    const listings = data.newListings ? data.newListings : data;
+    console.log(`Read ${Object.keys(listings).length} listings from local file`);
+    return listings;
+  } catch (error) {
+    console.error('Error reading local listings file:', error);
+    return {};
+  }
+}
+
 export async function readListings(useBlob?: boolean): Promise<ListingsData> {
   // Check if in development mode
   if (process.env.NODE_ENV === 'development' && !useBlob) {
-    try {
-      // Import local file system module
-      const fs = require('fs');
-      const path = require('path');
-
-      const filePath = path.join(process.cwd(), '/public/batch_test_results.json');
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-
-      // Extract listings from newListings if present, otherwise use as-is
-      const listings = data.newListings ? data.newListings : data;
-      console.log(`Read ${Object.keys(listings).length} listings from local file`);
-      return listings;
-    } catch (error) {
-      console.error('Error reading local listings file:', error);
-      return {};
-    }
+    return readLocalListings()
   }
 
   try {

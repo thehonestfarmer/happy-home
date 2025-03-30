@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,11 @@ export default function ImageSelector({
   maxHeight = '400px'
 }: ImageSelectorProps) {
   const [selectedImages, setSelectedImages] = useState<string[]>(initialSelectedImages);
+  
+  // Update internal selection state when initialSelectedImages prop changes
+  useEffect(() => {
+    setSelectedImages(initialSelectedImages);
+  }, [initialSelectedImages]);
   
   const toggleImageSelection = (imageUrl: string) => {
     let newSelectedImages;

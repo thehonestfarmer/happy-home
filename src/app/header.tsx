@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/popover";
 import Image from "next/image";
 import { ListingsToolbar } from "@/components/listings/ListingsToolbar";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+
 function ConditionalToolbar({ path }: { path: string }) {
   if (path === '/listings') {
     return <ListingsToolbar />;
@@ -58,13 +60,10 @@ export default function Header() {
   const AuthButton = () => {
     if (!user) {
       return (
-        <Button
+        <GoogleSignInButton
           variant="outline"
           className="bg-white/90 text-primary border-primary/20 hover:bg-accent-blue/10 hover:text-primary hover:border-primary transition-colors"
-          onClick={handleGoogleLogin}
-        >
-          Sign in with Google
-        </Button>
+        />
       );
     }
 

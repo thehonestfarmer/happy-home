@@ -3,8 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown, SlidersHorizontal, DollarSign } from "lucide-react";
 import { useAppContext } from "@/AppContext";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ForSaleFilterContent } from "./filters/ForSaleFilter";
+import { FavoritesFilterContent } from "./filters/FavoritesFilter";
 import { 
   Popover, 
   PopoverContent, 
@@ -15,22 +16,36 @@ import { BottomDrawer } from "./BottomDrawer";
 import { CURRENCY_SYMBOLS, EXCHANGE_RATES, Currency } from "@/lib/listing-utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { useListings } from "@/contexts/ListingsContext";
+import { getValidFavoritesCount } from "@/lib/favorites-utils";
 
 export function MobileFilterHeader() {
-  const { filterState, setFilterState } = useAppContext();
+  const { filterState, setFilterState, favorites } = useAppContext();
+  const { listings } = useListings();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
+  // Calculate the valid favorites count
+  const validFavoritesCount = useMemo(() => {
+    return getValidFavoritesCount(favorites, listings || []);
+  }, [favorites, listings]);
   
   // Track filter states
   const showForSale = filterState.showForSale !== false; // Default to true if undefined
   const showSold = filterState.showSold === true; // Default to false if undefined
+  const showOnlyFavorites = filterState.showOnlyFavorites;
   const selectedCurrency = filterState.priceRange?.currency || "USD";
   
-  // Determine the button text based on selected options
-  const getFilterText = () => {
+  // Determine the property filter text based on selected options
+  const getPropertyFilterText = () => {
     if (showForSale && showSold) return "All Properties";
     if (showForSale) return "For Sale";
     if (showSold) return "Sold";
     return "None Selected"; // Edge case if both are false
+  };
+  
+  // Determine the favorites filter text
+  const getFavoritesFilterText = () => {
+    return showOnlyFavorites ? "Favorites" : "All Listings";
   };
 
   // Format exchange rate display
@@ -59,7 +74,31 @@ export function MobileFilterHeader() {
   return (
     <>
       <div className="bg-white border-b shadow-sm p-2">
-        <div className="flex gap-2 justify-between items-center">
+        <div className="flex gap-2 justify-between items-center flex-wrap">
+          {/* Favorites Filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="outline" 
+                className={cn(
+                  "flex-1 items-center justify-between",
+                  showOnlyFavorites && "bg-primary/10 border-primary/20"
+                )}
+              >
+                {getFavoritesFilterText()}
+                {showOnlyFavorites && validFavoritesCount > 0 && (
+                  <span className="ml-1 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                    {validFavoritesCount}
+                  </span>
+                )}
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-4">
+              <FavoritesFilterContent />
+            </PopoverContent>
+          </Popover>
+          
           {/* For Sale/Sold Filter */}
           <Popover>
             <PopoverTrigger asChild>
@@ -70,7 +109,7 @@ export function MobileFilterHeader() {
                   (showSold || !showForSale) && "bg-primary/10 border-primary/20"
                 )}
               >
-                {getFilterText()}
+                {getPropertyFilterText()}
                 <ChevronDown className="h-4 w-4 ml-2" />
               </Button>
             </PopoverTrigger>

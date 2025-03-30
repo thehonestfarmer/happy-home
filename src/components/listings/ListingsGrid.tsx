@@ -10,6 +10,7 @@ import { RotateCcw } from "lucide-react";
 import { LoadingListingCard } from "./LoadingListingCard";
 import { ErrorDisplay } from "../ui/ErrorDisplay";
 import { Listing, parseLayout } from '@/lib/listing-utils';
+import { getValidFavoritesCount } from "@/lib/favorites-utils";
 import {
   AutoSizer as _AutoSizer,
   Grid as _Grid,
@@ -23,6 +24,7 @@ import { CSSProperties, FC } from "react";
 // Helper to check if filters are at default state
 const isDefaultFilterState = (filterState: FilterState) => {
   return (filterState.showForSale && !filterState.showSold) &&
+    !filterState.showOnlyFavorites &&
     !filterState.priceRange.min &&
     !filterState.priceRange.max &&
     !filterState.layout.minLDK &&
@@ -48,7 +50,7 @@ const parsePriceJPY = (price: string): number => {
 
 export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
   const { isLoading, error, listings } = useListings();
-  const { filterState, setFilterState, displayState } = useAppContext();
+  const { filterState, setFilterState, displayState, favorites } = useAppContext();
   // Create a ref for the Grid component
   const gridRef = useRef<GridType | null>(null);
 
@@ -152,6 +154,13 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
       // Filter out any properties with removed flag
       .filter((listing) => !listing.removed)
       .filter((listing) => !listing.isDuplicate)
+      // Filter to only show favorite listings if showOnlyFavorites is true
+      .filter((listing) => {
+        if (filterState.showOnlyFavorites) {
+          return listing.id && favorites.includes(listing.id);
+        }
+        return true;
+      })
       .filter((listing) => {
         if (filterState.priceRange.min || filterState.priceRange.max) {
           const priceJPY = parseJapanesePrice(listing.price);
@@ -243,16 +252,19 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
     listings,
     filterState.showForSale,
     filterState.showSold,
+    filterState.showOnlyFavorites,
     filterState.priceRange.min,
     filterState.priceRange.max,
     filterState.layout.minLDK,
-    displayState.sortBy
+    displayState.sortBy,
+    favorites
   ]);
 
   const handleResetFilters = () => {
     setFilterState({
       showForSale: true,
       showSold: false,
+      showOnlyFavorites: false,
       priceRange: {
         min: null,
         max: null,
@@ -265,14 +277,44 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
         minBuildSize: null,
         maxBuildSize: null,
         minLandSize: null,
-        maxLandSize: null
-      }
+        maxLandSize: null,
+      },
     });
   };
 
   // Extract NoResults into a memoized component outside of the render logic
   const NoResults = useMemo(() => {
     return () => {
+      // If showing favorites but none are valid, show appropriate message
+      if (filterState.showOnlyFavorites) {
+        const validCount = getValidFavoritesCount(favorites, listings || []);
+        
+        if (validCount === 0) {
+          return (
+            <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+              <p className="text-lg font-medium">
+                {favorites.length > 0 
+                  ? "None of your favorited properties meet the display criteria" 
+                  : "You haven't added any favorites yet"}
+              </p>
+              <p className="text-muted-foreground">
+                {favorites.length > 0 
+                  ? "Your favorites may not have valid location data or may have been removed"
+                  : "Browse listings and click the heart icon to save favorites"}
+              </p>
+              <Button
+                variant="outline"
+                onClick={handleResetFilters}
+                className="mt-4"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Show All Listings
+              </Button>
+            </div>
+          );
+        }
+      }
+      
       if (filteredAndSortedListings.length === 0) {
         return (
           <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
@@ -305,7 +347,7 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
         </div>
       );
     };
-  }, [filterState, handleResetFilters, filteredAndSortedListings]);
+  }, [filterState, handleResetFilters, filteredAndSortedListings, favorites, listings]);
 
   // Dynamic row height calculation based on viewport width
   const getRowHeight = (width: number): number => {

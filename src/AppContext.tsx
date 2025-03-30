@@ -43,6 +43,7 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 export type FilterState = {
   showForSale: boolean;
   showSold: boolean;
+  showOnlyFavorites: boolean;
   priceRange: {
     min: number | null;
     max: number | null;
@@ -62,6 +63,7 @@ export type FilterState = {
 export const defaultFilterState: FilterState = {
   showForSale: true,
   showSold: true,
+  showOnlyFavorites: false,
   priceRange: {
     min: null,
     max: null,

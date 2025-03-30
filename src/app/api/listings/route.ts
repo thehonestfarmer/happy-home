@@ -3,7 +3,7 @@ import { readListings } from '../cron/update-listings/listings-manager';
 
 export async function GET() {
   try {
-    const listings = await readListings();
+    const listings = await readListings(true);
     
     return NextResponse.json({ 
       success: true,
