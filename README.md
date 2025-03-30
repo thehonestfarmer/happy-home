@@ -1,24 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Happy Home Admin Dashboard
+
+This project provides an admin dashboard for managing real estate listings and social media marketing.
+
+## Features
+
+- Manage property listings
+- Create and schedule Instagram posts for properties
+- Automatically select the best images for social media posts
+- Generate custom price overlays for Instagram posts
+
+## Instagram Post Management
+
+The Instagram Posts feature allows you to:
+
+1. Create carousel posts from property listings
+2. Select images manually or automatically using AI-powered selection
+3. Generate custom price overlay images
+4. Schedule posts for future publication
+5. View and manage scheduled posts
+
+### Supabase Setup
+
+The scheduled posts feature requires a Supabase database with the following setup:
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Set up environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anon/public key
+
+3. Create the `scheduled_posts` table with the following schema:
+
+```sql
+create table public.scheduled_posts (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default now(),
+  scheduled_for timestamp with time zone not null,
+  caption text not null,
+  tags text[] null,
+  images text[] not null,
+  listing_id text not null,
+  status text not null default 'scheduled'::text 
+    check (status in ('scheduled', 'published', 'failed', 'cancelled')),
+  carousel_container_id text null,
+  media_container_ids text[] null,
+  error_message text null,
+  user_id text not null,
+  metadata jsonb null
+);
+
+-- Create index for faster queries
+create index scheduled_posts_status_idx on public.scheduled_posts (status);
+create index scheduled_posts_scheduled_for_idx on public.scheduled_posts (scheduled_for);
+
+-- Enable RLS (Row Level Security)
+alter table public.scheduled_posts enable row level security;
+
+-- Create a policy for authenticated users
+create policy "Users can view their own scheduled posts"
+  on public.scheduled_posts for select
+  using (auth.uid() = user_id);
+  
+create policy "Users can insert their own scheduled posts"
+  on public.scheduled_posts for insert
+  with check (auth.uid() = user_id);
+  
+create policy "Users can update their own scheduled posts"
+  on public.scheduled_posts for update
+  using (auth.uid() = user_id);
+  
+create policy "Users can delete their own scheduled posts"
+  on public.scheduled_posts for delete
+  using (auth.uid() = user_id);
+```
+
+4. Set up a cron job or worker to process scheduled posts at their scheduled time
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables
+4. Run the development server: `npm run dev`
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Technologies Used
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Supabase
+- TensorFlow.js (for image analysis)
 
 ## Learn More
 
