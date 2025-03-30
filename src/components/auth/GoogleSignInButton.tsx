@@ -86,13 +86,18 @@ export function GoogleSignInButton({
         onSignInStart();
       }
 
-      // Get current host - ensure we're using the actual domain, not localhost
-      const host = window.location.hostname;
-      const protocol = window.location.protocol;
-      const port = window.location.port ? `:${window.location.port}` : '';
+      // Determine the base URL based on environment
+      // In development, use localhost, in production, use happyhomejapan.com
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const baseUrl = isDevelopment 
+        ? `${window.location.protocol}//${window.location.host}`
+        : 'https://happyhomejapan.com';
       
-      // Construct a redirect URL that won't default to localhost in production
-      const redirectUrl = `${protocol}//${host}${port}/auth/callback`;
+      // Construct a redirect URL based on environment
+      const redirectUrl = `${baseUrl}/auth/callback`;
+      
+      console.log('Environment:', process.env.NODE_ENV);
+      console.log('Auth redirect URL:', redirectUrl);
       
       // Determine whether to use a popup or redirect based on device
       // Popups work better on desktop, redirects on mobile
@@ -103,8 +108,6 @@ export function GoogleSignInButton({
           prompt: 'consent',
         }
       };
-      
-      console.log('Auth redirect URL:', redirectUrl); // For debugging
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

@@ -15,10 +15,7 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Return HTML that properly handles redirects in different scenarios:
-  // 1. If it's a popup (like from a modal), it will communicate back to the opener and close
-  // 2. If it's a direct navigation, it redirects to the stored path or homepage
-  // 3. Adds proper error handling and visual feedback during the process
+  // Return HTML that properly handles redirects in different scenarios
   return new NextResponse(
     `
     <html>
@@ -71,7 +68,7 @@ export async function GET(request: Request) {
         </div>
         
         <script>
-          // Log the current URL for debugging (in production will be logged to the console)
+          // Log the current URL for debugging
           console.log('Callback URL:', window.location.href);
           
           // Function to handle redirect with proper error handling
@@ -84,20 +81,52 @@ export async function GET(request: Request) {
               // Clear the stored path
               localStorage.removeItem('authRedirectPath');
               
-              // If redirect path contains 'localhost' in production, handle it
-              if (redirectPath.includes('localhost') && !window.location.hostname.includes('localhost')) {
-                console.warn('Detected localhost in redirect URL in production environment');
-                // Replace localhost with the actual hostname
-                const correctedPath = redirectPath.replace(/https?:\\/\\/localhost(:[0-9]+)?/g, window.location.origin);
-                window.location.href = correctedPath;
-                return;
+              // Environment-aware URL correction
+              const currentHostname = window.location.hostname;
+              const isDevelopment = currentHostname.includes('localhost');
+              const productionDomain = 'happyhomejapan.com';
+              
+              // Log environment information
+              console.log('Current hostname:', currentHostname);
+              console.log('Is development:', isDevelopment);
+              
+              // Build the correct origin based on environment
+              let correctOrigin;
+              if (isDevelopment) {
+                correctOrigin = window.location.origin;
+              } else {
+                // In production, always use the production domain
+                const protocol = window.location.protocol;
+                correctOrigin = protocol + '//' + productionDomain;
               }
               
-              // Log the redirect path for debugging
-              console.log('Redirecting to:', redirectPath);
+              // If the stored path has a full URL, ensure it uses the correct domain
+              let finalRedirectPath = redirectPath;
+              if (redirectPath.includes('://')) {
+                // Extract just the path portion from the URL
+                try {
+                  const pathUrl = new URL(redirectPath);
+                  // Only keep the pathname and search portions
+                  finalRedirectPath = pathUrl.pathname + pathUrl.search;
+                } catch (e) {
+                  console.warn('Could not parse redirect URL:', e);
+                }
+              }
+              
+              // If it's just a path (no protocol/domain), ensure it starts with a slash
+              if (!finalRedirectPath.includes('://') && !finalRedirectPath.startsWith('/')) {
+                finalRedirectPath = '/' + finalRedirectPath;
+              }
+              
+              // Combine the correct origin with the path
+              const redirectUrl = finalRedirectPath.includes('://')
+                ? finalRedirectPath
+                : correctOrigin + finalRedirectPath;
+              
+              console.log('Final redirect URL:', redirectUrl);
               
               // Redirect to the appropriate path
-              window.location.href = redirectPath;
+              window.location.href = redirectUrl;
             } catch (error) {
               // Show error message in case something goes wrong
               const errorMessage = document.getElementById('errorMessage');
@@ -107,7 +136,11 @@ export async function GET(request: Request) {
               
               // Default redirect after delay in case of error
               setTimeout(() => {
-                window.location.href = '/';
+                // Determine the correct base URL for fallback
+                const fallbackUrl = window.location.hostname.includes('localhost')
+                  ? window.location.origin
+                  : 'https://happyhomejapan.com';
+                window.location.href = fallbackUrl;
               }, 3000);
             }
           }
@@ -143,4 +176,4 @@ export async function GET(request: Request) {
       },
     }
   );
-} 
+}
