@@ -71,8 +71,8 @@ const getHiddenListingsFromStorage = (): string[] => {
   }
 };
 
-export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
-  const { isLoading, error, listings } = useListings();
+export function ListingsGrid({ onSelectProperty, listings: propsListings }: ListingsGridProps) {
+  const { isLoading, error, listings: contextListings } = useListings();
   const { filterState, setFilterState, displayState, favorites, isReady } = useAppContext();
   // Create a ref for the Grid component
   const gridRef = useRef<GridType | null>(null);
@@ -174,8 +174,13 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
 
   // First run - on data prerequisites change, compute filtered listings but don't update state yet
   const computedListings = useMemo(() => {
+    // If we have pre-filtered listings passed from parent, use those directly
+    if (propsListings && propsListings.length > 0) {
+      return propsListings;
+    }
+
     // Skip computation if we don't have the necessary data
-    if (!isReady || !listings || listings.length === 0) {
+    if (!isReady || !contextListings || contextListings.length === 0) {
       return null; // Return null to indicate we need to use cached results
     }
     
@@ -193,7 +198,7 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
       }
     }
     
-    const filteredListings = listings 
+    const filteredListings = contextListings 
       // Filter out any properties with removed flag
       .filter((listing) => !listing.removed)
       .filter((listing) => !listing.isDuplicate)
@@ -306,7 +311,7 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
     // Flag that we should update the cache
     shouldUpdateCacheRef.current = true;
     return finalListings;
-  }, [listings, filterState, isReady, favorites, displayState.sortBy, isLoading, hiddenListings]);
+  }, [contextListings, filterState, isReady, favorites, displayState.sortBy, isLoading, hiddenListings, propsListings]);
 
   // Second run - update state in an effect, but only if computedListings has changed
   useEffect(() => {
@@ -331,7 +336,9 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
     return () => {
       // If showing favorites but none are valid, show appropriate message
       if (filterState.showOnlyFavorites) {
-        const validCount = getValidFavoritesCount(favorites, listings || []);
+        // Use both contextListings and propsListings for valid count
+        const allListings = propsListings || contextListings || [];
+        const validCount = getValidFavoritesCount(favorites, allListings);
         
         if (validCount === 0) {
           return (
@@ -391,7 +398,7 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
         </div>
       );
     };
-  }, [filterState, handleResetFilters, filteredAndSortedListings, favorites, listings]);
+  }, [filterState, handleResetFilters, filteredAndSortedListings, favorites, contextListings, propsListings]);
 
   // Dynamic row height calculation based on viewport width
   const getRowHeight = (width: number): number => {
@@ -503,7 +510,8 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
     );
   }
 
-  if (listings.length === 0) {
+  // Check for both props listings and context listings
+  if ((!propsListings || propsListings.length === 0) && (!contextListings || contextListings.length === 0)) {
     return (
       <div className="grid place-items-center min-h-[50vh]">
         <p className="text-muted-foreground">No listings found</p>

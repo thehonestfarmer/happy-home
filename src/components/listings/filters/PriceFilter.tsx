@@ -64,10 +64,10 @@ export function PriceFilterContent() {
 
   const handleRangeSelect = (rangeIndex: number) => {
     const range = getPriceRanges(selectedCurrency)[rangeIndex];
-    setPriceFilterState((draft) => {
+    setPriceFilterState((draft: any) => {
       draft.selectedRangeIndex = rangeIndex;
     });
-    setFilterState((draft) => {
+    setFilterState((draft: any) => {
       draft.priceRange.min = convertCurrency(range.min, selectedCurrency, "USD");
       draft.priceRange.max = range.max 
         ? convertCurrency(range.max, selectedCurrency, "USD")
@@ -76,13 +76,13 @@ export function PriceFilterContent() {
   };
 
   const handleReset = () => {
-    setFilterState((draft) => {
+    setFilterState((draft: any) => {
       draft.priceRange.min = undefined;
       draft.priceRange.max = undefined;
     });
-    setPriceFilterState((draft) => {
+    setPriceFilterState((draft: any) => {
       draft.selectedRangeIndex = null;
-      draft.localRange = [0, 100_000_000];
+      draft.localRange = [0, 100_000_000] as [number, number];
     });
   };
 
@@ -99,10 +99,10 @@ export function PriceFilterContent() {
             filterState.priceRange.min === undefined && "bg-primary/10 text-primary"
           )}
           onClick={() => {
-            setPriceFilterState((draft) => {
+            setPriceFilterState((draft: any) => {
               draft.selectedRangeIndex = null;
             });
-            setFilterState((draft) => {
+            setFilterState((draft: any) => {
               draft.priceRange.min = undefined;
               draft.priceRange.max = undefined;
             });
@@ -140,14 +140,14 @@ export function PriceFilterContent() {
             min={0}
             max={convertCurrency(100_000_000, "JPY", selectedCurrency)}
             step={convertCurrency(1_000_000, "JPY", selectedCurrency)}
-            value={priceFilterState.localRange}
-            onValueChange={(value) => 
-              setPriceFilterState((draft) => {
+            value={priceFilterState.localRange as [number, number]}
+            onValueChange={(value: [number, number]) => 
+              setPriceFilterState((draft: any) => {
                 draft.localRange = value;
               })
             }
-            onValueCommit={(value) =>
-              setFilterState((draft) => {
+            onValueCommit={(value: [number, number]) =>
+              setFilterState((draft: any) => {
                 draft.priceRange.min = convertCurrency(value[0], selectedCurrency, "USD");
                 draft.priceRange.max = convertCurrency(value[1], selectedCurrency, "USD");
               })

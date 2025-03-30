@@ -472,6 +472,11 @@ export function MapDisplay({
 
   // Filter the listings based on current filter state
   const filteredListings = useMemo(() => {
+    // If we received an already filtered list of listings, use that directly
+    if (propListings) {
+      return propListings;
+    }
+    
     if (!sourceListings) return [];
     
     // Get viewed listings from localStorage
@@ -519,7 +524,7 @@ export function MapDisplay({
       // If we get here, listing passes all filters
       return true;
     });
-  }, [sourceListings, filterState, favorites]);
+  }, [sourceListings, filterState, favorites, propListings]);
 
   // Auto-adjust map view based on visible listings
   useEffect(() => {

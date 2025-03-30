@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ChevronDown, SlidersHorizontal, DollarSign } from "lucide-react";
-import { useAppContext } from "@/AppContext";
+import { ChevronDown, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { useAppContext, defaultFilterState } from "@/AppContext";
 import { useState, useMemo, useEffect } from "react";
 import { ForSaleFilterContent } from "./filters/ForSaleFilter";
 import { FavoritesFilterContent } from "./filters/FavoritesFilter";
@@ -34,6 +34,10 @@ export function MobileFilterHeader() {
   const showSold = filterState.showSold === true; // Default to false if undefined
   const showOnlyFavorites = filterState.showOnlyFavorites;
   const selectedCurrency = filterState.priceRange?.currency || "USD";
+  
+  // Check if the property filter is in a non-default state
+  // Default is both "For Sale" and "Sold" selected
+  const isPropertyFilterModified = !(showForSale && showSold);
   
   // Reset favorites filter if user logs out
   useEffect(() => {
@@ -78,20 +82,45 @@ export function MobileFilterHeader() {
     });
   };
 
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    // Check if any filter is different from default
+    const isDefaultForSale = filterState.showForSale === defaultFilterState.showForSale;
+    const isDefaultSold = filterState.showSold === defaultFilterState.showSold;
+    const isDefaultFavorites = filterState.showOnlyFavorites === defaultFilterState.showOnlyFavorites;
+    const isDefaultSeen = filterState.showOnlySeen === defaultFilterState.showOnlySeen;
+    const isDefaultPriceMin = filterState.priceRange.min === defaultFilterState.priceRange.min;
+    const isDefaultPriceMax = filterState.priceRange.max === defaultFilterState.priceRange.max;
+    const isDefaultLDK = filterState.layout.minLDK === defaultFilterState.layout.minLDK;
+    const isDefaultSize = 
+      filterState.size.minBuildSize === defaultFilterState.size.minBuildSize &&
+      filterState.size.maxBuildSize === defaultFilterState.size.maxBuildSize &&
+      filterState.size.minLandSize === defaultFilterState.size.minLandSize &&
+      filterState.size.maxLandSize === defaultFilterState.size.maxLandSize;
+    
+    return !(isDefaultForSale && isDefaultSold && isDefaultFavorites && isDefaultSeen && 
+             isDefaultPriceMin && isDefaultPriceMax && isDefaultLDK && isDefaultSize);
+  }, [filterState]);
+
+  // Function to reset all filters to default
+  const handleClearAllFilters = () => {
+    setFilterState(defaultFilterState);
+  };
+
   // Get available currencies
   const availableCurrencies = Object.keys(EXCHANGE_RATES) as Currency[];
 
   return (
     <>
       <div className="bg-white border-b shadow-sm p-2">
-        <div className="flex gap-2 justify-between items-center flex-wrap">
-          {/* Favorites Filter */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Row 1 */}
           <Popover>
             <PopoverTrigger asChild>
               <Button 
                 variant="outline" 
                 className={cn(
-                  "flex-1 items-center justify-between",
+                  "w-full items-center justify-between",
                   showOnlyFavorites && "bg-primary/10 border-primary/20"
                 )}
               >
@@ -109,14 +138,13 @@ export function MobileFilterHeader() {
             </PopoverContent>
           </Popover>
           
-          {/* For Sale/Sold Filter */}
           <Popover>
             <PopoverTrigger asChild>
               <Button 
                 variant="outline" 
                 className={cn(
-                  "flex-1 items-center justify-between",
-                  (showSold || !showForSale) && "bg-primary/10 border-primary/20"
+                  "w-full items-center justify-between",
+                  isPropertyFilterModified && "bg-primary/10 border-primary/20"
                 )}
               >
                 {getPropertyFilterText()}
@@ -128,12 +156,12 @@ export function MobileFilterHeader() {
             </PopoverContent>
           </Popover>
           
-          {/* Currency Selector */}
+          {/* Row 2 */}
           <Popover>
             <PopoverTrigger asChild>
               <Button 
                 variant="outline" 
-                className="flex-1 items-center justify-between"
+                className="w-full items-center justify-between"
               >
                 {selectedCurrency}
                 <ChevronDown className="h-4 w-4 ml-2" />
@@ -180,15 +208,37 @@ export function MobileFilterHeader() {
             </PopoverContent>
           </Popover>
           
-          {/* Filters Button - Opens Bottom Drawer */}
           <Button
             variant="outline"
-            className="flex-1"
+            className={cn(
+              "w-full",
+              hasActiveFilters && "bg-primary/10 border-primary/20"
+            )}
             onClick={() => setIsDrawerOpen(true)}
           >
             <SlidersHorizontal className="h-4 w-4 mr-2" />
             Filters
+            {hasActiveFilters && (
+              <span className="ml-1 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                •
+              </span>
+            )}
           </Button>
+          
+          {/* Clear All Filters button - only shown when there are active filters */}
+          {hasActiveFilters && (
+            <div className="col-span-2 mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-muted-foreground"
+                onClick={handleClearAllFilters}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Clear All Filters
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

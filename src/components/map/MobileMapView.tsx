@@ -12,7 +12,13 @@ import { Listing } from "@/lib/listing-utils";
 import { useAppContext } from "@/AppContext";
 import { getValidFavoritesCount } from "@/lib/favorites-utils";
 
-export function MobileMapView({ maintainMapPosition = false }) {
+export function MobileMapView({ 
+  maintainMapPosition = false, 
+  listings: propListings 
+}: { 
+  maintainMapPosition?: boolean;
+  listings?: Listing[];
+}) {
   // View mode: 'map' or 'list'
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   // Selected listing to show in the drawer
@@ -29,9 +35,12 @@ export function MobileMapView({ maintainMapPosition = false }) {
   const drawerRef = useRef<HTMLDivElement>(null);
   
   // Get listings from context
-  const { listings, isLoading } = useListings();
+  const { listings: contextListings, isLoading } = useListings();
   // Get filter state and favorites from app context
   const { filterState, favorites, isReady } = useAppContext();
+  
+  // Use provided listings or context listings
+  const sourceListings = propListings || contextListings || [];
   
   // Ref to track if localStorage has been checked
   const hasCheckedStorage = useRef(false);
@@ -57,7 +66,7 @@ export function MobileMapView({ maintainMapPosition = false }) {
   
   // Filter listings based on the current filter state
   const filteredListings = useMemo(() => {
-    if (!listings || !isReady) return localFilteredListings;
+    if (!sourceListings || !isReady) return localFilteredListings;
     
     // Get viewed listings from localStorage
     let viewedListings: string[] = [];
@@ -73,7 +82,7 @@ export function MobileMapView({ maintainMapPosition = false }) {
       }
     }
     
-    const filtered = listings.filter(listing => {
+    const filtered = sourceListings.filter(listing => {
       // Skip if invalid listing
       if (!listing) return false;
       
@@ -107,7 +116,7 @@ export function MobileMapView({ maintainMapPosition = false }) {
     
     // Return filtered results without updating state here
     return filtered;
-  }, [listings, filterState, favorites, isReady]);
+  }, [sourceListings, filterState, favorites, isReady]);
   
   // Update the local filtered listings in a separate useEffect
   useEffect(() => {
@@ -245,7 +254,7 @@ export function MobileMapView({ maintainMapPosition = false }) {
       {/* List View */}
       {viewMode === 'list' && (
         <div className="w-full">
-          <ListingsGrid />
+          <ListingsGrid listings={filteredListings} />
         </div>
       )}
       

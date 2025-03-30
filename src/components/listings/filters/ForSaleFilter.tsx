@@ -82,6 +82,10 @@ export function ForSaleFilter() {
   const showForSale = filterState.showForSale !== false;
   const showSold = filterState.showSold === true;
   
+  // Check if the property filter is in a non-default state
+  // Default is both "For Sale" and "Sold" selected
+  const isPropertyFilterModified = !(showForSale && showSold);
+  
   // Determine the button text based on selected options
   const getFilterText = () => {
     if (showForSale && showSold) return "All Properties";
@@ -97,7 +101,7 @@ export function ForSaleFilter() {
           variant="outline" 
           className={cn(
             "flex items-center gap-2",
-            (showSold || !showForSale) && "bg-primary/10 border-primary/20"
+            isPropertyFilterModified && "bg-primary/10 border-primary/20"
           )}
         >
           {getFilterText()}

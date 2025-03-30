@@ -7,7 +7,7 @@ import { MobileMapView } from "@/components/map/MobileMapView";
 import { FeatureFlags } from "@/lib/featureFlags";
 import { MobileFilterHeader } from "@/components/listings/MobileFilterHeader";
 import Header from "../header";
-import { Listing } from "@/lib/listing-utils";
+import { Listing, parseJapanesePrice, convertCurrency, parseLayout } from "@/lib/listing-utils";
 import { useAppContext } from "@/AppContext";
 import { useListings } from "@/contexts/ListingsContext";
 
@@ -75,6 +75,64 @@ export default function ListingsPage() {
       // Add viewed listings filter
       if (filterState.showOnlySeen) {
         if (!viewedListings.includes(listing.id)) return false;
+      }
+
+      // Apply price range filter
+      if (filterState.priceRange.min || filterState.priceRange.max) {
+        const priceJPY = parseJapanesePrice(listing.price);
+        const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
+        
+        if (filterState.priceRange.min && priceUSD < filterState.priceRange.min) {
+          return false;
+        }
+        if (filterState.priceRange.max && priceUSD > filterState.priceRange.max) {
+          return false;
+        }
+      }
+      
+      // Apply layout filter
+      if (filterState.layout.minLDK) {
+        const layoutNumber = parseLayout(listing.layout);
+        if (layoutNumber < filterState.layout.minLDK) {
+          return false;
+        }
+      }
+      
+      // Apply size filters
+      if (filterState.size.minBuildSize && listing.buildSqMeters) {
+        const buildSize = typeof listing.buildSqMeters === 'string' 
+          ? parseFloat(listing.buildSqMeters) 
+          : listing.buildSqMeters;
+        if (buildSize < filterState.size.minBuildSize) {
+          return false;
+        }
+      }
+      
+      if (filterState.size.maxBuildSize && listing.buildSqMeters) {
+        const buildSize = typeof listing.buildSqMeters === 'string' 
+          ? parseFloat(listing.buildSqMeters) 
+          : listing.buildSqMeters;
+        if (buildSize > filterState.size.maxBuildSize) {
+          return false;
+        }
+      }
+      
+      if (filterState.size.minLandSize && listing.landSqMeters) {
+        const landSize = typeof listing.landSqMeters === 'string' 
+          ? parseFloat(listing.landSqMeters) 
+          : listing.landSqMeters;
+        if (landSize < filterState.size.minLandSize) {
+          return false;
+        }
+      }
+      
+      if (filterState.size.maxLandSize && listing.landSqMeters) {
+        const landSize = typeof listing.landSqMeters === 'string' 
+          ? parseFloat(listing.landSqMeters) 
+          : listing.landSqMeters;
+        if (landSize > filterState.size.maxLandSize) {
+          return false;
+        }
       }
       
       // If we get here, listing passes all filters
@@ -179,7 +237,10 @@ export default function ListingsPage() {
             {/* Mobile View - Full Map with toggle */}
             {isReady && (
               <div className="lg:hidden w-full">
-                <MobileMapView maintainMapPosition={maintainMapPosition} />
+                <MobileMapView 
+                  maintainMapPosition={maintainMapPosition} 
+                  listings={filteredListings}
+                />
               </div>
             )}
 
@@ -188,7 +249,7 @@ export default function ListingsPage() {
               <div className="hidden lg:flex lg:flex-row w-full">
                 {/* Listings section - pass onSelectProperty callback */}
                 <div className="lg:w-7/12 lg:max-w-[960px]">
-                  <ListingsGrid onSelectProperty={handleSelectProperty} />
+                  <ListingsGrid onSelectProperty={handleSelectProperty} listings={filteredListings} />
                 </div>
 
                 {/* Map section - pass selected property information */}

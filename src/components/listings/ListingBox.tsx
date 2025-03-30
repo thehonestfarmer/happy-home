@@ -212,24 +212,52 @@ export function ListingBox({
   
   // Simple image carousel state
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  // Track images that fail to load
+  // Track images that failed to load
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
+  // Track preloaded images
+  const [preloadedImages, setPreloadedImages] = useState<Record<number, boolean>>({});
   
   // Ensure we have valid image URLs
   const rawImages = property.listingImages || [];
-  // Ensure they're valid strings and limit to first 25 (increased from 4)
+  // Ensure they're valid strings and limit to first 5
   const displayImages = rawImages.length > 0 
     ? rawImages.filter(img => typeof img === 'string' && img.trim() !== '').slice(0, 5)
     : ['/placeholder-property.jpg'];
 
   // Handle image error
-  const handleImageError = () => {
-    console.error("Failed to load image:", displayImages[currentImageIndex]);
-    setFailedImages(prev => ({ ...prev, [currentImageIndex]: true }));
+  const handleImageError = (index: number) => {
+    console.error("Failed to load image:", displayImages[index]);
+    setFailedImages(prev => ({ ...prev, [index]: true }));
   };
 
-  // Navigation functions
-  const goToPreviousImage = (e?: React.MouseEvent) => {
+  // Preload images
+  useEffect(() => {
+    // Preload current image and adjacent images
+    const imagesToPreload = [
+      currentImageIndex,
+      (currentImageIndex + 1) % displayImages.length,
+      (currentImageIndex - 1 + displayImages.length) % displayImages.length,
+    ];
+    
+    // Deduplicate the indices
+    const uniqueIndicesToPreload = [...new Set(imagesToPreload)];
+    
+    uniqueIndicesToPreload.forEach(index => {
+      if (!preloadedImages[index] && !failedImages[index]) {
+        const img = new (window.Image as any)();
+        img.src = displayImages[index];
+        img.onload = () => {
+          setPreloadedImages(prev => ({ ...prev, [index]: true }));
+        };
+        img.onerror = () => {
+          handleImageError(index);
+        };
+      }
+    });
+  }, [currentImageIndex, displayImages, preloadedImages, failedImages]);
+
+  // Navigation functions with optimized state updates
+  const goToPreviousImage = useCallback((e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -237,9 +265,9 @@ export function ListingBox({
     setCurrentImageIndex(prev => 
       prev === 0 ? displayImages.length - 1 : prev - 1
     );
-  };
+  }, [displayImages.length]);
 
-  const goToNextImage = (e?: React.MouseEvent) => {
+  const goToNextImage = useCallback((e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -247,7 +275,7 @@ export function ListingBox({
     setCurrentImageIndex(prev => 
       prev === displayImages.length - 1 ? 0 : prev + 1
     );
-  };
+  }, [displayImages.length]);
 
   const handleImageClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -328,21 +356,24 @@ export function ListingBox({
             data-link="true"
           >
             <Link href={`/listings/view/${propertyId}`} passHref>
+              {/* Improved image rendering - using placeholder and optimized Image props */}
               {!failedImages[currentImageIndex] ? (
                 <Image
                   src={displayImages[currentImageIndex]}
                   alt={`Property listing ${property.id || 'image'} ${currentImageIndex + 1}`}
                   fill
-                  priority
+                  priority={currentImageIndex === 0}
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  className={`object-cover ${isSold ? 'opacity-90' : ''}`}
+                  className={`object-cover transition-opacity duration-200 ${isSold ? 'opacity-90' : ''}`}
                   style={{ objectPosition: 'center' }}
                   onClick={handleImageClick}
-                  onError={handleImageError}
+                  onError={() => handleImageError(currentImageIndex)}
                   draggable={false}
                   role="img"
                   aria-roledescription="slide"
                   aria-label={`Image ${currentImageIndex + 1} of ${displayImages.length}`}
+                  placeholder="blur"
+                  blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNmNWY1ZjUiLz48L3N2Zz4="
                 />
               ) : (
                 // Fallback for failed images
@@ -351,6 +382,36 @@ export function ListingBox({
                     <Home className="h-12 w-12 mb-2" />
                     <span className="text-sm font-medium">Image not available</span>
                   </div>
+                </div>
+              )}
+              
+              {/* Preload neighboring images (hidden) */}
+              {displayImages.length > 1 && (
+                <div className="hidden" aria-hidden="true">
+                  {/* Preload next image */}
+                  {!failedImages[(currentImageIndex + 1) % displayImages.length] && (
+                    <Image
+                      src={displayImages[(currentImageIndex + 1) % displayImages.length]}
+                      alt="Preload next image"
+                      width={1}
+                      height={1}
+                      className="opacity-0 absolute"
+                      priority={false}
+                      onError={() => handleImageError((currentImageIndex + 1) % displayImages.length)}
+                    />
+                  )}
+                  {/* Preload previous image */}
+                  {!failedImages[(currentImageIndex - 1 + displayImages.length) % displayImages.length] && (
+                    <Image
+                      src={displayImages[(currentImageIndex - 1 + displayImages.length) % displayImages.length]}
+                      alt="Preload previous image"
+                      width={1}
+                      height={1}
+                      className="opacity-0 absolute"
+                      priority={false}
+                      onError={() => handleImageError((currentImageIndex - 1 + displayImages.length) % displayImages.length)}
+                    />
+                  )}
                 </div>
               )}
             </Link>
