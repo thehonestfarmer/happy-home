@@ -19,6 +19,7 @@ import {
 import Image from "next/image";
 import { ListingsToolbar } from "@/components/listings/ListingsToolbar";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { clearAuthData } from '@/lib/supabase/client';
 
 function ConditionalToolbar({ path }: { path: string }) {
   if (path === '/listings') {
@@ -54,7 +55,41 @@ export default function Header() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      console.log('Starting sign out process...');
+      
+      // First, try the standard sign out
+      const { error } = await supabase.auth.signOut({ 
+        scope: 'local'
+      });
+      
+      if (error) {
+        console.log('Standard sign out failed, using fallback approach:', error.message);
+        
+        // Use our async helper function to clear auth data
+        await clearAuthData();
+      } else {
+        console.log('Sign out successful via Supabase API');
+        
+        // Even if the Supabase API call succeeded, also call our server-side cleanup
+        // This ensures all cookies are properly cleared
+        await clearAuthData();
+      }
+      
+      // Force a full page reload to clear any in-memory state
+      console.log('Redirecting to home page...');
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Exception during sign out:', err);
+      
+      // Even if everything fails, try to clear data and redirect
+      try {
+        await clearAuthData();
+      } catch (clearError) {
+        console.error('Failed to clear auth data:', clearError);
+      }
+      window.location.href = '/';
+    }
   };
 
   const AuthButton = () => {

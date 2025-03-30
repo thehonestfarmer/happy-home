@@ -12,6 +12,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { LogOut, ChevronLeft } from "lucide-react";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { clearAuthData } from '@/lib/supabase/client';
 
 interface NotificationSettings {
   marketing: boolean;
@@ -76,15 +77,43 @@ export default function AccountPage() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('Starting sign out process...');
       
-      // Update the app context to reflect signed out state
+      // First, try the standard sign out
+      const { error } = await supabase.auth.signOut({ 
+        scope: 'local'
+      });
+      
+      if (error) {
+        console.log('Standard sign out failed, using fallback approach:', error.message);
+        
+        // Use our async helper function to clear auth data
+        await clearAuthData();
+      } else {
+        console.log('Sign out successful via Supabase API');
+        
+        // Even if the Supabase API call succeeded, also call our server-side cleanup
+        // This ensures all cookies are properly cleared
+        await clearAuthData();
+      }
+      
+      // Always update app context
       setUser(null);
       
-      // Redirect to home page after sign out
-      router.push('/');
+      // Force a full page reload to clear any in-memory state
+      console.log('Redirecting to home page...');
+      window.location.href = '/';
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Exception during sign out:', error);
+      
+      // Even if everything fails, try to clear state and redirect 
+      setUser(null);
+      try {
+        await clearAuthData();
+      } catch (clearError) {
+        console.error('Failed to clear auth data:', clearError);
+      }
+      window.location.href = '/';
     }
   };
 

@@ -17,10 +17,23 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Skip auth handling for sign-out API route to prevent circular dependencies
+  if (req.nextUrl.pathname === '/api/auth/signout') {
+    return NextResponse.next();
+  }
+
   // Handle Supabase auth
   const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+  
+  // Create supabase client with correct cookie handling
+  const supabase = createMiddlewareClient({ 
+    req, 
+    res,
+  });
+  
+  // This refreshes the session if needed and sets the auth cookie
   await supabase.auth.getSession();
+  
   return res;
 }
 
@@ -35,7 +48,20 @@ function isValidAuth(authHeader: string): boolean {
 
 export const config = {
   matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     * But include:
+     * - /admin routes (for basic auth)
+     * - /auth/callback (for authentication)
+     * - /api/auth/signout (for sign-out)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
     '/admin/:path*',
-    '/auth/callback(.*)'
+    '/auth/callback(.*)',
+    '/api/auth/signout'
   ]
 } 
