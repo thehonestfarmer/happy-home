@@ -8,7 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
+import { LogOut, ChevronLeft } from "lucide-react";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 interface NotificationSettings {
   marketing: boolean;
@@ -18,8 +21,9 @@ interface NotificationSettings {
 }
 
 export default function AccountPage() {
-  const { user } = useAppContext();
+  const { user, setUser } = useAppContext();
   const pathname = usePathname();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationSettings>({
     marketing: false,
     newListings: false,
@@ -70,6 +74,24 @@ export default function AccountPage() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      
+      // Update the app context to reflect signed out state
+      setUser(null);
+      
+      // Redirect to home page after sign out
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const handleBackToListings = () => {
+    router.push('/listings');
+  };
+
   const handleGoogleLogin = async () => {
     try {
       // Store current URL to return to this page after auth
@@ -105,13 +127,10 @@ export default function AccountPage() {
             <p className="mb-6 text-center text-muted-foreground">
               Sign in to access your profile information and notification preferences
             </p>
-            <Button
-              variant="outline"
+            <GoogleSignInButton
+              variant="primary"
               className="bg-black text-primary border-black hover:bg-primary hover:text-black transition-colors w-full sm:w-auto"
-              onClick={handleGoogleLogin}
-            >
-              Sign in with Google
-            </Button>
+            />
           </CardContent>
         </Card>
       </div>
@@ -119,96 +138,183 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="container max-w-2xl py-8">
-      <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
-
-      {/* Profile Information */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-          <CardDescription>Your basic account information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            {user.user_metadata?.avatar_url ? (
-              <img 
-                src={user.user_metadata.avatar_url} 
-                alt="Profile" 
-                className="w-16 h-16 rounded-full"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                <span className="text-2xl">{user.email?.[0].toUpperCase()}</span>
-              </div>
-            )}
+    <div className="container mx-auto px-4 sm:px-6 max-w-2xl lg:max-w-4xl pt-0 pb-4 sm:py-8">
+      {/* Standardized header section with Back button */}
+      <div className="mb-8 -mt-4 sm:mt-0">
+        <div className="bg-primary text-primary-foreground -mx-4 sm:mx-0 sm:rounded-lg px-4 sm:px-6 pt-6 pb-5 mb-6 shadow-sm">
+          <div className="flex justify-between items-start">
             <div>
-              <div className="font-medium">{user.user_metadata?.full_name}</div>
-              <div className="text-sm text-muted-foreground">{user.email}</div>
+              <h1 className="text-2xl font-bold">Account Settings</h1>
+              <p className="mt-2.5 text-sm opacity-90">Manage your profile and preferences</p>
             </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="hidden lg:flex text-primary-foreground hover:bg-primary-foreground/10 -mt-1"
+              onClick={handleBackToListings}
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Back to Listings
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Email Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Email Notifications</CardTitle>
-          <CardDescription>Manage your email preferences</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Marketing Updates</Label>
-              <div className="text-sm text-muted-foreground">
-                Receive emails about new features and updates
+      {/* Desktop layout with improved flow */}
+      <div className="lg:grid lg:grid-cols-3 lg:gap-6">
+        {/* Left column - Profile Information */}
+        <div className="lg:col-span-1">
+          <Card className="mb-8 lg:mb-0 sticky top-4">
+            <CardHeader>
+              <CardTitle>Profile Information</CardTitle>
+              <CardDescription>Your basic account information</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center text-center">
+                {user.user_metadata?.avatar_url ? (
+                  <div className="relative w-24 h-24 mb-4 rounded-full overflow-hidden">
+                    <Image 
+                      src={user.user_metadata.avatar_url} 
+                      alt="Profile" 
+                      width={96}
+                      height={96}
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 mb-4 rounded-full bg-muted flex items-center justify-center">
+                    <span className="text-3xl">{user.email?.[0].toUpperCase()}</span>
+                  </div>
+                )}
+                <div className="w-full">
+                  <div className="font-medium text-lg">{user.user_metadata?.full_name}</div>
+                  <div className="text-sm text-muted-foreground mb-4">{user.email}</div>
+                  <div className="flex flex-col gap-2 mt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => {}}
+                    >
+                      Edit Profile
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full text-red-600 hover:bg-red-50 hover:text-red-600"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-            <Switch
-              checked={notifications.marketing}
-              onCheckedChange={() => updateNotificationSetting('marketing')}
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>New Listings</Label>
-              <div className="text-sm text-muted-foreground">
-                Get notified when new properties match your search criteria
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right column - Notification Settings */}
+        <div className="lg:col-span-2">
+          {/* Email Notifications */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Email Notifications</CardTitle>
+              <CardDescription>Manage your email preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="relative flex flex-col gap-6">
+              {/* Coming Soon Overlay */}
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 rounded-b-lg">
+                <div className="bg-muted/90 px-4 py-2 rounded-md shadow-sm">
+                  <span className="text-sm font-medium">Coming Soon</span>
+                </div>
+                <p className="text-muted-foreground text-sm mt-2 text-center max-w-xs">
+                  Email notification settings will be available in a future update
+                </p>
               </div>
-            </div>
-            <Switch
-              checked={notifications.newListings}
-              onCheckedChange={() => updateNotificationSetting('newListings')}
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Price Drops</Label>
-              <div className="text-sm text-muted-foreground">
-                Receive alerts when saved properties drop in price
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-muted-foreground">Marketing Updates</Label>
+                  <div className="text-sm text-muted-foreground/70">
+                    Receive emails about new features and updates
+                  </div>
+                </div>
+                <Switch
+                  checked={notifications.marketing}
+                  onCheckedChange={() => {}}
+                  disabled={true}
+                />
               </div>
-            </div>
-            <Switch
-              checked={notifications.priceDrops}
-              onCheckedChange={() => updateNotificationSetting('priceDrops')}
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Saved Searches</Label>
-              <div className="text-sm text-muted-foreground">
-                Get updates about your saved property searches
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-muted-foreground">New Listings</Label>
+                  <div className="text-sm text-muted-foreground/70">
+                    Get notified when new properties match your search criteria
+                  </div>
+                </div>
+                <Switch
+                  checked={notifications.newListings}
+                  onCheckedChange={() => {}}
+                  disabled={true}
+                />
               </div>
-            </div>
-            <Switch
-              checked={notifications.savedSearches}
-              onCheckedChange={() => updateNotificationSetting('savedSearches')}
-            />
-          </div>
-        </CardContent>
-      </Card>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-muted-foreground">Price Drops</Label>
+                  <div className="text-sm text-muted-foreground/70">
+                    Receive alerts when saved properties drop in price
+                  </div>
+                </div>
+                <Switch
+                  checked={notifications.priceDrops}
+                  onCheckedChange={() => {}}
+                  disabled={true}
+                />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-muted-foreground">Saved Searches</Label>
+                  <div className="text-sm text-muted-foreground/70">
+                    Get updates about your saved property searches
+                  </div>
+                </div>
+                <Switch
+                  checked={notifications.savedSearches}
+                  onCheckedChange={() => {}}
+                  disabled={true}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Additional settings section for desktop */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Privacy Settings</CardTitle>
+              <CardDescription>Manage your privacy preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="relative flex flex-col gap-6">
+              {/* Coming Soon Overlay */}
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-[1px] flex flex-col items-center justify-center z-10 rounded-b-lg">
+                <div className="bg-muted/90 px-4 py-2 rounded-md shadow-sm">
+                  <span className="text-sm font-medium">Coming Soon</span>
+                </div>
+                <p className="text-muted-foreground text-sm mt-2 text-center max-w-xs">
+                  Privacy settings will be available in a future update
+                </p>
+              </div>
+              
+              <div className="h-32">
+                {/* Placeholder content */}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 } 
