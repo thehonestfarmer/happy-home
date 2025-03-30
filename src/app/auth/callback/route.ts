@@ -71,6 +71,9 @@ export async function GET(request: Request) {
         </div>
         
         <script>
+          // Log the current URL for debugging (in production will be logged to the console)
+          console.log('Callback URL:', window.location.href);
+          
           // Function to handle redirect with proper error handling
           function handleRedirect() {
             try {
@@ -81,6 +84,18 @@ export async function GET(request: Request) {
               // Clear the stored path
               localStorage.removeItem('authRedirectPath');
               
+              // If redirect path contains 'localhost' in production, handle it
+              if (redirectPath.includes('localhost') && !window.location.hostname.includes('localhost')) {
+                console.warn('Detected localhost in redirect URL in production environment');
+                // Replace localhost with the actual hostname
+                const correctedPath = redirectPath.replace(/https?:\\/\\/localhost(:[0-9]+)?/g, window.location.origin);
+                window.location.href = correctedPath;
+                return;
+              }
+              
+              // Log the redirect path for debugging
+              console.log('Redirecting to:', redirectPath);
+              
               // Redirect to the appropriate path
               window.location.href = redirectPath;
             } catch (error) {
@@ -88,6 +103,7 @@ export async function GET(request: Request) {
               const errorMessage = document.getElementById('errorMessage');
               errorMessage.textContent = 'Error during redirect: ' + (error.message || 'Unknown error');
               errorMessage.style.display = 'block';
+              console.error('Redirect error:', error);
               
               // Default redirect after delay in case of error
               setTimeout(() => {
@@ -109,6 +125,7 @@ export async function GET(request: Request) {
                 document.querySelector('.spinner').style.display = 'none';
               }, 1000);
             } catch (error) {
+              console.error('Opener communication error:', error);
               // Fallback to direct redirect if messaging fails
               handleRedirect();
             }

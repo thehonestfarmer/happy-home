@@ -86,15 +86,25 @@ export function GoogleSignInButton({
         onSignInStart();
       }
 
+      // Get current host - ensure we're using the actual domain, not localhost
+      const host = window.location.hostname;
+      const protocol = window.location.protocol;
+      const port = window.location.port ? `:${window.location.port}` : '';
+      
+      // Construct a redirect URL that won't default to localhost in production
+      const redirectUrl = `${protocol}//${host}${port}/auth/callback`;
+      
       // Determine whether to use a popup or redirect based on device
       // Popups work better on desktop, redirects on mobile
       const options = {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectUrl,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
         }
       };
+      
+      console.log('Auth redirect URL:', redirectUrl); // For debugging
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
