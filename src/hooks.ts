@@ -1,7 +1,4 @@
-import { PROPERTIES, SLIDES } from "@/app/fixtures";
 import { useEffect, useState } from "react";
-import type { ListingsData, Listing } from "./app/api/cron/update-listings/types";
-import { convertCurrency } from "./lib/listing-utils";
 import { parseJapanesePrice } from "./lib/listing-utils";
 
 interface ProcessedListing {
