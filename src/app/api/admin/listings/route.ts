@@ -8,7 +8,7 @@ import path from 'path';
 export async function GET() {
   try {
     // Use the same readListings function that other parts of the app use
-    const listings = await readListings();
+    const listings = await readListings(true);
     if (!listings) {
       throw new Error('No listings data found');
     }

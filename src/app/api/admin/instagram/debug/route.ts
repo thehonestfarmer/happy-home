@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     
     // Try to get a sample image URL to validate
     try {
-      const listings = await readListings();
+      const listings = await readListings(true);
       const listingIds = Object.keys(listings.newListings || {});
       
       if (listingIds.length > 0) {

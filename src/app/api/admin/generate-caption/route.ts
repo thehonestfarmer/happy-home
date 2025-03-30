@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     
     // Get the listing data
     console.log('Fetching listing data');
-    const listings = await readListings();
+    const listings = await readListings(true);
     const listing = listings.newListings[body.listingId];
     
     if (!listing) {
