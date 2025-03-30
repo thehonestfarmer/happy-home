@@ -10,6 +10,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import puppeteer from 'puppeteer';
+import * as TE from "fp-ts/lib/TaskEither.js";
 
 // Define the path to the batch_test_results.json file
 const BATCH_RESULTS_PATH = path.join(process.cwd(), 'public', 'batch_test_results.json');
