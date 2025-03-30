@@ -5,6 +5,7 @@ import { Button, ButtonProps } from "@/components/ui/button";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { getRedirectURL } from "@/lib/supabase/client";
 
 type ButtonVariant = "default" | "outline" | "ghost";
 
@@ -86,15 +87,8 @@ export function GoogleSignInButton({
         onSignInStart();
       }
 
-      // Determine the base URL based on environment
-      // In development, use localhost, in production, use happyhomejapan.com
-      const isDevelopment = process.env.NODE_ENV === 'development';
-      const baseUrl = isDevelopment 
-        ? `${window.location.protocol}//${window.location.host}`
-        : 'https://happyhomejapan.com';
-      
-      // Construct a redirect URL based on environment
-      const redirectUrl = `${baseUrl}/auth/callback`;
+      // Use the getRedirectURL helper to ensure proper environment-based URL
+      const redirectUrl = getRedirectURL('auth/callback');
       
       console.log('Environment:', process.env.NODE_ENV);
       console.log('Auth redirect URL:', redirectUrl);

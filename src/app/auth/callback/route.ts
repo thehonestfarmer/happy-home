@@ -1,6 +1,7 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { getURL } from '@/lib/supabase/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +72,14 @@ export async function GET(request: Request) {
           // Log the current URL for debugging
           console.log('Callback URL:', window.location.href);
           
+          // Helper function to get the correct base URL based on environment
+          function getBaseURL() {
+            const isDevelopment = window.location.hostname.includes('localhost');
+            return isDevelopment
+              ? window.location.origin
+              : 'https://happyhomejapan.com';
+          }
+          
           // Function to handle redirect with proper error handling
           function handleRedirect() {
             try {
@@ -81,48 +90,28 @@ export async function GET(request: Request) {
               // Clear the stored path
               localStorage.removeItem('authRedirectPath');
               
-              // Environment-aware URL correction
-              const currentHostname = window.location.hostname;
-              const isDevelopment = currentHostname.includes('localhost');
-              const productionDomain = 'happyhomejapan.com';
+              // Get the appropriate base URL for this environment
+              const baseUrl = getBaseURL();
+              console.log('Base URL for redirect:', baseUrl);
               
-              // Log environment information
-              console.log('Current hostname:', currentHostname);
-              console.log('Is development:', isDevelopment);
-              
-              // Build the correct origin based on environment
-              let correctOrigin;
-              if (isDevelopment) {
-                correctOrigin = window.location.origin;
-              } else {
-                // In production, always use the production domain
-                const protocol = window.location.protocol;
-                correctOrigin = protocol + '//' + productionDomain;
-              }
-              
-              // If the stored path has a full URL, ensure it uses the correct domain
-              let finalRedirectPath = redirectPath;
+              // If the stored path is a full URL, extract just the path
+              let finalPath = redirectPath;
               if (redirectPath.includes('://')) {
-                // Extract just the path portion from the URL
                 try {
-                  const pathUrl = new URL(redirectPath);
-                  // Only keep the pathname and search portions
-                  finalRedirectPath = pathUrl.pathname + pathUrl.search;
+                  const pathObj = new URL(redirectPath);
+                  finalPath = pathObj.pathname + pathObj.search;
                 } catch (e) {
-                  console.warn('Could not parse redirect URL:', e);
+                  console.warn('Could not parse stored redirect path:', e);
                 }
               }
               
-              // If it's just a path (no protocol/domain), ensure it starts with a slash
-              if (!finalRedirectPath.includes('://') && !finalRedirectPath.startsWith('/')) {
-                finalRedirectPath = '/' + finalRedirectPath;
+              // Ensure path starts with /
+              if (!finalPath.startsWith('/')) {
+                finalPath = '/' + finalPath;
               }
               
-              // Combine the correct origin with the path
-              const redirectUrl = finalRedirectPath.includes('://')
-                ? finalRedirectPath
-                : correctOrigin + finalRedirectPath;
-              
+              // Construct the full redirect URL
+              const redirectUrl = baseUrl + finalPath;
               console.log('Final redirect URL:', redirectUrl);
               
               // Redirect to the appropriate path
@@ -136,11 +125,7 @@ export async function GET(request: Request) {
               
               // Default redirect after delay in case of error
               setTimeout(() => {
-                // Determine the correct base URL for fallback
-                const fallbackUrl = window.location.hostname.includes('localhost')
-                  ? window.location.origin
-                  : 'https://happyhomejapan.com';
-                window.location.href = fallbackUrl;
+                window.location.href = getBaseURL();
               }, 3000);
             }
           }
