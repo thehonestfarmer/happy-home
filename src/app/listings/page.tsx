@@ -22,15 +22,35 @@ export default function ListingsPage() {
   const [isMobileView, setIsMobileView] = useState(false);
 
   // Get filter state and favorites from AppContext
-  const { filterState, favorites } = useAppContext();
+  const { filterState, favorites, isReady } = useAppContext();
   // Get listings from the ListingsContext
   const { listings, isLoading } = useListings();
+  
+  // Store the previously filtered listings to prevent flickering
+  const [cachedFilteredListings, setCachedFilteredListings] = useState<Listing[]>([]);
 
   // Filter listings based on the current filter state
   const filteredListings = useMemo(() => {
-    if (!listings) return [];
+    // If context is not ready or listings are loading, return cached results
+    if (!isReady || !listings || listings.length === 0) {
+      return cachedFilteredListings;
+    }
     
-    return listings.filter(listing => {
+    // Get viewed listings from localStorage if needed
+    let viewedListings: string[] = [];
+    if (filterState.showOnlySeen && typeof window !== 'undefined') {
+      try {
+        const viewedListingsString = localStorage.getItem('viewedListings');
+        if (viewedListingsString) {
+          viewedListings = JSON.parse(viewedListingsString);
+          if (!Array.isArray(viewedListings)) viewedListings = [];
+        }
+      } catch (e) {
+        console.error('Error reading viewed listings from localStorage:', e);
+      }
+    }
+
+    const filtered = listings.filter(listing => {
       // Skip if invalid listing
       if (!listing) return false;
       
@@ -52,10 +72,26 @@ export default function ListingsPage() {
         return false;
       }
       
+      // Add viewed listings filter
+      if (filterState.showOnlySeen) {
+        if (!viewedListings.includes(listing.id)) return false;
+      }
+      
       // If we get here, listing passes all filters
       return true;
     });
-  }, [listings, filterState, favorites]);
+    
+    // Return filtered results without updating the state here
+    return filtered;
+  }, [listings, filterState, favorites, isReady]);
+
+  // Update the cached listings in a separate useEffect
+  useEffect(() => {
+    // Only update if we have results (avoid initial empty state)
+    if (filteredListings.length > 0) {
+      setCachedFilteredListings(filteredListings);
+    }
+  }, [filteredListings]);
 
   // Check if we're in mobile view on component mount
   useEffect(() => {
@@ -130,35 +166,49 @@ export default function ListingsPage() {
 
         {FeatureFlags.showMap ? (
           <>
+            {/* Show loading indicator when not ready */}
+            {!isReady && (
+              <div className="w-full h-[calc(100vh-150px)] flex items-center justify-center">
+                <div className="text-center p-6 bg-white rounded-lg shadow-md">
+                  <div className="h-8 w-8 border-2 border-t-green-600 border-gray-300 rounded-full animate-spin mx-auto mb-3"></div>
+                  <p className="text-gray-700 font-medium">Loading your filters...</p>
+                </div>
+              </div>
+            )}
+            
             {/* Mobile View - Full Map with toggle */}
-            <div className="lg:hidden w-full">
-              <MobileMapView maintainMapPosition={maintainMapPosition} />
-            </div>
+            {isReady && (
+              <div className="lg:hidden w-full">
+                <MobileMapView maintainMapPosition={maintainMapPosition} />
+              </div>
+            )}
 
             {/* Desktop View - Side by side layout */}
-            <div className="hidden lg:flex lg:flex-row w-full">
-              {/* Listings section - pass onSelectProperty callback */}
-              <div className="lg:w-7/12 lg:max-w-[960px]">
-                <ListingsGrid onSelectProperty={handleSelectProperty} />
-              </div>
+            {isReady && (
+              <div className="hidden lg:flex lg:flex-row w-full">
+                {/* Listings section - pass onSelectProperty callback */}
+                <div className="lg:w-7/12 lg:max-w-[960px]">
+                  <ListingsGrid onSelectProperty={handleSelectProperty} />
+                </div>
 
-              {/* Map section - pass selected property information */}
-              <div className="lg:w-5/12 lg:flex-1">
-                {/* Note: currentRoute="/listings" is automatically set in ListingsMapView */}
-                <ListingsMapView 
-                  selectedPropertyId={selectedPropertyId}
-                  singlePropertyMode={selectedPropertyId !== null}
-                  showPropertyPopup={showPropertyPopup}
-                  onPropertyPopupToggle={handlePropertyPopupToggle}
-                  customZoom={currentZoom}
-                  onMove={handleMapMove}
-                  maintainMapPosition={maintainMapPosition}
-                  onPinSelect={handlePinSelect}
-                  isMobileView={isMobileView}
-                  listings={filteredListings}
-                />
+                {/* Map section - pass selected property information */}
+                <div className="lg:w-5/12 lg:flex-1">
+                  {/* Note: currentRoute="/listings" is automatically set in ListingsMapView */}
+                  <ListingsMapView 
+                    selectedPropertyId={selectedPropertyId}
+                    singlePropertyMode={selectedPropertyId !== null}
+                    showPropertyPopup={showPropertyPopup}
+                    onPropertyPopupToggle={handlePropertyPopupToggle}
+                    customZoom={currentZoom}
+                    onMove={handleMapMove}
+                    maintainMapPosition={maintainMapPosition}
+                    onPinSelect={handlePinSelect}
+                    isMobileView={isMobileView}
+                    listings={filteredListings}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </>
         ) : (
           // If map feature is disabled, just show listings grid on all screens

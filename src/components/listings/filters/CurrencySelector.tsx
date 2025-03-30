@@ -1,7 +1,7 @@
 import { useAppContext } from "@/AppContext";
 import { EXCHANGE_RATES, Currency, CURRENCY_SYMBOLS } from "@/lib/listing-utils";
 import { cn } from "@/lib/utils";
-import { useMediaQuery } from "usehooks-ts";
+import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -16,8 +16,25 @@ interface CurrencySelectorProps {
 
 export function CurrencySelector({ variant = 'toolbar' }: CurrencySelectorProps) {
   const { filterState, setFilterState } = useAppContext();
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  // Always start with desktop view during server-side rendering
+  const [isMobile, setIsMobile] = useState(false);
   const selectedCurrency = filterState.priceRange.currency || "USD";
+  
+  // Use useEffect to update the state after hydration is complete
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Check on mount
+    checkMobile();
+    
+    // Add event listener for resize
+    window.addEventListener('resize', checkMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Format exchange rate display
   const getExchangeRateText = (currency: Currency): string => {

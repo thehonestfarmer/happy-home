@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { MapDisplay } from "@/components/map/MapPlaceholder";
 import type { ViewStateChangeEvent } from "react-map-gl/mapbox";
+import ViewTracker from "@/components/listings/ViewTracker";
 
 /**
  * Format date string to match buildDate format
@@ -656,305 +657,308 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
 
   // Desktop view
   return (
-    <div className="w-full">
-      {/* Scroll anchor reference div - place at the top */}
-      <div ref={scrollAnchorRef} className="scroll-anchor" />
-
-      {/* Navigation Toolbar */}
-      <div className="flex items-center justify-between h-14 px-4 border-b">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/listings')}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to search
-        </Button>
-        <Button variant="outline" onClick={handleCopyLink}>
-          <Copy className="h-4 w-4 mr-2" />
-          Copy Link
-        </Button>
-      </div>
-
-      {/* Image Gallery */}
-      <div className="grid grid-cols-12 gap-1 h-[480px]">
-        {/* Main large image */}
-        <div className="col-span-8 relative" style={{ position: 'relative' }}>
-          <Image
-            src={property.listingImages?.[0] || '/placeholder-property.jpg'}
-            alt={property.propertyTitle || "Property image"}
-            fill
-            priority
-            className="object-cover cursor-pointer"
-            onClick={() => handleLightboxOpen(0)}
-          />
-          {isSold && (
-            <div className="absolute top-6 right-6">
-              <Badge variant="destructive" className="px-3 py-1.5 text-lg font-semibold shadow-md">SOLD</Badge>
-            </div>
-          )}
+    <>
+      <ViewTracker listingId={listingId} />
+      <div className="w-full">
+        {/* Scroll anchor reference div - place at the top */}
+        <div ref={scrollAnchorRef} className="scroll-anchor" />
+        
+        {/* Navigation Toolbar */}
+        <div className="flex items-center justify-between h-14 px-4 border-b">
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/listings')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to search
+          </Button>
+          <Button variant="outline" onClick={handleCopyLink}>
+            <Copy className="h-4 w-4 mr-2" />
+            Copy Link
+          </Button>
         </div>
 
-        {/* Right side grid */}
-        <div className="col-span-4 grid grid-rows-2 gap-1">
-          {property.listingImages?.slice(1, 5).map((image: string, index: number) => (
-            <div key={index} className="relative" style={{ position: 'relative' }}>
-              <Image
-                src={image || '/placeholder-property.jpg'}
-                alt={`Property view ${index + 2}`}
-                fill
-                priority
-                className="object-cover cursor-pointer"
-                onClick={() => handleLightboxOpen(index + 1)}
-              />
-              {index === 3 && property.listingImages && property.listingImages.length > 5 && (
-                <div
-                  className="absolute inset-0 bg-black/50 flex items-center justify-center text-white cursor-pointer"
-                  onClick={() => handleLightboxOpen(4)}
-                >
-                  <span className="text-xl font-semibold">+{property.listingImages.length - 5} more</span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Content Section */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="col-span-2 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold">{property.propertyTitle || property.address?.split(",")[0] || "Property"}</h1>
-                <p className="text-muted-foreground">{property.address || "Address unavailable"}</p>
+        {/* Image Gallery */}
+        <div className="grid grid-cols-12 gap-1 h-[480px]">
+          {/* Main large image */}
+          <div className="col-span-8 relative" style={{ position: 'relative' }}>
+            <Image
+              src={property.listingImages?.[0] || '/placeholder-property.jpg'}
+              alt={property.propertyTitle || "Property image"}
+              fill
+              priority
+              className="object-cover cursor-pointer"
+              onClick={() => handleLightboxOpen(0)}
+            />
+            {isSold && (
+              <div className="absolute top-6 right-6">
+                <Badge variant="destructive" className="px-3 py-1.5 text-lg font-semibold shadow-md">SOLD</Badge>
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Short Description - Added this section */}
-            {/* {property.shortDescription && (
-              <div className="text-muted-foreground p-6 bg-muted/50 border rounded-md mb-4 shadow-md">
-                <p className="text-lg font-semibold italic">{property.shortDescription}</p>
-              </div>
-            )} */}
-
-            {/* Key Features */}
-            <h2 className="text-lg font-semibold mb-2">Key features</h2>
-            <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
-              <div className="text-center">
-                <div className="font-semibold">{parseLayout(property.layout)}</div>
-                <div className="text-sm text-muted-foreground">LDK</div>
-              </div>
-              <div className="text-center">
-                <div className="font-semibold">{formatArea(property.buildSqMeters || '', selectedCurrency)}</div>
-                <div className="text-sm text-muted-foreground">{selectedCurrency === 'USD' ? 'Build Area' : 'Build m²'}</div>
-              </div>
-              <div className="text-center">
-                <div className="font-semibold">{formatArea(property.landSqMeters || '', selectedCurrency)}</div>
-                <div className="text-sm text-muted-foreground">{selectedCurrency === 'USD' ? 'Land Area' : 'Land m²'}</div>
-              </div>
-              <div className="text-center">
-                <div className="font-semibold">3</div>
-                <div className="text-sm text-muted-foreground">Parking</div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <h2 className="text-lg font-semibold mb-2">About this home</h2>
-
-
-              {property.propertyCaption ? (
-                <div className="text-muted-foreground whitespace-pre-line p-4 bg-muted/30 border rounded-md">
-                  {property.propertyCaption}
-                </div>
-              ) : property.listingDetail ? (
-                <ul className="list-disc pl-5 space-y-2 text-muted-foreground p-4 bg-muted/30 border rounded-md">
-                  {property.listingDetail.split('★')
-                    .filter((item: string) => item.trim().length > 0)
-                    .map((item: string, index: number) => (
-                      <li key={index} className="leading-relaxed">
-                        {item.trim()}
-                      </li>
-                    ))
-                  }
-                </ul>
-              ) : (
-                <p className="text-muted-foreground p-4 bg-muted/30 border rounded-md">No details available for this property.</p>
-              )}
-            </div>
-
-            {/* Property Location Map */}
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Property Location</h2>
-              <div className="border rounded-md overflow-hidden h-[400px] relative">
-                {property.coordinates?.lat && property.coordinates?.long ? (
-                  <>
-                    <MapDisplay
-                      currentRoute={`/listings/view/${listingId}`}
-                      listings={[property]}
-                      singlePropertyMode={true}
-                      initialLatitude={property.coordinates?.lat}
-                      initialLongitude={property.coordinates?.long}
-                      maintainMapPosition={true}
-                      hidePopup={false}
-                      customZoom={mapZoom}
-                      onMove={handleMapMove}
-                      showPropertyPopup={showPropertyPopup}
-                      onPropertyPopupToggle={handlePropertyPopupToggle}
-                    />
-
-                    {/* Zoom controls overlay */}
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-8 w-8 p-0 rounded-full shadow-md bg-white hover:bg-gray-100 flex items-center justify-center"
-                        onClick={handleZoomIn}
-                        aria-label="Zoom in"
-                      >
-                        <span className="text-md font-bold text-gray-700">+</span>
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-8 w-8 p-0 rounded-full shadow-md bg-white hover:bg-gray-100 flex items-center justify-center"
-                        onClick={handleZoomOut}
-                        aria-label="Zoom out"
-                      >
-                        <span className="text-md font-bold text-gray-700">−</span>
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="h-full bg-muted/30 flex items-center justify-center flex-col gap-2">
-                    <p className="text-muted-foreground">Location coordinates not available</p>
+          {/* Right side grid */}
+          <div className="col-span-4 grid grid-rows-2 gap-1">
+            {property.listingImages?.slice(1, 5).map((image: string, index: number) => (
+              <div key={index} className="relative" style={{ position: 'relative' }}>
+                <Image
+                  src={image || '/placeholder-property.jpg'}
+                  alt={`Property view ${index + 2}`}
+                  fill
+                  priority
+                  className="object-cover cursor-pointer"
+                  onClick={() => handleLightboxOpen(index + 1)}
+                />
+                {index === 3 && property.listingImages && property.listingImages.length > 5 && (
+                  <div
+                    className="absolute inset-0 bg-black/50 flex items-center justify-center text-white cursor-pointer"
+                    onClick={() => handleLightboxOpen(4)}
+                  >
+                    <span className="text-xl font-semibold">+{property.listingImages.length - 5} more</span>
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Utilities and Schools Tables */}
-            <h2 className="text-lg font-semibold mb-2">Details</h2>
-            <div className="mt-6">
-              <div className="border rounded-md overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th colSpan={2} className="px-3 py-2 text-left font-semibold">Utilities</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    <tr>
-                      <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Water</td>
-                      <td className="px-3 py-2">{property.facilities?.water || 'Not specified'}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-3 py-2 font-medium text-muted-foreground">Gas</td>
-                      <td className="px-3 py-2">{property.facilities?.gas || 'Not specified'}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-3 py-2 font-medium text-muted-foreground">Sewage</td>
-                      <td className="px-3 py-2">{property.facilities?.sewage || 'Not specified'}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="border rounded-md overflow-hidden mt-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th colSpan={2} className="px-3 py-2 text-left font-semibold">Schools</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    <tr>
-                      <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Primary School</td>
-                      <td className="px-3 py-2">{property.schools?.primary || 'Not specified'}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-3 py-2 font-medium text-muted-foreground">Junior High</td>
-                      <td className="px-3 py-2">{property.schools?.juniorHigh || 'Not specified'}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="border rounded-md overflow-hidden mt-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th colSpan={2} className="px-3 py-2 text-left font-semibold">Property Information</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    <tr>
-                      <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Build Date</td>
-                      <td className="px-3 py-2">{formatDate(property.buildDate)}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-3 py-2 font-medium text-muted-foreground">Date Posted</td>
-                      <td className="px-3 py-2">{formatDate(property.dates?.datePosted)}</td>
-                    </tr>
-                    {property.dates?.dateRenovated && (
-                      <tr>
-                        <td className="px-3 py-2 font-medium text-muted-foreground">Date Renovated</td>
-                        <td className="px-3 py-2">{formatDate(property.dates.dateRenovated)}</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Price Card */}
-            <div className={`p-6 border rounded-lg shadow-sm ${isSold ? 'border-red-200 bg-red-50' : ''}`}>
-              <div className="flex items-center justify-between mb-4">
+        {/* Content Section */}
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="grid grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="col-span-2 space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold">
-                    {prices.primary}
-                  </div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-2">
-                    <span>{prices.secondary}</span>
-                    <span className="text-xs">{prices.rate}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FavoriteButton listingId={listingId} />
+                  <h1 className="text-2xl font-semibold">{property.propertyTitle || property.address?.split(",")[0] || "Property"}</h1>
+                  <p className="text-muted-foreground">{property.address || "Address unavailable"}</p>
                 </div>
               </div>
-              <Button
-                className="w-full mb-2"
-                onClick={handleMailto}
-                disabled={isSold}
-              >
-                {isSold ? 'Property Unavailable' : 'Contact Agent'}
-              </Button>
+
+              {/* Short Description - Added this section */}
+              {/* {property.shortDescription && (
+                <div className="text-muted-foreground p-6 bg-muted/50 border rounded-md mb-4 shadow-md">
+                  <p className="text-lg font-semibold italic">{property.shortDescription}</p>
+                </div>
+              )} */}
+
+              {/* Key Features */}
+              <h2 className="text-lg font-semibold mb-2">Key features</h2>
+              <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="text-center">
+                  <div className="font-semibold">{parseLayout(property.layout)}</div>
+                  <div className="text-sm text-muted-foreground">LDK</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold">{formatArea(property.buildSqMeters || '', selectedCurrency)}</div>
+                  <div className="text-sm text-muted-foreground">{selectedCurrency === 'USD' ? 'Build Area' : 'Build m²'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold">{formatArea(property.landSqMeters || '', selectedCurrency)}</div>
+                  <div className="text-sm text-muted-foreground">{selectedCurrency === 'USD' ? 'Land Area' : 'Land m²'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold">3</div>
+                  <div className="text-sm text-muted-foreground">Parking</div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h2 className="text-lg font-semibold mb-2">About this home</h2>
+
+
+                {property.propertyCaption ? (
+                  <div className="text-muted-foreground whitespace-pre-line p-4 bg-muted/30 border rounded-md">
+                    {property.propertyCaption}
+                  </div>
+                ) : property.listingDetail ? (
+                  <ul className="list-disc pl-5 space-y-2 text-muted-foreground p-4 bg-muted/30 border rounded-md">
+                    {property.listingDetail.split('★')
+                      .filter((item: string) => item.trim().length > 0)
+                      .map((item: string, index: number) => (
+                        <li key={index} className="leading-relaxed">
+                          {item.trim()}
+                        </li>
+                      ))
+                    }
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground p-4 bg-muted/30 border rounded-md">No details available for this property.</p>
+                )}
+              </div>
+
+              {/* Property Location Map */}
+              <div>
+                <h2 className="text-lg font-semibold mb-2">Property Location</h2>
+                <div className="border rounded-md overflow-hidden h-[400px] relative">
+                  {property.coordinates?.lat && property.coordinates?.long ? (
+                    <>
+                      <MapDisplay
+                        currentRoute={`/listings/view/${listingId}`}
+                        listings={[property]}
+                        singlePropertyMode={true}
+                        initialLatitude={property.coordinates?.lat}
+                        initialLongitude={property.coordinates?.long}
+                        maintainMapPosition={true}
+                        hidePopup={false}
+                        customZoom={mapZoom}
+                        onMove={handleMapMove}
+                        showPropertyPopup={showPropertyPopup}
+                        onPropertyPopupToggle={handlePropertyPopupToggle}
+                      />
+
+                      {/* Zoom controls overlay */}
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="h-8 w-8 p-0 rounded-full shadow-md bg-white hover:bg-gray-100 flex items-center justify-center"
+                          onClick={handleZoomIn}
+                          aria-label="Zoom in"
+                        >
+                          <span className="text-md font-bold text-gray-700">+</span>
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="h-8 w-8 p-0 rounded-full shadow-md bg-white hover:bg-gray-100 flex items-center justify-center"
+                          onClick={handleZoomOut}
+                          aria-label="Zoom out"
+                        >
+                          <span className="text-md font-bold text-gray-700">−</span>
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="h-full bg-muted/30 flex items-center justify-center flex-col gap-2">
+                      <p className="text-muted-foreground">Location coordinates not available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Utilities and Schools Tables */}
+              <h2 className="text-lg font-semibold mb-2">Details</h2>
+              <div className="mt-6">
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted">
+                        <th colSpan={2} className="px-3 py-2 text-left font-semibold">Utilities</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      <tr>
+                        <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Water</td>
+                        <td className="px-3 py-2">{property.facilities?.water || 'Not specified'}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 font-medium text-muted-foreground">Gas</td>
+                        <td className="px-3 py-2">{property.facilities?.gas || 'Not specified'}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 font-medium text-muted-foreground">Sewage</td>
+                        <td className="px-3 py-2">{property.facilities?.sewage || 'Not specified'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="border rounded-md overflow-hidden mt-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted">
+                        <th colSpan={2} className="px-3 py-2 text-left font-semibold">Schools</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      <tr>
+                        <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Primary School</td>
+                        <td className="px-3 py-2">{property.schools?.primary || 'Not specified'}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 font-medium text-muted-foreground">Junior High</td>
+                        <td className="px-3 py-2">{property.schools?.juniorHigh || 'Not specified'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="border rounded-md overflow-hidden mt-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted">
+                        <th colSpan={2} className="px-3 py-2 text-left font-semibold">Property Information</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      <tr>
+                        <td className="px-3 py-2 font-medium text-muted-foreground w-1/3">Build Date</td>
+                        <td className="px-3 py-2">{formatDate(property.buildDate)}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-3 py-2 font-medium text-muted-foreground">Date Posted</td>
+                        <td className="px-3 py-2">{formatDate(property.dates?.datePosted)}</td>
+                      </tr>
+                      {property.dates?.dateRenovated && (
+                        <tr>
+                          <td className="px-3 py-2 font-medium text-muted-foreground">Date Renovated</td>
+                          <td className="px-3 py-2">{formatDate(property.dates.dateRenovated)}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
-            {/* Agent Card */}
-            <div className="p-6 border rounded-lg">
-              <h3 className="font-semibold mb-4">Listed By</h3>
-              <div className="space-y-2">
-                <p>Shiawase Home Reuse</p>
-                <a
-                  href={property.listingDetailUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Price Card */}
+              <div className={`p-6 border rounded-lg shadow-sm ${isSold ? 'border-red-200 bg-red-50' : ''}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-3xl font-bold">
+                      {prices.primary}
+                    </div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      <span>{prices.secondary}</span>
+                      <span className="text-xs">{prices.rate}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FavoriteButton listingId={listingId} />
+                  </div>
+                </div>
+                <Button
+                  className="w-full mb-2"
+                  onClick={handleMailto}
+                  disabled={isSold}
                 >
-                  View Original Listing →
-                </a>
+                  {isSold ? 'Property Unavailable' : 'Contact Agent'}
+                </Button>
               </div>
-            </div>
 
-            <PropertyDetailView property={property} hidePopup={true} selectedCurrency={selectedCurrency} />
+              {/* Agent Card */}
+              <div className="p-6 border rounded-lg">
+                <h3 className="font-semibold mb-4">Listed By</h3>
+                <div className="space-y-2">
+                  <p>Shiawase Home Reuse</p>
+                  <a
+                    href={property.listingDetailUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    View Original Listing →
+                  </a>
+                </div>
+              </div>
+
+              <PropertyDetailView property={property} hidePopup={true} selectedCurrency={selectedCurrency} />
+            </div>
           </div>
         </div>
       </div>
@@ -1002,30 +1006,69 @@ function PropertyView({ property, listingId }: PropertyViewProps) {
         isOpen={showSignIn}
         onClose={() => setShowSignIn(false)}
       />
-    </div>
+    </>
   );
 }
 
 export default function Page() {
   const router = useRouter();
-  const { listingsById, isLoading } = useListings();
-  const params = useParams<{ id: string }>();
+  const params = useParams();
+  const id = params.id as string;
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [property, setProperty] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { listings, isLoading: globalLoading } = useListings();
 
-  if (isLoading) {
+  useEffect(() => {
+    const fetchProperty = async () => {
+      if (!id) return;
+
+      try {
+        // Check if we already have it in our global context
+        if (listings && listings.length > 0) {
+          const foundProperty = listings.find((listing: any) => listing.id === id);
+          if (foundProperty) {
+            setProperty(foundProperty);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Fallback to direct fetch
+        const supabase = createClientComponentClient();
+        const { data, error } = await supabase
+          .from('listings')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+        setProperty(data);
+      } catch (err: any) {
+        console.error('Error fetching property:', err);
+        setError(err.message || 'Failed to load property details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProperty();
+  }, [id, listings]);
+
+  if (isLoading || globalLoading) {
     return <ListingPageSkeleton />;
   }
 
-  const property = listingsById[params.id];
-
-  // Check if property exists or is marked as removed
-  if (!property || property.removed) {
+  if (error || !property) {
     return (
-      <div className="container mx-auto p-4">
-        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-          <h1 className="text-2xl font-bold">Property Not Found</h1>
-          <p className="text-muted-foreground">The property you're looking for doesn't exist or has been removed.</p>
-          <Button variant="outline" onClick={() => router.push('/listings')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
+      <div className="h-screen flex flex-col items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <X className="mx-auto h-16 w-16 text-red-500 mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Property Not Found</h1>
+          <p className="text-muted-foreground mb-6">
+            {error || "We couldn't find the property you're looking for. It may have been removed or the URL might be incorrect."}
+          </p>
+          <Button onClick={() => router.push('/listings')}>
             Back to Listings
           </Button>
         </div>
@@ -1033,7 +1076,12 @@ export default function Page() {
     );
   }
 
-  return <PropertyView property={property} listingId={params.id} />;
+  return (
+    <>
+      <ViewTracker listingId={id} />
+      <PropertyView property={property} listingId={id} />
+    </>
+  );
 }
 // <Button variant="outline">
 //   <HeartIcon />

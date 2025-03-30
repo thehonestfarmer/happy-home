@@ -1,10 +1,10 @@
 "use client";
 import { ListingsToolbar } from "./ListingsToolbar";
-import { useAppContext, FilterState } from "@/AppContext";
+import { useAppContext, FilterState, defaultFilterState } from "@/AppContext";
 import { useListings } from "@/contexts/ListingsContext";
 import { ListingBox } from "./ListingBox";
 import { convertCurrency, parseJapanesePrice } from "@/lib/listing-utils";
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { LoadingListingCard } from "./LoadingListingCard";
@@ -25,6 +25,7 @@ import { CSSProperties, FC } from "react";
 const isDefaultFilterState = (filterState: FilterState) => {
   return (filterState.showForSale && !filterState.showSold) &&
     !filterState.showOnlyFavorites &&
+    !filterState.showOnlySeen &&
     !filterState.priceRange.min &&
     !filterState.priceRange.max &&
     !filterState.layout.minLDK &&
@@ -48,11 +49,46 @@ const parsePriceJPY = (price: string): number => {
   return parseJapanesePrice(price);
 };
 
+// Calculate responsive padding based on viewport size
+const getPadding = (width?: number) => {
+  // Use consistent padding across all device sizes to maintain even spacing
+  return 8; // Consistent padding for all screen sizes
+};
+
+// Function to get hidden listings from localStorage
+const getHiddenListingsFromStorage = (): string[] => {
+  if (typeof window === 'undefined') return [];
+  
+  try {
+    const hiddenListingsString = localStorage.getItem('hiddenListings');
+    if (!hiddenListingsString) return [];
+    
+    const parsed = JSON.parse(hiddenListingsString);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('Error parsing hidden listings:', error);
+    return [];
+  }
+};
+
 export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
   const { isLoading, error, listings } = useListings();
-  const { filterState, setFilterState, displayState, favorites } = useAppContext();
+  const { filterState, setFilterState, displayState, favorites, isReady } = useAppContext();
   // Create a ref for the Grid component
   const gridRef = useRef<GridType | null>(null);
+  
+  // Store the previously filtered listings to prevent flickering
+  const [cachedListings, setCachedListings] = useState<Listing[]>([]);
+
+  // Create a reference to track if we should update the cache
+  const shouldUpdateCacheRef = useRef(false);
+
+  // Load hidden listings once on component mount
+  const [hiddenListings, setHiddenListings] = useState<string[]>([]);
+  
+  useEffect(() => {
+    setHiddenListings(getHiddenListingsFromStorage());
+  }, []);
 
   // Setup resize handler with debounce
   useEffect(() => {
@@ -136,17 +172,24 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
     };
   }, []);
 
-  const filteredAndSortedListings = useMemo(() => {
-    if (!listings) return [];
+  // First run - on data prerequisites change, compute filtered listings but don't update state yet
+  const computedListings = useMemo(() => {
+    // Skip computation if we don't have the necessary data
+    if (!isReady || !listings || listings.length === 0) {
+      return null; // Return null to indicate we need to use cached results
+    }
     
-    // Check for hidden listings in localStorage
-    let hiddenListings: string[] = [];
-    if (typeof window !== 'undefined') {
+    // Get viewed listings from localStorage if needed
+    let viewedListings: string[] = [];
+    if (filterState.showOnlySeen && typeof window !== 'undefined') {
       try {
-        hiddenListings = JSON.parse(localStorage.getItem('hiddenListings') || '[]');
-      } catch (error) {
-        console.error('Error parsing hidden listings:', error);
-        hiddenListings = [];
+        const viewedListingsString = localStorage.getItem('viewedListings');
+        if (viewedListingsString) {
+          viewedListings = JSON.parse(viewedListingsString);
+          if (!Array.isArray(viewedListings)) viewedListings = [];
+        }
+      } catch (e) {
+        console.error('Error reading viewed listings from localStorage:', e);
       }
     }
     
@@ -158,6 +201,13 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
       .filter((listing) => {
         if (filterState.showOnlyFavorites) {
           return listing.id && favorites.includes(listing.id);
+        }
+        return true;
+      })
+      // Filter for viewed listings if that option is enabled
+      .filter((listing) => {
+        if (filterState.showOnlySeen) {
+          return listing.id && viewedListings.includes(listing.id);
         }
         return true;
       })
@@ -242,44 +292,38 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
     });
     
     // Then prioritize non-hidden listings
-    return sortedListings.sort((a, b) => {
+    const finalListings = sortedListings.sort((a, b) => {
+      // Check if listings have been marked as hidden in localStorage
+      const aHidden = hiddenListings.includes(a.id || '');
+      const bHidden = hiddenListings.includes(b.id || '');
+      
       // If one is hidden and the other isn't, put the non-hidden one first
-      if (a.isHidden && !b.isHidden) return 1;
-      if (!a.isHidden && b.isHidden) return -1;
+      if (aHidden && !bHidden) return 1;
+      if (!aHidden && bHidden) return -1;
       return 0; // Otherwise keep the original sort order
     });
-  }, [
-    listings,
-    filterState.showForSale,
-    filterState.showSold,
-    filterState.showOnlyFavorites,
-    filterState.priceRange.min,
-    filterState.priceRange.max,
-    filterState.layout.minLDK,
-    displayState.sortBy,
-    favorites
-  ]);
+
+    // Flag that we should update the cache
+    shouldUpdateCacheRef.current = true;
+    return finalListings;
+  }, [listings, filterState, isReady, favorites, displayState.sortBy, isLoading, hiddenListings]);
+
+  // Second run - update state in an effect, but only if computedListings has changed
+  useEffect(() => {
+    if (computedListings && shouldUpdateCacheRef.current) {
+      setCachedListings(computedListings);
+      shouldUpdateCacheRef.current = false;
+    }
+  }, [computedListings]);
+
+  // Final memoized value - use either computed or cached listings
+  const filteredAndSortedListings = useMemo(() => {
+    return computedListings || cachedListings;
+  }, [computedListings, cachedListings]);
 
   const handleResetFilters = () => {
-    setFilterState({
-      showForSale: true,
-      showSold: false,
-      showOnlyFavorites: false,
-      priceRange: {
-        min: null,
-        max: null,
-        currency: "USD"
-      },
-      layout: {
-        minLDK: null,
-      },
-      size: {
-        minBuildSize: null,
-        maxBuildSize: null,
-        minLandSize: null,
-        maxLandSize: null,
-      },
-    });
+    // Reset to default filter state using the imported defaultFilterState
+    setFilterState(defaultFilterState);
   };
 
   // Extract NoResults into a memoized component outside of the render logic
@@ -406,24 +450,38 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
   }) {
     const columnCount = getColumnCount(width);
     const index = rowIndex * columnCount + columnIndex;
+    
     if (index >= filteredAndSortedListings.length) return null;
-
+    
     const listing = filteredAndSortedListings[index];
     
-    // Calculate responsive padding based on viewport size
-    const getPadding = () => {
-      // Use consistent padding across all device sizes to maintain even spacing
-      return 8; // Consistent padding for all screen sizes
+    if (!listing) {
+      return null;
+    }
+    
+    // Check if listing is in the hidden list
+    const isHiddenListing = hiddenListings.includes(listing.id || '');
+    
+    // Get padding
+    const paddingAmount = getPadding();
+    
+    // Add padding to the style
+    const paddedStyle = {
+      ...style,
+      width: `calc(100% - ${paddingAmount * 2}px)`,
+      height: `calc(100% - ${paddingAmount * 2}px)`,
+      left: style.left as number + paddingAmount,
+      top: style.top as number + paddingAmount,
     };
     
-    // Render the listing card
+    // Pass only the boolean flag to the ListingBox component
     return (
       <div key={key} style={Object.assign({}, style, { padding: getPadding() })} className="outline-none">
-        <ListingBox
-          property={listing}
+        <ListingBox 
+          property={listing} 
           handleLightboxOpen={() => {}}
           onClick={() => handlePropertyClick(listing)}
-          isHidden={listing.isHidden}
+          isHidden={isHiddenListing}
         />
       </div>
     );
@@ -433,12 +491,14 @@ export function ListingsGrid({ onSelectProperty }: ListingsGridProps) {
     return <ErrorDisplay title="Failed to load listings" message={error.message} />;
   }
 
-  if (isLoading) {
+  if (!isReady) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-4 p-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <LoadingListingCard key={i} />
-        ))}
+      <div className="container mx-auto py-6 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <LoadingListingCard key={index} />
+          ))}
+        </div>
       </div>
     );
   }

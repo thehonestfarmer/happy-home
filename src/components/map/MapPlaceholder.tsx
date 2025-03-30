@@ -325,7 +325,7 @@ export function MapDisplay({
   useSimpleMarker = false
 }: MapDisplayProps) {
   const { listings: contextListings } = useListings();
-  const { filterState, displayState, favorites } = useAppContext();
+  const { filterState, displayState, favorites, isReady } = useAppContext();
   const [latitude, setLatitude] = useState(initialLatitude || 35.6762); // Use initialLatitude if provided, otherwise default to Tokyo
   const [longitude, setLongitude] = useState(initialLongitude || 139.6503); // Use initialLongitude if provided
   const [zoom, setZoom] = useState(10);
@@ -470,146 +470,56 @@ export function MapDisplay({
   // Use provided listings or context listings
   const sourceListings = propListings || contextListings || [];
 
-  // Filter listings to match exactly the same logic as in ListingsGrid
+  // Filter the listings based on current filter state
   const filteredListings = useMemo(() => {
-    // If a filtered list is already provided through props, use it directly
-    if (propListings) {
-      // Skip filtering again if already done by parent component
-      // But still apply basic validation filters
-      return propListings.filter(listing => {
-        // Skip if invalid listing
-        if (!listing) return false;
-        
-        // Only include listings with coordinates
-        if (!listing.coordinates?.lat || !listing.coordinates?.long) {
-          return false;
+    if (!sourceListings) return [];
+    
+    // Get viewed listings from localStorage
+    let viewedListings: string[] = [];
+    if (filterState.showOnlySeen && typeof window !== 'undefined') {
+      try {
+        const viewedListingsString = localStorage.getItem('viewedListings');
+        if (viewedListingsString) {
+          viewedListings = JSON.parse(viewedListingsString);
+          if (!Array.isArray(viewedListings)) viewedListings = [];
         }
-        return true;
-      });
+      } catch (e) {
+        console.error('Error reading viewed listings from localStorage:', e);
+      }
     }
     
-    // If in single property mode, don't apply filters
-    if (singlePropertyMode) {
-      return sourceListings;
-    }
-
-    if (!sourceListings.length) return [];
-
-    return sourceListings
-      // Filter out removed properties
-      .filter((listing) => !listing.removed)
-      .filter((listing) => !listing.isDuplicate)
-      .filter((listing) => {
-        // Only include listings with coordinates
-        if (!listing.coordinates?.lat || !listing.coordinates?.long) {
-          return false;
-        }
-        return true;
-      })
-      // Add favorites filter
-      .filter((listing) => {
-        // If showing only favorites, filter out non-favorites
-        if (filterState.showOnlyFavorites) {
-          if (!favorites.includes(listing.id)) {
-            return false;
-          }
-        }
-        return true;
-      })
-      .filter((listing) => {
-        // Price filter
-        if (filterState.priceRange.min || filterState.priceRange.max) {
-          const priceJPY = parseJapanesePrice(listing.price);
-          const priceUSD = convertCurrency(priceJPY, "JPY", "USD");
-
-          if (filterState.priceRange.min && priceUSD < filterState.priceRange.min) {
-            return false;
-          }
-          if (filterState.priceRange.max && priceUSD > filterState.priceRange.max) {
-            return false;
-          }
-        }
-        return true;
-      })
-      .filter((listing) => {
-        // Layout filter (LDK)
-        if (filterState.layout.minLDK) {
-          const layoutNumber = parseLayout(listing.layout);
-          if (layoutNumber < filterState.layout.minLDK) {
-            return false;
-          }
-        }
-        return true;
-      })
-      .filter((listing) => {
-        // Building size filters
-        if (filterState.size.minBuildSize && listing.buildSqMeters) {
-          const buildSize = parseFloat(listing.buildSqMeters);
-          if (!isNaN(buildSize) && buildSize < filterState.size.minBuildSize) {
-            return false;
-          }
-        }
-        if (filterState.size.maxBuildSize && listing.buildSqMeters) {
-          const buildSize = parseFloat(listing.buildSqMeters);
-          if (!isNaN(buildSize) && buildSize > filterState.size.maxBuildSize) {
-            return false;
-          }
-        }
-        return true;
-      })
-      .filter((listing) => {
-        // Land size filters
-        if (filterState.size.minLandSize && listing.landSqMeters) {
-          const landSize = parseFloat(listing.landSqMeters);
-          if (!isNaN(landSize) && landSize < filterState.size.minLandSize) {
-            return false;
-          }
-        }
-        if (filterState.size.maxLandSize && listing.landSqMeters) {
-          const landSize = parseFloat(listing.landSqMeters);
-          if (!isNaN(landSize) && landSize > filterState.size.maxLandSize) {
-            return false;
-          }
-        }
-        return true;
-      })
-      .filter((listing) => {
-        // For Sale / Sold filter
-        const showForSale = filterState.showForSale !== false; // Default to true
-        const showSold = filterState.showSold === true; // Default to false
-
-        // Normalize the isSold property
-        const isListingSold = listing.isSold === true || listing.isDetailSoldPresent === true;
-
-        if (showForSale && showSold) {
-          // Show all listings when both options are selected
-          return true;
-        } else if (showForSale) {
-          // Only show for-sale listings
-          return !isListingSold;
-        } else if (showSold) {
-          // Only show sold listings
-          return isListingSold;
-        } else {
-          // If neither is selected (edge case), show nothing
-          return false;
-        }
-      });
-  }, [
-    sourceListings,
-    filterState.showForSale,
-    filterState.showSold,
-    filterState.priceRange.min,
-    filterState.priceRange.max,
-    filterState.layout.minLDK,
-    filterState.size.minBuildSize,
-    filterState.size.maxBuildSize,
-    filterState.size.minLandSize,
-    filterState.size.maxLandSize,
-    singlePropertyMode,
-    filterState.showOnlyFavorites,
-    favorites
-  ]);
+    return sourceListings.filter(listing => {
+      // Skip if invalid listing
+      if (!listing) return false;
+      
+      // Filter by favorites if enabled
+      if (filterState.showOnlyFavorites) {
+        // Only show favorites
+        if (!favorites.includes(listing.id)) return false;
+      }
+      
+      // Filter by viewed listings if enabled
+      if (filterState.showOnlySeen) {
+        // Only show listings that have been viewed
+        if (!viewedListings.includes(listing.id)) return false;
+      }
+      
+      // Apply for sale/sold filters
+      if (filterState.showForSale && !filterState.showSold) {
+        // Show only for sale
+        if (listing.isSold) return false;
+      } else if (!filterState.showForSale && filterState.showSold) {
+        // Show only sold
+        if (!listing.isSold) return false;
+      } else if (!filterState.showForSale && !filterState.showSold) {
+        // Edge case - nothing selected
+        return false;
+      }
+      
+      // If we get here, listing passes all filters
+      return true;
+    });
+  }, [sourceListings, filterState, favorites]);
 
   // Auto-adjust map view based on visible listings
   useEffect(() => {
@@ -953,6 +863,18 @@ export function MapDisplay({
 
   const pathname = usePathname();
   const router = useRouter();
+
+  // If the context is not ready, show a loading state
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-100">
+        <div className="text-center p-4 bg-white rounded-lg shadow-md">
+          <div className="h-6 w-6 border-2 border-t-green-600 border-gray-300 rounded-full animate-spin mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600 font-medium">Loading filters...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasCoordinates) {
     return (

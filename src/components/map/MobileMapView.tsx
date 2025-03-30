@@ -31,13 +31,49 @@ export function MobileMapView({ maintainMapPosition = false }) {
   // Get listings from context
   const { listings, isLoading } = useListings();
   // Get filter state and favorites from app context
-  const { filterState, favorites } = useAppContext();
+  const { filterState, favorites, isReady } = useAppContext();
+  
+  // Ref to track if localStorage has been checked
+  const hasCheckedStorage = useRef(false);
+  
+  // Store the previously filtered listings to prevent unnecessary re-renders
+  const [localFilteredListings, setLocalFilteredListings] = useState<Listing[]>([]);
+  
+  // Effect to initialize viewed listings from localStorage on component mount
+  useEffect(() => {
+    // Only run once on mount
+    if (hasCheckedStorage.current) return;
+    
+    // Mark as checked
+    hasCheckedStorage.current = true;
+    
+    if (!isReady) {
+      // Context is not yet ready, don't try to filter listings
+      return;
+    }
+    
+    // Filter will happen in the useMemo below
+  }, [isReady]);
   
   // Filter listings based on the current filter state
   const filteredListings = useMemo(() => {
-    if (!listings) return [];
+    if (!listings || !isReady) return localFilteredListings;
     
-    return listings.filter(listing => {
+    // Get viewed listings from localStorage
+    let viewedListings: string[] = [];
+    if (filterState.showOnlySeen && typeof window !== 'undefined') {
+      try {
+        const viewedListingsString = localStorage.getItem('viewedListings');
+        if (viewedListingsString) {
+          viewedListings = JSON.parse(viewedListingsString);
+          if (!Array.isArray(viewedListings)) viewedListings = [];
+        }
+      } catch (e) {
+        console.error('Error reading viewed listings from localStorage:', e);
+      }
+    }
+    
+    const filtered = listings.filter(listing => {
       // Skip if invalid listing
       if (!listing) return false;
       
@@ -45,6 +81,12 @@ export function MobileMapView({ maintainMapPosition = false }) {
       if (filterState.showOnlyFavorites) {
         // Only show favorites
         if (!favorites.includes(listing.id)) return false;
+      }
+      
+      // Filter by viewed listings if enabled
+      if (filterState.showOnlySeen) {
+        // Only show listings that have been viewed
+        if (!viewedListings.includes(listing.id)) return false;
       }
       
       // Apply for sale/sold filters
@@ -62,7 +104,17 @@ export function MobileMapView({ maintainMapPosition = false }) {
       // If we get here, listing passes all filters
       return true;
     });
-  }, [listings, filterState, favorites]);
+    
+    // Return filtered results without updating state here
+    return filtered;
+  }, [listings, filterState, favorites, isReady]);
+  
+  // Update the local filtered listings in a separate useEffect
+  useEffect(() => {
+    if (filteredListings.length > 0) {
+      setLocalFilteredListings(filteredListings);
+    }
+  }, [filteredListings]);
   
   // Handler for when a pin is selected on the map
   const handlePinSelect = (listing: Listing) => {
@@ -147,17 +199,17 @@ export function MobileMapView({ maintainMapPosition = false }) {
       {/* Map View */}
       {viewMode === 'map' && (
         <div className="w-full h-[calc(100vh-110px)]">
-          {isLoading ? (
+          {isLoading || !isReady ? (
             <MapSkeleton />
           ) : (
             <MapDisplay 
               onPinSelect={handlePinSelect}
               isMobileView={true}
-              selectedPropertyId={selectedPropertyId} // Pass selected property ID
-              singlePropertyMode={selectedListing !== null} // Enable singlePropertyMode when a listing is selected
-              customZoom={currentZoom} // Pass the custom zoom level
-              onMove={handleMapMove} // Listen for map move events
-              currentRoute="/listings" // Set the current route to /listings
+              selectedPropertyId={selectedPropertyId} 
+              singlePropertyMode={selectedListing !== null} 
+              customZoom={currentZoom} 
+              onMove={handleMapMove} 
+              currentRoute="/listings" 
               maintainMapPosition={maintainMapPosition}
               listings={filteredListings} // Pass filtered listings to the map
             />

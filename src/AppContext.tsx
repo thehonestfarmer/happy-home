@@ -19,6 +19,27 @@ const isLocalStorageAvailable = () => {
   }
 };
 
+// Utility function to safely load filter state from localStorage
+const loadFilterStateFromStorage = (): FilterState | null => {
+  if (!isLocalStorageAvailable()) return null;
+  
+  try {
+    const savedFilterState = localStorage.getItem(FILTER_STATE_KEY);
+    if (!savedFilterState) return null;
+    
+    return JSON.parse(savedFilterState) as FilterState;
+  } catch (error) {
+    console.error('[AppContext] Error parsing filter state from localStorage:', error);
+    return null;
+  }
+};
+
+// Get initial filter state - try from localStorage first, fallback to default
+const getInitialFilterState = (): FilterState => {
+  const savedState = typeof window !== 'undefined' ? loadFilterStateFromStorage() : null;
+  return savedState || defaultFilterState;
+};
+
 interface PriceFilterState {
   selectedCurrency: Currency;
   selectedRangeIndex: number | null;
@@ -31,6 +52,7 @@ interface AppContextType {
   priceFilterState: PriceFilterState;
   user: SupabaseUser | null;
   favorites: string[];
+  isReady: boolean;
   setDisplayState: (draft: DisplayState) => void;
   setFilterState: (draft: FilterState) => void;
   setPriceFilterState: (updater: (draft: PriceFilterState) => void) => void;
@@ -44,6 +66,7 @@ export type FilterState = {
   showForSale: boolean;
   showSold: boolean;
   showOnlyFavorites: boolean;
+  showOnlySeen: boolean;
   priceRange: {
     min: number | null;
     max: number | null;
@@ -64,6 +87,7 @@ export const defaultFilterState: FilterState = {
   showForSale: true,
   showSold: true,
   showOnlyFavorites: false,
+  showOnlySeen: false,
   priceRange: {
     min: null,
     max: null,
@@ -91,6 +115,8 @@ export type DisplayState = {
 export function AppProvider({ children }: { children: ReactNode }) {
   // Flag to track if initial load from localStorage is complete
   const isInitialized = useRef(false);
+  // State to track if the context is ready (filter state loaded)
+  const [isReady, setIsReady] = useImmer(false);
   // Check if localStorage is available
   const canUseLocalStorage = isLocalStorageAvailable();
 
@@ -100,8 +126,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     sortBy: 'newest',
   });
 
-  // Initialize with defaultFilterState, will be overridden by localStorage if available
-  const [filterState, setFilterState] = useImmer<FilterState>(defaultFilterState);
+  // Initialize with filter state from localStorage if available, else use default
+  const [filterState, setFilterState] = useImmer<FilterState>(
+    getInitialFilterState()
+  );
 
   const [priceFilterState, setPriceFilterState] = useImmer<PriceFilterState>({
     selectedCurrency: "JPY",
@@ -112,10 +140,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useImmer<SupabaseUser | null>(null);
   const [favorites, setFavorites] = useImmer<string[]>([]);
 
-  // Load filter state from localStorage on mount
+  // Double-check localStorage on mount (for client-side hydration)
   useEffect(() => {
     if (!canUseLocalStorage) {
       isInitialized.current = true;
+      setIsReady(true);
       return;
     }
 
@@ -124,15 +153,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (savedFilterState) {
         const parsedFilterState = JSON.parse(savedFilterState) as FilterState;
         setFilterState(parsedFilterState);
-        console.log('[AppContext] Restored filter state from localStorage');
       }
     } catch (error) {
       console.error('[AppContext] Error loading filter state from localStorage:', error);
-      // If there's an error, fall back to the default state (which is already set)
     }
     
     // Mark initialization as complete
     isInitialized.current = true;
+    setIsReady(true);
   }, []);
 
   // Save filter state to localStorage when it changes
@@ -207,6 +235,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     priceFilterState,
     user,
     favorites,
+    isReady,
     setDisplayState,
     setFilterState,
     setPriceFilterState,
