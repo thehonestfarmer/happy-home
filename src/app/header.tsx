@@ -19,7 +19,7 @@ import {
 import Image from "next/image";
 import { ListingsToolbar } from "@/components/listings/ListingsToolbar";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { clearAuthData } from '@/lib/supabase/client';
+import { clearAuthData, getURL } from '@/lib/supabase/client';
 
 function ConditionalToolbar({ path }: { path: string }) {
   if (path === '/listings') {
@@ -44,7 +44,7 @@ export default function Header() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${getURL()}/auth/callback`
         }
       });
 

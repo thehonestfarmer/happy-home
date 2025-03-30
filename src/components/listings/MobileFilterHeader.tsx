@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown, SlidersHorizontal, DollarSign } from "lucide-react";
 import { useAppContext } from "@/AppContext";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ForSaleFilterContent } from "./filters/ForSaleFilter";
 import { FavoritesFilterContent } from "./filters/FavoritesFilter";
 import { 
@@ -20,7 +20,7 @@ import { useListings } from "@/contexts/ListingsContext";
 import { getValidFavoritesCount } from "@/lib/favorites-utils";
 
 export function MobileFilterHeader() {
-  const { filterState, setFilterState, favorites } = useAppContext();
+  const { filterState, setFilterState, favorites, user } = useAppContext();
   const { listings } = useListings();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
@@ -34,6 +34,16 @@ export function MobileFilterHeader() {
   const showSold = filterState.showSold === true; // Default to false if undefined
   const showOnlyFavorites = filterState.showOnlyFavorites;
   const selectedCurrency = filterState.priceRange?.currency || "USD";
+  
+  // Reset favorites filter if user logs out
+  useEffect(() => {
+    if (!user && showOnlyFavorites) {
+      setFilterState({
+        ...filterState,
+        showOnlyFavorites: false
+      });
+    }
+  }, [user, showOnlyFavorites, filterState, setFilterState]);
   
   // Determine the property filter text based on selected options
   const getPropertyFilterText = () => {

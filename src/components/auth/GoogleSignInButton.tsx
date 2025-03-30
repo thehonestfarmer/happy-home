@@ -5,7 +5,7 @@ import { Button, ButtonProps } from "@/components/ui/button";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { getRedirectURL } from "@/lib/supabase/client";
+import { getRedirectURL, getURL } from "@/lib/supabase/client";
 
 type ButtonVariant = "default" | "outline" | "ghost";
 
@@ -88,7 +88,7 @@ export function GoogleSignInButton({
       }
 
       // Use the getRedirectURL helper to ensure proper environment-based URL
-      const redirectUrl = getRedirectURL('auth/callback');
+      const redirectUrl = getURL() + '/auth/callback';
       
       console.log('Environment:', process.env.NODE_ENV);
       console.log('Auth redirect URL:', redirectUrl);

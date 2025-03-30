@@ -17,7 +17,7 @@ import { getValidFavoritesCount } from "@/lib/favorites-utils";
 type ViewOption = "all" | "favorites";
 
 export function FavoritesFilterContent() {
-  const { filterState, setFilterState, favorites } = useAppContext();
+  const { filterState, setFilterState, favorites, user } = useAppContext();
   const { listings } = useListings();
   
   // Calculate the valid favorites count
@@ -27,6 +27,16 @@ export function FavoritesFilterContent() {
   
   // Get the current view option based on filter state
   const viewOption: ViewOption = filterState.showOnlyFavorites ? "favorites" : "all";
+
+  // If user switches to "all" after logging out, update the filter state
+  useEffect(() => {
+    if (!user && filterState.showOnlyFavorites) {
+      // If no user is logged in but favorites filter is active, reset to "all"
+      const newFilterState: FilterState = JSON.parse(JSON.stringify(filterState));
+      newFilterState.showOnlyFavorites = false;
+      setFilterState(newFilterState);
+    }
+  }, [user, filterState, setFilterState]);
   
   // Update the filter state when the view option changes
   const handleViewOptionChange = (value: ViewOption) => {
@@ -49,9 +59,16 @@ export function FavoritesFilterContent() {
           <RadioGroupItem value="all" id="all-listings" />
           <Label htmlFor="all-listings">All Listings</Label>
         </div>
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value="favorites" id="favorites" />
-          <Label htmlFor="favorites">
+        <div className={`flex items-center space-x-2 ${!user ? 'opacity-50' : ''}`}>
+          <RadioGroupItem 
+            value="favorites" 
+            id="favorites" 
+            disabled={!user}
+          />
+          <Label 
+            htmlFor="favorites"
+            className={!user ? 'cursor-not-allowed' : ''}
+          >
             Favorites
             {validFavoritesCount > 0 && (
               <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
@@ -59,6 +76,11 @@ export function FavoritesFilterContent() {
               </span>
             )}
           </Label>
+          {!user && (
+            <span className="text-xs text-gray-500 italic ml-1">
+              (Login required)
+            </span>
+          )}
         </div>
       </RadioGroup>
     </div>

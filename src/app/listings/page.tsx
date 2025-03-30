@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ListingsGrid } from "@/components/listings/ListingsGrid";
 import { ListingsMapView } from "@/components/map/ListingsMapView";
 import { MobileMapView } from "@/components/map/MobileMapView";
@@ -8,6 +8,8 @@ import { FeatureFlags } from "@/lib/featureFlags";
 import { MobileFilterHeader } from "@/components/listings/MobileFilterHeader";
 import Header from "../header";
 import { Listing } from "@/lib/listing-utils";
+import { useAppContext } from "@/AppContext";
+import { useListings } from "@/contexts/ListingsContext";
 
 export default function ListingsPage() {
   // Add state to track selected listing
@@ -18,6 +20,42 @@ export default function ListingsPage() {
   const [maintainMapPosition, setMaintainMapPosition] = useState(false);
   // Add state to track device view
   const [isMobileView, setIsMobileView] = useState(false);
+
+  // Get filter state and favorites from AppContext
+  const { filterState, favorites } = useAppContext();
+  // Get listings from the ListingsContext
+  const { listings, isLoading } = useListings();
+
+  // Filter listings based on the current filter state
+  const filteredListings = useMemo(() => {
+    if (!listings) return [];
+    
+    return listings.filter(listing => {
+      // Skip if invalid listing
+      if (!listing) return false;
+      
+      // Filter by favorites if enabled
+      if (filterState.showOnlyFavorites) {
+        // Only show favorites
+        if (!favorites.includes(listing.id)) return false;
+      }
+      
+      // Apply for sale/sold filters
+      if (filterState.showForSale && !filterState.showSold) {
+        // Show only for sale
+        if (listing.isSold) return false;
+      } else if (!filterState.showForSale && filterState.showSold) {
+        // Show only sold
+        if (!listing.isSold) return false;
+      } else if (!filterState.showForSale && !filterState.showSold) {
+        // Edge case - nothing selected
+        return false;
+      }
+      
+      // If we get here, listing passes all filters
+      return true;
+    });
+  }, [listings, filterState, favorites]);
 
   // Check if we're in mobile view on component mount
   useEffect(() => {
@@ -117,6 +155,7 @@ export default function ListingsPage() {
                   maintainMapPosition={maintainMapPosition}
                   onPinSelect={handlePinSelect}
                   isMobileView={isMobileView}
+                  listings={filteredListings}
                 />
               </div>
             </div>

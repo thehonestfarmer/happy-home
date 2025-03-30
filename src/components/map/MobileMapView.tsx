@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { MapDisplay } from "./MapPlaceholder";
 import { ListingsGrid } from "../listings/ListingsGrid";
 import { useListings } from "@/contexts/ListingsContext";
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Map, List, X, Plus, Minus } from "lucide-react";
 import { motion, AnimatePresence, PanInfo, useMotionValue } from "framer-motion";
 import { Listing } from "@/lib/listing-utils";
+import { useAppContext } from "@/AppContext";
+import { getValidFavoritesCount } from "@/lib/favorites-utils";
 
 export function MobileMapView({ maintainMapPosition = false }) {
   // View mode: 'map' or 'list'
@@ -26,7 +28,41 @@ export function MobileMapView({ maintainMapPosition = false }) {
   const y = useMotionValue(0);
   const drawerRef = useRef<HTMLDivElement>(null);
   
+  // Get listings from context
   const { listings, isLoading } = useListings();
+  // Get filter state and favorites from app context
+  const { filterState, favorites } = useAppContext();
+  
+  // Filter listings based on the current filter state
+  const filteredListings = useMemo(() => {
+    if (!listings) return [];
+    
+    return listings.filter(listing => {
+      // Skip if invalid listing
+      if (!listing) return false;
+      
+      // Filter by favorites if enabled
+      if (filterState.showOnlyFavorites) {
+        // Only show favorites
+        if (!favorites.includes(listing.id)) return false;
+      }
+      
+      // Apply for sale/sold filters
+      if (filterState.showForSale && !filterState.showSold) {
+        // Show only for sale
+        if (listing.isSold) return false;
+      } else if (!filterState.showForSale && filterState.showSold) {
+        // Show only sold
+        if (!listing.isSold) return false;
+      } else if (!filterState.showForSale && !filterState.showSold) {
+        // Edge case - nothing selected
+        return false;
+      }
+      
+      // If we get here, listing passes all filters
+      return true;
+    });
+  }, [listings, filterState, favorites]);
   
   // Handler for when a pin is selected on the map
   const handlePinSelect = (listing: Listing) => {
@@ -123,6 +159,7 @@ export function MobileMapView({ maintainMapPosition = false }) {
               onMove={handleMapMove} // Listen for map move events
               currentRoute="/listings" // Set the current route to /listings
               maintainMapPosition={maintainMapPosition}
+              listings={filteredListings} // Pass filtered listings to the map
             />
           )}
 

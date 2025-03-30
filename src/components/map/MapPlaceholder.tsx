@@ -325,7 +325,7 @@ export function MapDisplay({
   useSimpleMarker = false
 }: MapDisplayProps) {
   const { listings: contextListings } = useListings();
-  const { filterState, displayState } = useAppContext();
+  const { filterState, displayState, favorites } = useAppContext();
   const [latitude, setLatitude] = useState(initialLatitude || 35.6762); // Use initialLatitude if provided, otherwise default to Tokyo
   const [longitude, setLongitude] = useState(initialLongitude || 139.6503); // Use initialLongitude if provided
   const [zoom, setZoom] = useState(10);
@@ -472,6 +472,22 @@ export function MapDisplay({
 
   // Filter listings to match exactly the same logic as in ListingsGrid
   const filteredListings = useMemo(() => {
+    // If a filtered list is already provided through props, use it directly
+    if (propListings) {
+      // Skip filtering again if already done by parent component
+      // But still apply basic validation filters
+      return propListings.filter(listing => {
+        // Skip if invalid listing
+        if (!listing) return false;
+        
+        // Only include listings with coordinates
+        if (!listing.coordinates?.lat || !listing.coordinates?.long) {
+          return false;
+        }
+        return true;
+      });
+    }
+    
     // If in single property mode, don't apply filters
     if (singlePropertyMode) {
       return sourceListings;
@@ -487,6 +503,16 @@ export function MapDisplay({
         // Only include listings with coordinates
         if (!listing.coordinates?.lat || !listing.coordinates?.long) {
           return false;
+        }
+        return true;
+      })
+      // Add favorites filter
+      .filter((listing) => {
+        // If showing only favorites, filter out non-favorites
+        if (filterState.showOnlyFavorites) {
+          if (!favorites.includes(listing.id)) {
+            return false;
+          }
         }
         return true;
       })
@@ -580,7 +606,9 @@ export function MapDisplay({
     filterState.size.maxBuildSize,
     filterState.size.minLandSize,
     filterState.size.maxLandSize,
-    singlePropertyMode
+    singlePropertyMode,
+    filterState.showOnlyFavorites,
+    favorites
   ]);
 
   // Auto-adjust map view based on visible listings

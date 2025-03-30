@@ -12,7 +12,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { LogOut, ChevronLeft } from "lucide-react";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { clearAuthData } from '@/lib/supabase/client';
+import { clearAuthData, getURL } from '@/lib/supabase/client';
 
 interface NotificationSettings {
   marketing: boolean;
@@ -130,7 +130,7 @@ export default function AccountPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${getURL()}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
