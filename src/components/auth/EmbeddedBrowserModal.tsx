@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { ExternalLink, Copy, Check } from "lucide-react";
+import { ExternalLink, Copy, Check, Smartphone } from "lucide-react";
 import Image from "next/image";
 import {
   Dialog,
@@ -18,6 +18,13 @@ interface EmbeddedBrowserModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+type Browser = {
+  name: string;
+  icon: string;
+  deepLink: (url: string) => string;
+  package?: string; // For Android intents
+};
 
 export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalProps) {
   const { browserType } = useAppContext();
@@ -51,148 +58,130 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
     }
   };
   
-  // Attempt to force open in external browser
-  const handleOpenInBrowser = () => {
+  // Determine platform
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+  
+  // Get browser options based on platform
+  const getBrowserOptions = (): Browser[] => {
+    // Target URL should be fully qualified
+    const targetUrl = (url: string) => url.startsWith('http') 
+      ? url 
+      : `https://${window.location.host}${window.location.pathname}${window.location.search}`;
+      
+    if (isIOS) {
+      return [
+        {
+          name: "Safari",
+          icon: "🧭", // Safari compass icon
+          deepLink: (url) => url // Direct URL to open in Safari
+        },
+        {
+          name: "Chrome",
+          icon: "🔵", // Chrome icon
+          deepLink: (url) => `googlechrome://${url.replace(/^https?:\/\//, '')}`
+        },
+        {
+          name: "Firefox",
+          icon: "🦊", // Firefox icon
+          deepLink: (url) => `firefox://open-url?url=${encodeURIComponent(url)}`
+        },
+        {
+          name: "Brave",
+          icon: "🦁", // Brave lion icon
+          deepLink: (url) => `brave://open-url?url=${encodeURIComponent(url)}`
+        },
+        {
+          name: "Edge",
+          icon: "📐", // Edge icon
+          deepLink: (url) => `microsoft-edge-https://${url.replace(/^https?:\/\//, '')}`
+        }
+      ];
+    } else if (isAndroid) {
+      return [
+        {
+          name: "Chrome",
+          icon: "🔵", // Chrome icon
+          deepLink: (url) => {
+            const intent = `intent:${url}#Intent;scheme=${url.startsWith('https') ? 'https' : 'http'};package=com.android.chrome;end`;
+            return intent;
+          },
+          package: "com.android.chrome"
+        },
+        {
+          name: "Firefox",
+          icon: "🦊", // Firefox icon
+          deepLink: (url) => {
+            const intent = `intent:${url}#Intent;scheme=${url.startsWith('https') ? 'https' : 'http'};package=org.mozilla.firefox;end`;
+            return intent;
+          },
+          package: "org.mozilla.firefox"
+        },
+        {
+          name: "Samsung Internet",
+          icon: "🌐", // Samsung Internet icon
+          deepLink: (url) => {
+            const intent = `intent:${url}#Intent;scheme=${url.startsWith('https') ? 'https' : 'http'};package=com.sec.android.app.sbrowser;end`;
+            return intent;
+          },
+          package: "com.sec.android.app.sbrowser"
+        },
+        {
+          name: "Brave",
+          icon: "🦁", // Brave icon
+          deepLink: (url) => {
+            const intent = `intent:${url}#Intent;scheme=${url.startsWith('https') ? 'https' : 'http'};package=com.brave.browser;end`;
+            return intent;
+          },
+          package: "com.brave.browser"
+        },
+        {
+          name: "Default Browser",
+          icon: "🌐", // Default browser icon
+          deepLink: (url) => {
+            // Generic intent to open URL in default browser
+            return `intent:${url}#Intent;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+          }
+        }
+      ];
+    } else {
+      // Desktop or unknown platform
+      return [];
+    }
+  };
+  
+  // Get browser options
+  const browserOptions = getBrowserOptions();
+  
+  // Handle browser selection
+  const handleOpenInBrowser = (browser: Browser) => {
     if (typeof window === 'undefined') return;
     
     setIsRedirecting(true);
     
-    // Determine platform for better targeting
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator?.userAgent || '');
-    const isAndroid = /Android/i.test(navigator?.userAgent || '');
-
     // Get the current URL (ensure it's fully qualified)
     const targetUrl = currentURL.startsWith('http') 
       ? currentURL 
       : `https://${window.location.host}${window.location.pathname}${window.location.search}`;
     
     try {
-      if (isIOS) {
-        // iOS ESCAPE TECHNIQUE
-        // Trick: First add the apple-itunes-app meta tag to force iOS to show a banner
-        // This can sometimes break out of the embedded context
-        const meta = document.createElement('meta');
-        meta.name = 'apple-itunes-app';
-        meta.content = 'app-id=305343404, app-argument=' + encodeURIComponent(targetUrl); // 305343404 is Safari's app ID
-        document.head.appendChild(meta);
-        
-        // Try opening in Safari and other browsers with a smart sequencing approach
-        const encodedUrl = encodeURIComponent(targetUrl);
-        const openBrowsers = [
-          // First: Try direct navigation (can work in some webviews)
-          () => { window.location.href = targetUrl; },
-          
-          // Second: Try a smart combination - open Safari app then redirect
-          () => { window.location.href = `https://apps.apple.com/us/app/safari/id1146562112?mt=8&uo=${encodedUrl}`; },
-          
-          // Direct browser schemes
-          // () => { window.location.href = `x-web-search://?${encodedUrl}`; }, // Safari alternative
-          () => { window.location.href = `brave://open-url?url=${encodedUrl}`; }, // Brave
-          () => { window.location.href = `firefox://open-url?url=${encodedUrl}`; }, // Firefox  
-          () => { window.location.href = `googlechrome-x-callback://x-callback-url/open/?url=${encodedUrl}`; }, // Chrome x-callback
-          () => { window.location.href = `opera-http://open-url?url=${encodedUrl}`; }, // Opera
-          
-          // IFRAME TECHNIQUE - Can sometimes escape WebViews
-          () => {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = targetUrl;
-            document.body.appendChild(iframe);
-            setTimeout(() => {
-              try { document.body.removeChild(iframe); } catch(e) {}
-            }, 500);
-          },
-          
-          // Special URL schemes that might trigger system prompts
-          () => { window.location.href = `maps://`; },
-          () => { window.location.href = `itms-apps://itunes.apple.com/app/id${305343404}`; }, // Safari's App ID
-          
-          // Alternative scheme approach with URL as parameter
-          () => { window.location.href = `shortcuts://run-shortcut?name=OpenURL&input=${encodedUrl}`; }
-        ];
-        
-        // Execute the approaches with proper timing between them
-        openBrowsers.forEach((approach, index) => {
-          setTimeout(() => {
-            try {
-              approach();
-            } catch(e) {
-              console.error(`iOS approach ${index} failed:`, e);
-            }
-          }, index * 200); // Staggered timing (200ms between attempts)
-        });
-        
-        // Smart check for context change
-        let contextCheckCount = 0;
-        const maxChecks = 20;
-        const contextCheckInterval = setInterval(() => {
-          contextCheckCount++;
-          // If we've been navigated away, clear the interval
-          if (!document.body || contextCheckCount >= maxChecks) {
-            clearInterval(contextCheckInterval);
-          }
-        }, 100);
-      } 
-      else if (isAndroid) {
-        // Android approach - Using intents with specific browser packages
-        const browserPackages = [
-          "com.android.chrome",
-          "org.mozilla.firefox", 
-          "com.brave.browser",
-          "com.opera.browser",
-          "com.android.browser", // Default browser
-          "com.sec.android.app.sbrowser" // Samsung browser
-        ];
-        
-        // First try a general intent that will trigger the chooser dialog
-        const generalIntent = `intent:${targetUrl}#Intent;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;launchFlags=0x10000000;end`;
-        window.location.href = generalIntent;
-        
-        // Then try specific browser packages with a delay between each
-        browserPackages.forEach((pkg, index) => {
-          setTimeout(() => {
-            const specificIntent = `intent:${targetUrl}#Intent;scheme=${targetUrl.startsWith('https') ? 'https' : 'http'};package=${pkg};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;launchFlags=0x10000000;end`;
-            window.location.href = specificIntent;
-          }, (index + 1) * 150); // Stagger attempts
-        });
-      } 
-      else {
-        // Desktop or unknown device - use standard approach
-        window.open(targetUrl, '_blank', 'noreferrer');
-      }
+      // Use the browser's deep link
+      const deepLink = browser.deepLink(targetUrl);
+      window.location.href = deepLink;
       
-      // Final DOM-based fallback approach for all platforms
+      // Add a fallback
       setTimeout(() => {
-        try {
-          // Create and click a link element with proper attributes
-          const a = document.createElement('a');
-          a.href = targetUrl;
-          a.target = '_blank';
-          a.rel = 'external noopener noreferrer';
-          a.setAttribute('data-browser-open', 'true');
-          
-          // The style makes a difference for some webview escape techniques
-          a.style.position = 'absolute';
-          a.style.left = '-9999px';
-          a.style.visibility = 'hidden';
-          a.style.display = 'block'; // Must be in DOM and visible to browser engine
-          
-          document.body.appendChild(a);
-          a.dispatchEvent(new MouseEvent('click', {
-            view: window,
-            bubbles: true,
-            cancelable: false,
-            buttons: 1
-          }));
-          
-          // Some webviews require the element to stay in DOM
-          setTimeout(() => document.body.removeChild(a), 200);
-        } catch (e) {
-          console.error("DOM fallback failed", e);
-        }
-      }, 800);
+        // Create and click a link element as fallback
+        const a = document.createElement('a');
+        a.href = targetUrl;
+        a.target = '_blank';
+        a.rel = 'external noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, 500);
     } catch (e) {
-      console.error("Failed to open default browser:", e);
+      console.error(`Failed to open in ${browser.name}:`, e);
       // Last resort fallback
       window.location.href = targetUrl;
     }
@@ -263,23 +252,51 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
             </p>
           </div>
           
+          {/* Browser selection */}
+          {browserOptions.length > 0 ? (
+            <div className="w-full space-y-3">
+              <p className="text-sm font-medium text-center">Select a browser to open this page in:</p>
+              <div className="grid grid-cols-2 gap-2">
+                {browserOptions.map((browser, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="flex items-center justify-center space-x-2 py-3"
+                    onClick={() => handleOpenInBrowser(browser)}
+                    disabled={isRedirecting}
+                  >
+                    <span className="text-xl" role="img" aria-label={browser.name}>
+                      {browser.icon}
+                    </span>
+                    <span>{browser.name}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            // For desktop users, show regular instructions
+            <div className="flex flex-col items-center space-y-2 w-full">
+              <div className="rounded-full bg-primary/10 p-3">
+                <ExternalLink className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-sm font-medium text-center">
+                Please open this link in a new browser window.
+              </p>
+            </div>
+          )}
+          
           {/* Manual instructions */}
-          <div className="flex flex-col items-center space-y-2 w-full">
-            <div className="rounded-full bg-primary/10 p-3">
-              <ExternalLink className="h-6 w-6 text-primary" />
+          {manualInstructions && (
+            <div className="bg-amber-50 border border-amber-200 w-full p-3 rounded-lg text-center">
+              <p className="text-sm font-medium text-amber-800">
+                Or manually: {manualInstructions}
+              </p>
             </div>
-            <div className="text-sm font-medium text-center space-y-1">
-              <p>For the best experience, please open this page in {platformName}.</p>
-              {manualInstructions && (
-                <p className="text-sm font-semibold text-amber-600">
-                  {manualInstructions}
-                </p>
-              )}
-            </div>
-          </div>
+          )}
           
           {/* URL copy field */}
           <div className="w-full pt-2">
+            <p className="text-sm text-center mb-2">Copy URL to paste in your browser:</p>
             <div className="flex items-center space-x-2">
               <input 
                 ref={urlInputRef}
@@ -298,28 +315,20 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1 text-center">
-              {copied ? "URL copied to clipboard!" : "Copy this URL to paste in your browser"}
+              {copied ? "URL copied to clipboard!" : "Tap to copy"}
             </p>
           </div>
           
           {isRedirecting && (
             <div className="bg-green-50 border border-green-200 w-full p-3 rounded-lg text-center">
               <p className="text-sm text-green-800">
-                Attempting to open your browser...
+                Attempting to open selected browser...
               </p>
             </div>
           )}
         </div>
 
-        <DialogFooter className="sm:justify-center gap-2 flex-col sm:flex-row">
-          <Button
-            variant="default"
-            onClick={handleOpenInBrowser}
-            disabled={isRedirecting}
-            className="w-full sm:w-auto"
-          >
-            {isRedirecting ? "Opening..." : `Try to open in ${platformName}`}
-          </Button>
+        <DialogFooter className="sm:justify-center">
           <Button
             variant="outline"
             onClick={onClose}
