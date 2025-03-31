@@ -142,7 +142,7 @@ export async function publishMedia(creationId: string): Promise<InstagramMediaPu
   };
 
   try {
-    console.log('Sending media publish request:', JSON.stringify(requestBody, null, 2));
+    console.log('Sending media publish request...', requestBody.creation_id);
     
     const response = await fetch(url, {
       method: 'POST',

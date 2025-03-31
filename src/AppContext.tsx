@@ -6,7 +6,7 @@ import { createClientComponentClient, type User as SupabaseUser } from '@supabas
 
 // Comprehensive detection of embedded browsers
 function detectEmbeddedBrowser(): string {
-  if (typeof window === 'undefined' || !navigator) return 'Standard Browser';
+  if (typeof window === 'undefined' || !window.navigator) return 'Standard Browser';
   
   const ua = navigator.userAgent;
   
