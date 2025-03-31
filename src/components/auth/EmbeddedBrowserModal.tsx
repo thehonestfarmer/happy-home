@@ -86,7 +86,7 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
           () => { window.location.href = `https://apps.apple.com/us/app/safari/id1146562112?mt=8&uo=${encodedUrl}`; },
           
           // Direct browser schemes
-          () => { window.location.href = `x-web-search://?${encodedUrl}`; }, // Safari alternative
+          // () => { window.location.href = `x-web-search://?${encodedUrl}`; }, // Safari alternative
           () => { window.location.href = `brave://open-url?url=${encodedUrl}`; }, // Brave
           () => { window.location.href = `firefox://open-url?url=${encodedUrl}`; }, // Firefox  
           () => { window.location.href = `googlechrome-x-callback://x-callback-url/open/?url=${encodedUrl}`; }, // Chrome x-callback
