@@ -68,72 +68,132 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
     
     try {
       if (isIOS) {
-        // iOS - Try multiple approaches in sequence
+        // iOS ESCAPE TECHNIQUE
+        // Trick: First add the apple-itunes-app meta tag to force iOS to show a banner
+        // This can sometimes break out of the embedded context
+        const meta = document.createElement('meta');
+        meta.name = 'apple-itunes-app';
+        meta.content = 'app-id=305343404, app-argument=' + encodeURIComponent(targetUrl); // 305343404 is Safari's app ID
+        document.head.appendChild(meta);
         
-        // 1. Try a special URL format that iOS might handle differently
-        // This helps bypass internal WebView handlers by using a less common scheme variant
-        const enhancedUrl = targetUrl.replace('https://', 'https-enhanced://').replace('http://', 'http-enhanced://');
-        window.location.href = enhancedUrl;
+        // Try opening in Safari and other browsers with a smart sequencing approach
+        const encodedUrl = encodeURIComponent(targetUrl);
+        const openBrowsers = [
+          // First: Try direct navigation (can work in some webviews)
+          () => { window.location.href = targetUrl; },
+          
+          // Second: Try a smart combination - open Safari app then redirect
+          () => { window.location.href = `https://apps.apple.com/us/app/safari/id1146562112?mt=8&uo=${encodedUrl}`; },
+          
+          // Direct browser schemes
+          () => { window.location.href = `x-web-search://?${encodedUrl}`; }, // Safari alternative
+          () => { window.location.href = `brave://open-url?url=${encodedUrl}`; }, // Brave
+          () => { window.location.href = `firefox://open-url?url=${encodedUrl}`; }, // Firefox  
+          () => { window.location.href = `googlechrome-x-callback://x-callback-url/open/?url=${encodedUrl}`; }, // Chrome x-callback
+          () => { window.location.href = `opera-http://open-url?url=${encodedUrl}`; }, // Opera
+          
+          // IFRAME TECHNIQUE - Can sometimes escape WebViews
+          () => {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = targetUrl;
+            document.body.appendChild(iframe);
+            setTimeout(() => {
+              try { document.body.removeChild(iframe); } catch(e) {}
+            }, 500);
+          },
+          
+          // Special URL schemes that might trigger system prompts
+          () => { window.location.href = `maps://`; },
+          () => { window.location.href = `itms-apps://itunes.apple.com/app/id${305343404}`; }, // Safari's App ID
+          
+          // Alternative scheme approach with URL as parameter
+          () => { window.location.href = `shortcuts://run-shortcut?name=OpenURL&input=${encodedUrl}`; }
+        ];
         
-        // 2. After a short delay, try Chrome (if installed)
-        setTimeout(() => {
-          window.location.href = `googlechrome://${targetUrl.replace(/^https?:\/\//, '')}`;
+        // Execute the approaches with proper timing between them
+        openBrowsers.forEach((approach, index) => {
+          setTimeout(() => {
+            try {
+              approach();
+            } catch(e) {
+              console.error(`iOS approach ${index} failed:`, e);
+            }
+          }, index * 200); // Staggered timing (200ms between attempts)
+        });
+        
+        // Smart check for context change
+        let contextCheckCount = 0;
+        const maxChecks = 20;
+        const contextCheckInterval = setInterval(() => {
+          contextCheckCount++;
+          // If we've been navigated away, clear the interval
+          if (!document.body || contextCheckCount >= maxChecks) {
+            clearInterval(contextCheckInterval);
+          }
         }, 100);
-        
-        // 3. Then try Firefox (if installed)
-        setTimeout(() => {
-          window.location.href = `firefox://open-url?url=${encodeURIComponent(targetUrl)}`;
-        }, 200);
-        
-        // 4. Finally fall back to regular Safari attempt
-        setTimeout(() => {
-          window.location.href = targetUrl;
-        }, 300);
       } 
       else if (isAndroid) {
-        // Android - Use an intent with specific flags to encourage external browser
-        // The key is adding the ACTIVITY_NEW_TASK and ACTIVITY_CLEAR_TASK flags
+        // Android approach - Using intents with specific browser packages
+        const browserPackages = [
+          "com.android.chrome",
+          "org.mozilla.firefox", 
+          "com.brave.browser",
+          "com.opera.browser",
+          "com.android.browser", // Default browser
+          "com.sec.android.app.sbrowser" // Samsung browser
+        ];
         
-        const androidIntent = `intent:${targetUrl.replace(/^https?:\/\//, '')}#Intent;`
-          + `scheme=${targetUrl.startsWith('https') ? 'https' : 'http'};`
-          + `action=android.intent.action.VIEW;`
-          + `category=android.intent.category.BROWSABLE;`
-          + `S.browser_fallback_url=${encodeURIComponent(targetUrl)};`
-          + `launchFlags=0x10000000;` // FLAG_ACTIVITY_NEW_TASK
-          + `end`;
-          
-        window.location.href = androidIntent;
+        // First try a general intent that will trigger the chooser dialog
+        const generalIntent = `intent:${targetUrl}#Intent;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;launchFlags=0x10000000;end`;
+        window.location.href = generalIntent;
+        
+        // Then try specific browser packages with a delay between each
+        browserPackages.forEach((pkg, index) => {
+          setTimeout(() => {
+            const specificIntent = `intent:${targetUrl}#Intent;scheme=${targetUrl.startsWith('https') ? 'https' : 'http'};package=${pkg};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;launchFlags=0x10000000;end`;
+            window.location.href = specificIntent;
+          }, (index + 1) * 150); // Stagger attempts
+        });
       } 
       else {
         // Desktop or unknown device - use standard approach
         window.open(targetUrl, '_blank', 'noreferrer');
       }
       
-      // Final attempt for all platforms as absolute fallback
+      // Final DOM-based fallback approach for all platforms
       setTimeout(() => {
-        // Create and click a special anchor with attributes designed to trigger external opening
-        const a = document.createElement('a');
-        a.href = targetUrl;
-        a.target = '_blank';
-        a.rel = 'external nofollow noreferrer';
-        a.setAttribute('data-browser-open', 'true'); // Custom attribute that some browsers might recognize
-        
-        // Important! - visibility hidden but not display:none, this makes a difference
-        a.style.position = 'absolute';
-        a.style.left = '-9999px';
-        a.style.visibility = 'hidden';
-        
-        document.body.appendChild(a);
-        a.dispatchEvent(new MouseEvent('click', {
-          view: window,
-          bubbles: true,
-          cancelable: true,
-          buttons: 1 // Primary button (simulates a real user click)
-        }));
-        setTimeout(() => document.body.removeChild(a), 100);
-      }, 400);
+        try {
+          // Create and click a link element with proper attributes
+          const a = document.createElement('a');
+          a.href = targetUrl;
+          a.target = '_blank';
+          a.rel = 'external noopener noreferrer';
+          a.setAttribute('data-browser-open', 'true');
+          
+          // The style makes a difference for some webview escape techniques
+          a.style.position = 'absolute';
+          a.style.left = '-9999px';
+          a.style.visibility = 'hidden';
+          a.style.display = 'block'; // Must be in DOM and visible to browser engine
+          
+          document.body.appendChild(a);
+          a.dispatchEvent(new MouseEvent('click', {
+            view: window,
+            bubbles: true,
+            cancelable: false,
+            buttons: 1
+          }));
+          
+          // Some webviews require the element to stay in DOM
+          setTimeout(() => document.body.removeChild(a), 200);
+        } catch (e) {
+          console.error("DOM fallback failed", e);
+        }
+      }, 800);
     } catch (e) {
       console.error("Failed to open default browser:", e);
+      // Last resort fallback
       window.location.href = targetUrl;
     }
     
