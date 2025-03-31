@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { useState, useRef } from "react";
+import { ExternalLink, Copy, Check } from "lucide-react";
 import Image from "next/image";
 import {
   Dialog,
@@ -22,17 +22,40 @@ interface EmbeddedBrowserModalProps {
 export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalProps) {
   const { browserType } = useAppContext();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const urlInputRef = useRef<HTMLInputElement>(null);
 
   // Get the current URL to open in the native browser
   const currentURL = typeof window !== 'undefined' ? window.location.href : '';
   
-  // Advanced deep linking to external browsers
+  // Handle copy to clipboard
+  const handleCopyUrl = () => {
+    if (typeof navigator === 'undefined') return;
+    
+    // Select the text field
+    if (urlInputRef.current) {
+      urlInputRef.current.select();
+      urlInputRef.current.setSelectionRange(0, 99999); // For mobile devices
+    }
+    
+    // Copy the URL to clipboard
+    try {
+      navigator.clipboard.writeText(currentURL);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // Fallback copy method
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+  
+  // Attempt to force open in external browser
   const handleOpenInBrowser = () => {
     if (typeof window === 'undefined') return;
     
     setIsRedirecting(true);
-    
-    const encodedUrl = encodeURIComponent(currentURL);
     let opened = false;
     
     // Determine platform
@@ -41,125 +64,77 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
     
     // Platform-specific handling
     if (isIOS) {
-      // Try iOS-specific methods
-      
-      // 1. Try direct https approach first for iOS
+      // Try more aggressive iOS methods
       try {
-        // For newer iOS versions, we can often just use window.open with _blank
-        const newWindow = window.open(currentURL, '_blank');
-        if (newWindow) {
-          // If we got a window reference, it might be opening in the webview
-          // In that case, we'll try to close it and try other methods
-          newWindow.close();
-        } else {
-          // If it returns null, iOS might be opening it in Safari already
-          opened = true;
-        }
+        // Use a scheme that will force a system prompt on iOS
+        // This can sometimes break out of the webview containment
+        window.location.href = `sms:&body=${encodeURIComponent("Open this link in Safari: " + currentURL)}`;
+        opened = true;
+        
+        // After a short delay, try to redirect back to the URL
+        // This sometimes works after the system prompt is shown
+        setTimeout(() => {
+          window.location.href = currentURL;
+        }, 300);
       } catch (e) {
-        console.log("iOS direct approach failed", e);
+        console.log("iOS SMS approach failed", e);
       }
       
-      // 2. If direct approach doesn't work, try the explicit safari:// protocol 
+      // Try another iOS-specific scheme as backup
       if (!opened) {
         try {
-          // This protocol works better on some iOS versions
-          // Construct the URL differently to avoid encoding the protocol itself
-          const sanitizedUrl = currentURL.replace(/^https?:\/\//, '');
-          window.location.href = `https://${sanitizedUrl}`;
+          // This will attempt to open the App Store, which sometimes
+          // allows escaping the WebView context
+          window.location.href = "itms-apps://";
+          opened = true;
+          
+          // After a short delay, try to redirect back to our URL
           setTimeout(() => {
             window.location.href = currentURL;
-          }, 100);
-          opened = true;
+          }, 300);
         } catch (e) {
-          console.log("iOS direct protocol failed", e);
-        }
-      }
-      
-      // 3. DOM approach as a fallback for iOS
-      if (!opened) {
-        try {
-          // This uses a slight hack - we create a temporary anchor with target=_blank
-          // iOS often treats _blank specially and opens the default browser
-          const a = document.createElement('a');
-          a.setAttribute('href', currentURL);
-          a.setAttribute('target', '_blank');
-          a.setAttribute('rel', 'noopener noreferrer');
-          
-          // Hide the element and add it to the DOM
-          a.style.display = 'none';
-          document.body.appendChild(a);
-          
-          // Trigger a click and then remove it
-          a.click();
-          document.body.removeChild(a);
-          opened = true;
-        } catch (e) {
-          console.log("iOS universal fallback failed", e);
+          console.log("App Store redirect failed", e);
         }
       }
     } else if (isAndroid) {
-      // Try Android-specific methods
+      // Try multiple Android browser packages
+      const browserPackages = [
+        "com.android.chrome",
+        "com.android.browser",
+        "org.mozilla.firefox",
+        "com.opera.browser",
+        "com.sec.android.app.sbrowser" // Samsung browser
+      ];
       
-      // 1. Try Chrome intent URL (works on many Android devices)
-      try {
-        // Format: intent://host#Intent;scheme=https;package=com.android.chrome;end
-        const urlParts = new URL(currentURL);
-        const intentUrl = `intent://${urlParts.host}${urlParts.pathname}${urlParts.search}#Intent;scheme=${urlParts.protocol.replace(':', '')};package=com.android.chrome;end`;
-        window.location.href = intentUrl;
-        opened = true;
-      } catch (e) {
-        console.log("Android Chrome intent failed", e);
-      }
-      
-      // 2. If that fails, try a universal approach
-      if (!opened) {
+      for (const pkg of browserPackages) {
+        if (opened) break;
+        
         try {
-          // Some Android browsers will try to open this in external browser
-          window.open(currentURL, '_system');
+          const urlParts = new URL(currentURL);
+          const intentUrl = `intent://${urlParts.host}${urlParts.pathname}${urlParts.search}#Intent;scheme=${urlParts.protocol.replace(':', '')};package=${pkg};end`;
+          window.location.href = intentUrl;
           opened = true;
         } catch (e) {
-          console.log("Android system open failed", e);
+          console.log(`Android ${pkg} intent failed`, e);
         }
       }
     }
     
-    // Universal fallback for all platforms
-    if (!opened) {
-      // Last resort - just try to force a new window/tab
-      // This may still open in the webview but it's our final fallback
-      try {
-        // Some mobile browsers might respect this
-        const newTab = window.open(currentURL, '_blank');
-        
-        // If we can access the window, try to close it and redirect main window
-        if (newTab) {
-          newTab.close();
-        }
-        
-        // Finally just try to redirect the main window
-        window.location.href = currentURL;
-      } catch (e) {
-        console.log("Universal fallback failed", e);
-      }
-    }
-    
-    // Show a message to help user if automatic opening fails
+    // Reset the UI after a delay regardless of success
+    // By this point, the user should rely on manual methods
     setTimeout(() => {
       setIsRedirecting(false);
-      // Close modal after a moment
-      setTimeout(() => onClose(), 500);
     }, 1500);
   };
 
   // Get platform-specific content
   const getPlatformContent = () => {
-    let icon = '/icons/browser.svg'; // Default icon
     let platformName = 'your device\'s browser';
-    let manualInstructions = 'copy this URL and paste it into your browser';
+    let manualInstructions = '';
     
     // Check if we're in a browser environment
     if (typeof window === 'undefined' || !window.navigator) {
-      return { icon, platformName, manualInstructions };
+      return { platformName, manualInstructions };
     }
     
     const ua = navigator.userAgent;
@@ -167,28 +142,30 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
     const isAndroid = /Android/i.test(ua);
     
     if (browserType === 'Instagram') {
-      icon = '/icons/instagram.svg';
-      
       if (isIOS) {
         platformName = 'Safari';
-        manualInstructions = 'tap the "..." menu and select "Open in Safari"';
+        manualInstructions = 'Tap the ••• menu in the top right corner and select "Open in Safari"';
       } else if (isAndroid) {
         platformName = 'Chrome';
-        manualInstructions = 'tap the "..." menu and select "Open in Chrome"';
+        manualInstructions = 'Tap the ••• menu in the top right corner and select "Open in Chrome"';
       } else {
         platformName = 'your default browser';
       }
     } else if (browserType === 'Facebook') {
-      icon = '/icons/facebook.svg';
-      manualInstructions = 'tap the "..." menu and select "Open in Browser"';
+      manualInstructions = 'Tap the ••• menu in the bottom right corner and select "Open in Browser"';
+      platformName = isIOS ? 'Safari' : (isAndroid ? 'Chrome' : 'your default browser');
+    } else if (browserType === 'TikTok') {
+      manualInstructions = 'Tap the ••• menu and select "Open in browser"';
       platformName = isIOS ? 'Safari' : (isAndroid ? 'Chrome' : 'your default browser');
     } else if (isIOS) {
       platformName = 'Safari';
+      manualInstructions = 'Copy the URL and paste it into Safari';
     } else if (isAndroid) {
       platformName = 'Chrome';
+      manualInstructions = 'Copy the URL and paste it into Chrome';
     }
 
-    return { icon, platformName, manualInstructions };
+    return { platformName, manualInstructions };
   };
 
   const { platformName, manualInstructions } = getPlatformContent();
@@ -210,12 +187,42 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
             </p>
           </div>
           
-          <div className="flex flex-col items-center space-y-2">
+          {/* Manual instructions */}
+          <div className="flex flex-col items-center space-y-2 w-full">
             <div className="rounded-full bg-primary/10 p-3">
               <ExternalLink className="h-6 w-6 text-primary" />
             </div>
-            <p className="text-sm font-medium text-center">
-              For the best experience, please open this page in {platformName}.
+            <div className="text-sm font-medium text-center space-y-1">
+              <p>For the best experience, please open this page in {platformName}.</p>
+              {manualInstructions && (
+                <p className="text-sm font-semibold text-amber-600">
+                  {manualInstructions}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {/* URL copy field */}
+          <div className="w-full pt-2">
+            <div className="flex items-center space-x-2">
+              <input 
+                ref={urlInputRef}
+                type="text" 
+                readOnly
+                value={currentURL}
+                className="w-full px-3 py-2 border rounded-md text-sm bg-muted/30 truncate"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyUrl}
+                className="flex-shrink-0"
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 text-center">
+              {copied ? "URL copied to clipboard!" : "Copy this URL to paste in your browser"}
             </p>
           </div>
           
@@ -223,9 +230,6 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
             <div className="bg-green-50 border border-green-200 w-full p-3 rounded-lg text-center">
               <p className="text-sm text-green-800">
                 Attempting to open your browser...
-              </p>
-              <p className="text-xs text-green-600 mt-1">
-                If nothing happens, {manualInstructions}.
               </p>
             </div>
           )}
@@ -238,7 +242,7 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
             disabled={isRedirecting}
             className="w-full sm:w-auto"
           >
-            {isRedirecting ? "Opening..." : `Open in ${platformName}`}
+            {isRedirecting ? "Opening..." : `Try to open in ${platformName}`}
           </Button>
           <Button
             variant="outline"
