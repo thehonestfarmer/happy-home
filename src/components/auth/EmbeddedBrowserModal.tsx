@@ -43,17 +43,39 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
     if (isIOS) {
       // Try iOS-specific methods
       
-      // 1. Try Safari first - most reliable on iOS
+      // 1. Try direct https approach first for iOS
       try {
-        // Safari URL scheme 
-        const safariUrl = `x-web-search://?${encodedUrl}`;
-        window.location.href = safariUrl;
-        opened = true;
+        // For newer iOS versions, we can often just use window.open with _blank
+        const newWindow = window.open(currentURL, '_blank');
+        if (newWindow) {
+          // If we got a window reference, it might be opening in the webview
+          // In that case, we'll try to close it and try other methods
+          newWindow.close();
+        } else {
+          // If it returns null, iOS might be opening it in Safari already
+          opened = true;
+        }
       } catch (e) {
-        console.log("Safari deep link failed, trying alternative", e);
+        console.log("iOS direct approach failed", e);
       }
       
-      // 2. If that fails, try a universal workaround for iOS
+      // 2. If direct approach doesn't work, try the explicit safari:// protocol 
+      if (!opened) {
+        try {
+          // This protocol works better on some iOS versions
+          // Construct the URL differently to avoid encoding the protocol itself
+          const sanitizedUrl = currentURL.replace(/^https?:\/\//, '');
+          window.location.href = `https://${sanitizedUrl}`;
+          setTimeout(() => {
+            window.location.href = currentURL;
+          }, 100);
+          opened = true;
+        } catch (e) {
+          console.log("iOS direct protocol failed", e);
+        }
+      }
+      
+      // 3. DOM approach as a fallback for iOS
       if (!opened) {
         try {
           // This uses a slight hack - we create a temporary anchor with target=_blank
