@@ -5,7 +5,7 @@ import { SignInModal } from "@/components/auth/SignInModal";
 import { Button } from "@/components/ui/button";
 import { SlidersHorizontal, User, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FeatureFlags } from "@/lib/featureFlags";
 import { MobileFilters } from "@/components/listings/MobileFilters";
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -21,6 +21,60 @@ import { ListingsToolbar } from "@/components/listings/ListingsToolbar";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { clearAuthData, getURL } from '@/lib/supabase/client';
 
+// Comprehensive detection of embedded browsers
+function detectEmbeddedBrowser() {
+  if (typeof window === 'undefined' || !navigator) return 'Standard Browser';
+  
+  const ua = navigator.userAgent;
+  
+  // Instagram browser detection
+  if (/Instagram/.test(ua)) {
+    return 'Instagram';
+  }
+  
+  // Facebook in-app browser
+  if (/FBAN|FBAV/.test(ua)) {
+    return 'Facebook';
+  }
+  
+  // TikTok in-app browser
+  if (/TikTok/.test(ua)) {
+    return 'TikTok';
+  }
+  
+  // Twitter/X in-app browser
+  if (/Twitter/.test(ua)) {
+    return 'Twitter';
+  }
+  
+  // LinkedIn in-app browser
+  if (/LinkedInApp/.test(ua)) {
+    return 'LinkedIn';
+  }
+  
+  // Snapchat in-app browser
+  if (/Snapchat/.test(ua)) {
+    return 'Snapchat';
+  }
+  
+  // WeChat embedded browser
+  if (/MicroMessenger/.test(ua)) {
+    return 'WeChat';
+  }
+  
+  // Line app browser
+  if (/Line\//.test(ua)) {
+    return 'Line';
+  }
+  
+  // Generic WebView detection (Android)
+  if (/Android.*wv/.test(ua)) {
+    return 'Android WebView';
+  }
+  
+  return 'Standard Browser';
+}
+
 function ConditionalToolbar({ path }: { path: string }) {
   if (path === '/listings') {
     return <ListingsToolbar />;
@@ -34,6 +88,14 @@ export default function Header() {
   const supabase = createClientComponentClient();
   const pathname = usePathname();
   const isHomePage = pathname === '/' || pathname === '/listings';
+  const [browserType, setBrowserType] = useState('Standard Browser');
+
+  useEffect(() => {
+    // Detect the browser type on the client side
+    const detectedBrowser = detectEmbeddedBrowser();
+    setBrowserType(detectedBrowser);
+    console.log(`User is browsing from: ${detectedBrowser}`);
+  }, []);
 
   const handleGoogleLogin = async () => {
     try {
@@ -158,7 +220,7 @@ export default function Header() {
     <>
       {/* Construction Banner */}
       <div className="w-full bg-amber-500 text-black py-1.5 text-center text-sm font-medium">
-        🚧 Work in Progress! 🚧
+        {browserType === 'Instagram' ? '👋 Hello Instagram!' : '🚧 Work in Progress! 🚧'}
       </div>
       
       <header className="bg-primary text-primary-foreground py-4 relative">
