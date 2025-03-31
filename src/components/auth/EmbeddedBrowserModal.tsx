@@ -56,72 +56,88 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
     if (typeof window === 'undefined') return;
     
     setIsRedirecting(true);
-    let opened = false;
     
-    // Determine platform
+    // Determine platform for better targeting
     const isIOS = /iPhone|iPad|iPod/i.test(navigator?.userAgent || '');
     const isAndroid = /Android/i.test(navigator?.userAgent || '');
+
+    // Get the current URL (ensure it's fully qualified)
+    const targetUrl = currentURL.startsWith('http') 
+      ? currentURL 
+      : `https://${window.location.host}${window.location.pathname}${window.location.search}`;
     
-    // Platform-specific handling
-    if (isIOS) {
-      // Try more aggressive iOS methods
-      try {
-        // Use a scheme that will force a system prompt on iOS
-        // This can sometimes break out of the webview containment
-        window.location.href = `sms:&body=${encodeURIComponent("Open this link in Safari: " + currentURL)}`;
-        opened = true;
+    try {
+      if (isIOS) {
+        // iOS - Try multiple approaches in sequence
         
-        // After a short delay, try to redirect back to the URL
-        // This sometimes works after the system prompt is shown
+        // 1. Try a special URL format that iOS might handle differently
+        // This helps bypass internal WebView handlers by using a less common scheme variant
+        const enhancedUrl = targetUrl.replace('https://', 'https-enhanced://').replace('http://', 'http-enhanced://');
+        window.location.href = enhancedUrl;
+        
+        // 2. After a short delay, try Chrome (if installed)
         setTimeout(() => {
-          window.location.href = currentURL;
-        }, 300);
-      } catch (e) {
-        console.log("iOS SMS approach failed", e);
-      }
-      
-      // Try another iOS-specific scheme as backup
-      if (!opened) {
-        try {
-          // This will attempt to open the App Store, which sometimes
-          // allows escaping the WebView context
-          window.location.href = "itms-apps://";
-          opened = true;
-          
-          // After a short delay, try to redirect back to our URL
-          setTimeout(() => {
-            window.location.href = currentURL;
-          }, 300);
-        } catch (e) {
-          console.log("App Store redirect failed", e);
-        }
-      }
-    } else if (isAndroid) {
-      // Try multiple Android browser packages
-      const browserPackages = [
-        "com.android.chrome",
-        "com.android.browser",
-        "org.mozilla.firefox",
-        "com.opera.browser",
-        "com.sec.android.app.sbrowser" // Samsung browser
-      ];
-      
-      for (const pkg of browserPackages) {
-        if (opened) break;
+          window.location.href = `googlechrome://${targetUrl.replace(/^https?:\/\//, '')}`;
+        }, 100);
         
-        try {
-          const urlParts = new URL(currentURL);
-          const intentUrl = `intent://${urlParts.host}${urlParts.pathname}${urlParts.search}#Intent;scheme=${urlParts.protocol.replace(':', '')};package=${pkg};end`;
-          window.location.href = intentUrl;
-          opened = true;
-        } catch (e) {
-          console.log(`Android ${pkg} intent failed`, e);
-        }
+        // 3. Then try Firefox (if installed)
+        setTimeout(() => {
+          window.location.href = `firefox://open-url?url=${encodeURIComponent(targetUrl)}`;
+        }, 200);
+        
+        // 4. Finally fall back to regular Safari attempt
+        setTimeout(() => {
+          window.location.href = targetUrl;
+        }, 300);
+      } 
+      else if (isAndroid) {
+        // Android - Use an intent with specific flags to encourage external browser
+        // The key is adding the ACTIVITY_NEW_TASK and ACTIVITY_CLEAR_TASK flags
+        
+        const androidIntent = `intent:${targetUrl.replace(/^https?:\/\//, '')}#Intent;`
+          + `scheme=${targetUrl.startsWith('https') ? 'https' : 'http'};`
+          + `action=android.intent.action.VIEW;`
+          + `category=android.intent.category.BROWSABLE;`
+          + `S.browser_fallback_url=${encodeURIComponent(targetUrl)};`
+          + `launchFlags=0x10000000;` // FLAG_ACTIVITY_NEW_TASK
+          + `end`;
+          
+        window.location.href = androidIntent;
+      } 
+      else {
+        // Desktop or unknown device - use standard approach
+        window.open(targetUrl, '_blank', 'noreferrer');
       }
+      
+      // Final attempt for all platforms as absolute fallback
+      setTimeout(() => {
+        // Create and click a special anchor with attributes designed to trigger external opening
+        const a = document.createElement('a');
+        a.href = targetUrl;
+        a.target = '_blank';
+        a.rel = 'external nofollow noreferrer';
+        a.setAttribute('data-browser-open', 'true'); // Custom attribute that some browsers might recognize
+        
+        // Important! - visibility hidden but not display:none, this makes a difference
+        a.style.position = 'absolute';
+        a.style.left = '-9999px';
+        a.style.visibility = 'hidden';
+        
+        document.body.appendChild(a);
+        a.dispatchEvent(new MouseEvent('click', {
+          view: window,
+          bubbles: true,
+          cancelable: true,
+          buttons: 1 // Primary button (simulates a real user click)
+        }));
+        setTimeout(() => document.body.removeChild(a), 100);
+      }, 400);
+    } catch (e) {
+      console.error("Failed to open default browser:", e);
+      window.location.href = targetUrl;
     }
     
-    // Reset the UI after a delay regardless of success
-    // By this point, the user should rely on manual methods
+    // Reset the UI state after a delay
     setTimeout(() => {
       setIsRedirecting(false);
     }, 1500);
