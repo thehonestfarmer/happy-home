@@ -125,6 +125,11 @@ export default function AccountPage() {
 
   const handleGoogleLogin = async () => {
     try {
+      // Check for browser environment
+      if (typeof window === 'undefined') {
+        return;
+      }
+    
       // Store current URL to return to this page after auth
       localStorage.setItem('authRedirectPath', pathname);
       

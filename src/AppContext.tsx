@@ -6,7 +6,9 @@ import { createClientComponentClient, type User as SupabaseUser } from '@supabas
 
 // Comprehensive detection of embedded browsers
 function detectEmbeddedBrowser(): string {
-  if (typeof window === 'undefined' || !window.navigator) return 'Standard Browser';
+  if (typeof window === 'undefined' || !window.navigator) {
+    return 'Standard Browser';
+  }
   
   const ua = navigator.userAgent;
   
@@ -199,11 +201,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Detect browser type on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const detectedBrowser = detectEmbeddedBrowser();
-      setBrowserType(detectedBrowser);
-      console.log(`[AppContext] Browser detected: ${detectedBrowser}`);
+    // Only run this effect on the client side
+    if (typeof window === 'undefined' || !window.navigator) {
+      return;
     }
+    
+    const detectedBrowser = detectEmbeddedBrowser();
+    setBrowserType(detectedBrowser);
+    console.log(`[AppContext] Browser detected: ${detectedBrowser}`);
   }, []);
 
   // Helper computed property to easily check if this is an embedded browser

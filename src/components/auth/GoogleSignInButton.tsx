@@ -46,6 +46,11 @@ export function GoogleSignInButton({
 
   // Detect if this is a mobile device for UX optimizations
   useEffect(() => {
+    // Only run on the client side
+    if (typeof window === 'undefined' || !window.navigator) {
+      return;
+    }
+    
     const checkMobile = () => {
       const isMobileDevice = window.innerWidth < 768 || 
         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);

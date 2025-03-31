@@ -49,6 +49,11 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
     let icon = '/icons/browser.svg'; // Default icon
     let platformName = 'your device\'s browser';
     
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined' || !window.navigator) {
+      return { icon, platformName };
+    }
+    
     if (browserType === 'Instagram') {
       icon = '/icons/instagram.svg';
       platformName = 'Safari or Chrome';
