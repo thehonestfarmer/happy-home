@@ -4,6 +4,60 @@ import { useImmer } from "use-immer";
 import { Currency } from "@/lib/listing-utils";
 import { createClientComponentClient, type User as SupabaseUser } from '@supabase/auth-helpers-nextjs';
 
+// Comprehensive detection of embedded browsers
+function detectEmbeddedBrowser(): string {
+  if (typeof window === 'undefined' || !navigator) return 'Standard Browser';
+  
+  const ua = navigator.userAgent;
+  
+  // Instagram browser detection
+  if (/Instagram/.test(ua)) {
+    return 'Instagram';
+  }
+  
+  // Facebook in-app browser
+  if (/FBAN|FBAV/.test(ua)) {
+    return 'Facebook';
+  }
+  
+  // TikTok in-app browser
+  if (/TikTok/.test(ua)) {
+    return 'TikTok';
+  }
+  
+  // Twitter/X in-app browser
+  if (/Twitter/.test(ua)) {
+    return 'Twitter';
+  }
+  
+  // LinkedIn in-app browser
+  if (/LinkedInApp/.test(ua)) {
+    return 'LinkedIn';
+  }
+  
+  // Snapchat in-app browser
+  if (/Snapchat/.test(ua)) {
+    return 'Snapchat';
+  }
+  
+  // WeChat embedded browser
+  if (/MicroMessenger/.test(ua)) {
+    return 'WeChat';
+  }
+  
+  // Line app browser
+  if (/Line\//.test(ua)) {
+    return 'Line';
+  }
+  
+  // Generic WebView detection (Android)
+  if (/Android.*wv/.test(ua)) {
+    return 'Android WebView';
+  }
+  
+  return 'Standard Browser';
+}
+
 // Local storage key constants
 const FILTER_STATE_KEY = 'happyhome:filterState';
 
@@ -53,6 +107,8 @@ interface AppContextType {
   user: SupabaseUser | null;
   favorites: string[];
   isReady: boolean;
+  browserType: string;
+  isEmbeddedBrowser: boolean;
   setDisplayState: (draft: DisplayState) => void;
   setFilterState: (draft: FilterState) => void;
   setPriceFilterState: (updater: (draft: PriceFilterState) => void) => void;
@@ -139,6 +195,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [user, setUser] = useImmer<SupabaseUser | null>(null);
   const [favorites, setFavorites] = useImmer<string[]>([]);
+  const [browserType, setBrowserType] = useImmer<string>('Standard Browser'); 
+
+  // Detect browser type on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const detectedBrowser = detectEmbeddedBrowser();
+      setBrowserType(detectedBrowser);
+      console.log(`[AppContext] Browser detected: ${detectedBrowser}`);
+    }
+  }, []);
+
+  // Helper computed property to easily check if this is an embedded browser
+  const isEmbeddedBrowser = browserType !== 'Standard Browser';
 
   // Double-check localStorage on mount (for client-side hydration)
   useEffect(() => {
@@ -236,6 +305,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     user,
     favorites,
     isReady,
+    browserType,
+    isEmbeddedBrowser,
     setDisplayState,
     setFilterState,
     setPriceFilterState,

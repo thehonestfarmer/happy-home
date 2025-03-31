@@ -6,6 +6,8 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { getRedirectURL, getURL } from "@/lib/supabase/client";
+import { useAppContext } from "@/AppContext";
+import { EmbeddedBrowserModal } from "./EmbeddedBrowserModal";
 
 type ButtonVariant = "default" | "outline" | "ghost";
 
@@ -38,6 +40,8 @@ export function GoogleSignInButton({
 }: GoogleSignInButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showBrowserModal, setShowBrowserModal] = useState(false);
+  const { isEmbeddedBrowser } = useAppContext();
   const supabase = createClientComponentClient();
 
   // Detect if this is a mobile device for UX optimizations
@@ -73,6 +77,17 @@ export function GoogleSignInButton({
       default:
         return "flex";
     }
+  };
+
+  const handleButtonClick = () => {
+    // If in an embedded browser, show the warning modal instead of starting OAuth
+    if (isEmbeddedBrowser) {
+      setShowBrowserModal(true);
+      return;
+    }
+    
+    // Otherwise, proceed with normal OAuth flow
+    handleGoogleLogin();
   };
 
   const handleGoogleLogin = async () => {
@@ -125,30 +140,38 @@ export function GoogleSignInButton({
   };
 
   return (
-    <Button
-      variant={buttonVariantMap[variant] as ButtonProps["variant"]}
-      className={cn(
-        getResponsiveClasses(),
-        "items-center gap-2",
-        isLoading && "opacity-70 cursor-not-allowed",
-        fullWidth && "w-full",
-        isMobile && "text-base py-6", // Taller button on mobile for easier tapping
-        className
-      )}
-      onClick={handleGoogleLogin}
-      disabled={isLoading}
-      {...props}
-    >
-      {showIcon && (
-        <Image
-          src="/google.svg"
-          alt="Google"
-          width={isMobile ? 24 : 20}
-          height={isMobile ? 24 : 20}
-          className={isLoading ? "opacity-70" : ""}
-        />
-      )}
-      {text}
-    </Button>
+    <>
+      <Button
+        variant={buttonVariantMap[variant] as ButtonProps["variant"]}
+        className={cn(
+          getResponsiveClasses(),
+          "items-center gap-2",
+          isLoading && "opacity-70 cursor-not-allowed",
+          fullWidth && "w-full",
+          isMobile && "text-base py-6", // Taller button on mobile for easier tapping
+          className
+        )}
+        onClick={handleButtonClick}
+        disabled={isLoading}
+        {...props}
+      >
+        {showIcon && (
+          <Image
+            src="/google.svg"
+            alt="Google"
+            width={isMobile ? 24 : 20}
+            height={isMobile ? 24 : 20}
+            className={isLoading ? "opacity-70" : ""}
+          />
+        )}
+        {text}
+      </Button>
+
+      {/* Modal for embedded browser warning */}
+      <EmbeddedBrowserModal 
+        isOpen={showBrowserModal} 
+        onClose={() => setShowBrowserModal(false)} 
+      />
+    </>
   );
 } 

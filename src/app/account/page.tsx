@@ -13,6 +13,7 @@ import Image from "next/image";
 import { LogOut, ChevronLeft } from "lucide-react";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { clearAuthData, getURL } from '@/lib/supabase/client';
+import { EmbeddedBrowserModal } from "@/components/auth/EmbeddedBrowserModal";
 
 interface NotificationSettings {
   marketing: boolean;
@@ -22,7 +23,7 @@ interface NotificationSettings {
 }
 
 export default function AccountPage() {
-  const { user, setUser } = useAppContext();
+  const { user, setUser, isEmbeddedBrowser } = useAppContext();
   const pathname = usePathname();
   const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationSettings>({
@@ -31,6 +32,7 @@ export default function AccountPage() {
     priceDrops: false,
     savedSearches: false,
   });
+  const [showBrowserModal, setShowBrowserModal] = useState(false);
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -160,6 +162,8 @@ export default function AccountPage() {
               variant="primary"
               className="bg-black text-primary border-black hover:bg-primary hover:text-black transition-colors w-full sm:w-auto"
             />
+            
+            {/* The EmbeddedBrowserModal is now handled inside the GoogleSignInButton component */}
           </CardContent>
         </Card>
       </div>
