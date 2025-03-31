@@ -80,14 +80,6 @@ export function EmbeddedBrowserModal({ isOpen, onClose }: EmbeddedBrowserModalPr
           }
         },
         {
-          name: "Safari (Alt)",
-          icon: "🌐", // Web globe icon
-          deepLink: (url) => {
-            // Alternative direct approach for Safari with query param
-            return url.includes('?') ? `${url}&open_in_safari=1` : `${url}?open_in_safari=1`;
-          }
-        },
-        {
           name: "Chrome",
           icon: "🔵", // Chrome icon
           deepLink: (url) => `googlechrome://${url.replace(/^https?:\/\//, '')}`
