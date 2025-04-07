@@ -872,10 +872,52 @@ export function MapDisplay({
   // If the context is not ready, show a loading state
   if (!isReady) {
     return (
-      <div className="flex items-center justify-center h-full bg-gray-100">
-        <div className="text-center p-4 bg-white rounded-lg shadow-md">
-          <div className="h-6 w-6 border-2 border-t-green-600 border-gray-300 rounded-full animate-spin mx-auto mb-2"></div>
-          <p className="text-sm text-gray-600 font-medium">Loading filters...</p>
+      <div className="h-full relative bg-gray-100">
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="w-full max-w-md p-6">
+            {/* Map placeholder skeleton */}
+            <div className="w-full h-8 bg-gray-200 rounded-lg mb-4 animate-pulse"></div>
+            
+            {/* Location markers skeleton */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              ))}
+            </div>
+            
+            {/* Loading indicator */}
+            <div className="flex items-center justify-center space-x-3">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <span className="text-sm text-gray-500 font-medium">Loading map data...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check for both props listings and context listings
+  if ((!propListings || propListings.length === 0) && (!contextListings || contextListings.length === 0)) {
+    return (
+      <div className="h-full relative bg-gray-100">
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="w-full max-w-md p-6">
+            {/* Map placeholder skeleton */}
+            <div className="w-full h-8 bg-gray-200 rounded-lg mb-4 animate-pulse"></div>
+            
+            {/* Location markers skeleton */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              ))}
+            </div>
+            
+            {/* Loading indicator */}
+            <div className="flex items-center justify-center space-x-3">
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <span className="text-sm text-gray-500 font-medium">Fetching properties...</span>
+            </div>
+          </div>
         </div>
       </div>
     );

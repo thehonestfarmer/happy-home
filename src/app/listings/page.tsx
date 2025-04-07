@@ -10,6 +10,7 @@ import Header from "../header";
 import { Listing, parseJapanesePrice, convertCurrency, parseLayout } from "@/lib/listing-utils";
 import { useAppContext } from "@/AppContext";
 import { useListings } from "@/contexts/ListingsContext";
+import { ListingsToolbar } from "@/components/listings/ListingsToolbar";
 
 export default function ListingsPage() {
   // Add state to track selected listing
@@ -226,57 +227,45 @@ export default function ListingsPage() {
 
         {FeatureFlags.showMap ? (
           <>
-            {/* Show loading indicator when not ready */}
-            {!isReady && (
-              <div className="w-full h-[calc(100vh-150px)] flex items-center justify-center">
-                <div className="text-center p-6 bg-white rounded-lg shadow-md">
-                  <div className="h-8 w-8 border-2 border-t-green-600 border-gray-300 rounded-full animate-spin mx-auto mb-3"></div>
-                  <p className="text-gray-700 font-medium">Loading your filters...</p>
-                </div>
-              </div>
-            )}
-            
             {/* Mobile View - Full Map with toggle */}
-            {isReady && (
-              <div className="lg:hidden w-full">
-                <MobileMapView 
-                  maintainMapPosition={maintainMapPosition} 
-                  listings={filteredListings}
-                />
-              </div>
-            )}
+            <div className="lg:hidden w-full">
+              <MobileMapView 
+                maintainMapPosition={maintainMapPosition} 
+                listings={filteredListings}
+              />
+            </div>
 
             {/* Desktop View - Side by side layout */}
-            {isReady && (
-              <div className="hidden lg:flex lg:flex-row w-full">
-                {/* Listings section - pass onSelectProperty callback */}
-                <div className="lg:w-7/12 lg:max-w-[960px]">
-                  <ListingsGrid onSelectProperty={handleSelectProperty} listings={filteredListings} />
-                </div>
-
-                {/* Map section - pass selected property information */}
-                <div className="lg:w-5/12 lg:flex-1">
-                  {/* Note: currentRoute="/listings" is automatically set in ListingsMapView */}
-                  <ListingsMapView 
-                    selectedPropertyId={selectedPropertyId}
-                    singlePropertyMode={selectedPropertyId !== null}
-                    showPropertyPopup={showPropertyPopup}
-                    onPropertyPopupToggle={handlePropertyPopupToggle}
-                    customZoom={currentZoom}
-                    onMove={handleMapMove}
-                    maintainMapPosition={maintainMapPosition}
-                    onPinSelect={handlePinSelect}
-                    isMobileView={isMobileView}
-                    listings={filteredListings}
-                  />
-                </div>
+            <div className="hidden lg:flex flex-1">
+              {/* Left side - Listings */}
+              <div className="w-1/2 overflow-hidden">
+                <ListingsGrid 
+                  onSelectProperty={handleSelectProperty}
+                />
               </div>
-            )}
+              
+              {/* Right side - Map */}
+              <div className="w-1/2 pt-2">
+                <ListingsMapView 
+                  listings={filteredListings}
+                  selectedPropertyId={selectedPropertyId}
+                  onPinSelect={handlePinSelect}
+                  showPropertyPopup={showPropertyPopup}
+                  onPropertyPopupToggle={handlePropertyPopupToggle}
+                  customZoom={currentZoom}
+                  onMove={handleMapMove}
+                  maintainMapPosition={maintainMapPosition}
+                  currentRoute="/listings"
+                />
+              </div>
+            </div>
           </>
         ) : (
-          // If map feature is disabled, just show listings grid on all screens
-          <div className="w-full">
-            <ListingsGrid onSelectProperty={handleSelectProperty} />
+          // Non-map view
+          <div className="container mx-auto p-4">
+            <div className="mt-4">
+              <ListingsGrid />
+            </div>
           </div>
         )}
       </main>

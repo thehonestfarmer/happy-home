@@ -21,6 +21,9 @@ import {
 } from "react-virtualized";
 import { CSSProperties, FC } from "react";
 
+// Import the extractDateFromString function from ListingBox
+import { extractDateFromString } from "./ListingBox";
+
 // Helper to check if filters are at default state
 const isDefaultFilterState = (filterState: FilterState) => {
   return (filterState.showForSale && !filterState.showSold) &&
@@ -282,11 +285,23 @@ export function ListingsGrid({ onSelectProperty, listings: propsListings }: List
           return priceB - priceA;
         }
         case 'newest': {
-          // For newest, assume listings with higher IDs are newer
-          // If you have timestamps, use those instead
+          // Extract dates from the datePosted field
+          const dateA = a.dates?.datePosted ? extractDateFromString(a.dates.datePosted) : null;
+          const dateB = b.dates?.datePosted ? extractDateFromString(b.dates.datePosted) : null;
+          
+          // If both have dates, compare them
+          if (dateA && dateB) {
+            return dateB.getTime() - dateA.getTime();
+          }
+          
+          // If only one has a date, prioritize the one with a date
+          if (dateA) return -1;
+          if (dateB) return 1;
+          
+          // If neither has a date, fall back to ID comparison
           const idA = parseInt(a.id || '0', 10);
           const idB = parseInt(b.id || '0', 10);
-          return idB - idA; // Descending order (newest first)
+          return idB - idA;
         }
         default:
           // Default to newest if no valid sort option
@@ -498,14 +513,36 @@ export function ListingsGrid({ onSelectProperty, listings: propsListings }: List
     return <ErrorDisplay title="Failed to load listings" message={error.message} />;
   }
 
-  if (!isReady) {
+  if (!isReady || isLoading) {
     return (
-      <div className="container mx-auto py-6 px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <LoadingListingCard key={index} />
-          ))}
-        </div>
+      <div className="h-[calc(100vh-110px)]">
+        <AutoSizer>
+          {({ width, height }) => {
+            const columnCount = getColumnCount(width);
+            const rowCount = Math.ceil(8 / columnCount); // Show 8 loading cards
+            
+            return (
+              <Grid
+                cellRenderer={({ columnIndex, key, rowIndex, style }) => {
+                  const index = rowIndex * columnCount + columnIndex;
+                  if (index >= 8) return null;
+                  
+                  return (
+                    <div key={key} style={Object.assign({}, style, { padding: getPadding() })} className="outline-none">
+                      <LoadingListingCard />
+                    </div>
+                  );
+                }}
+                columnCount={columnCount}
+                columnWidth={width / columnCount}
+                height={height}
+                rowCount={rowCount}
+                rowHeight={getRowHeight(width)}
+                width={width}
+              />
+            );
+          }}
+        </AutoSizer>
       </div>
     );
   }
@@ -521,34 +558,28 @@ export function ListingsGrid({ onSelectProperty, listings: propsListings }: List
 
   return (
     <>
-      <div className="flex-1">
-        {filteredAndSortedListings.length > 0 ? (
-          <div className="h-[calc(100vh-50px)]">
-            <AutoSizer>
-              {({ width, height }) => {
-                const columnCount = getColumnCount(width);
-                
-                return (
-                  <Grid
-                    ref={gridRef}
-                    cellRenderer={({ columnIndex, key, rowIndex, style }) => 
-                      cellRenderer({ columnIndex, key, rowIndex, style, width })
-                    }
-                    columnCount={columnCount}
-                    columnWidth={width / columnCount}
-                    height={height}
-                    rowCount={Math.ceil(filteredAndSortedListings.length / columnCount)}
-                    rowHeight={getRowHeight(width)}
-                    width={width}
-                    noContentRenderer={() => <NoResults />}
-                  />
-                );
-              }}
-            </AutoSizer>
-          </div>
-        ) : (
-          <NoResults />
-        )}
+      <div className="h-[calc(100vh-110px)]">
+        <AutoSizer>
+          {({ width, height }) => {
+            const columnCount = getColumnCount(width);
+            
+            return (
+              <Grid
+                ref={gridRef}
+                cellRenderer={({ columnIndex, key, rowIndex, style }) => 
+                  cellRenderer({ columnIndex, key, rowIndex, style, width })
+                }
+                columnCount={columnCount}
+                columnWidth={width / columnCount}
+                height={height}
+                rowCount={Math.ceil(filteredAndSortedListings.length / columnCount)}
+                rowHeight={getRowHeight(width)}
+                width={width}
+                noContentRenderer={() => <NoResults />}
+              />
+            );
+          }}
+        </AutoSizer>
       </div>
     </>
   );

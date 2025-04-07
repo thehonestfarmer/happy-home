@@ -83,7 +83,7 @@ const generatePropertyTitle = (property: Listing): string => {
 };
 
 // Extract a date from a string (works with various formats)
-const extractDateFromString = (dateString: string | null | undefined): Date | null => {
+export const extractDateFromString = (dateString: string | null | undefined): Date | null => {
   if (!dateString) return null;
   
   // First try to parse Japanese dates like "令和6年12月22日" or "平成6年12月22日"
@@ -161,9 +161,10 @@ const formatRelativeTime = (date: Date | null | undefined): string => {
     const diffMin = Math.floor(diffSec / 60);
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
-    const diffWeek = Math.floor(diffDay / 7);
-    const diffMonth = Math.floor(diffDay / 30);
-    const diffYear = Math.floor(diffDay / 365);
+    
+    // Calculate months more accurately
+    const monthDiff = (now.getFullYear() - date.getFullYear()) * 12 + (now.getMonth() - date.getMonth());
+    const diffYear = Math.floor(monthDiff / 12);
     
     // Handle future dates (shouldn't normally happen with listing dates)
     if (diffMs < 0) {
@@ -177,12 +178,10 @@ const formatRelativeTime = (date: Date | null | undefined): string => {
       return diffMin === 1 ? '1 minute ago' : `${diffMin} minutes ago`;
     } else if (diffHour < 24) {
       return diffHour === 1 ? '1 hour ago' : `${diffHour} hours ago`;
-    } else if (diffDay < 7) {
+    } else if (diffDay < 31) {
       return diffDay === 1 ? '1 day ago' : `${diffDay} days ago`;
-    } else if (diffWeek < 4) {
-      return diffWeek === 1 ? '1 week ago' : `${diffWeek} weeks ago`;
-    } else if (diffMonth < 12) {
-      return diffMonth === 1 ? '1 month ago' : `${diffMonth} months ago`;
+    } else if (monthDiff < 12) {
+      return monthDiff === 1 ? '1 month ago' : `${monthDiff} months ago`;
     } else {
       return diffYear === 1 ? '1 year ago' : `${diffYear} years ago`;
     }

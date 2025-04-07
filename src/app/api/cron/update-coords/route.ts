@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { sendSlackNotification, sendSlackError } from '@/server/slack/notifications';
 import { readListings, writeListings, uploadListings } from '../update-listings/listings-manager';
 import puppeteer from 'puppeteer';
-import { Listing } from '../update-listings/types';
+import { Listing, ListingsData } from '../update-listings/types';
 import { fixMissingCoordinates } from '../update-listings/fix-missing-coordinates';
+import { v4 as uuidv4 } from 'uuid';
 /**
 * This route handler is designed to be called by Vercel Cron Jobs
 * It verifies the Vercel signature (if present) and then calls the update-listings
@@ -15,7 +16,14 @@ import { fixMissingCoordinates } from '../update-listings/fix-missing-coordinate
  * @returns {Promise<boolean>} - Returns true if content matches the expected 404 page
  */
 async function isJapanese404Page(url: string): Promise<boolean> {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ 
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage'
+        ]
+    });
     try {
         const page = await browser.newPage();
         await page.goto(url, { waitUntil: 'networkidle2' });
@@ -67,7 +75,7 @@ async function isJapanese404Page(url: string): Promise<boolean> {
     }
 }
 
-export async function updateCoords(currentListings: ListingData) {
+export async function updateCoords(currentListings: ListingsData) {
     console.log(`Updating coordinates for ${Object.entries(currentListings).length} listings`);
 
     // Filter properties with missing coordinates
@@ -135,6 +143,43 @@ export async function updateCoords(currentListings: ListingData) {
 
 }
 
+async function updateMissingIds(currentListings: ListingsData): Promise<ListingsData> {
+    const listingsWithoutIds = Object.entries(currentListings)
+        .filter(([_, property]) => !property.id && !property.removed);
+
+    if (listingsWithoutIds.length === 0) {
+        sendSlackNotification(
+            ':saluting_face: No listings found with missing IDs',
+            ':id: Update IDs',
+            'info'
+        );
+        return currentListings;
+    }
+
+    sendSlackNotification(
+        `:mag: Found ${listingsWithoutIds.length} properties with missing IDs`,
+        ':id: Update IDs',
+        'warning'
+    );
+
+    // Assign new UUIDs to listings without IDs
+    const updatedListings: ListingsData = { ...currentListings };
+    for (const [address, property] of listingsWithoutIds) {
+        updatedListings[address] = {
+            ...property,
+            id: uuidv4()
+        };
+    }
+
+    sendSlackNotification(
+        `:white_check_mark: Added IDs to ${listingsWithoutIds.length} listings`,
+        ':id: Update IDs',
+        'success'
+    );
+
+    return updatedListings;
+}
+
 export async function GET(request: Request) {
     console.log('Vercel Cron trigger received at', new Date().toISOString());
     sendSlackNotification(':robot_face: Starting update-coords cron job', ':round_pushpin: Update Coords', 'info');
@@ -151,12 +196,40 @@ export async function GET(request: Request) {
         }
 
         const currentListings = await readListings(true);
-        await updateCoords(currentListings);
+        
+        // First, update any missing IDs
+        const listingsWithIds = await updateMissingIds(currentListings);
+        
+        // Then handle coordinate updates
+        const listingsWithoutCoords = Object.fromEntries(
+            Object.entries(listingsWithIds).filter(([_, property]) => 
+                !property.coordinates ||
+                property.coordinates.lat === null ||
+                property.coordinates.long === null
+            )
+        );
+
+        let finalListings = listingsWithIds;
+        if (Object.keys(listingsWithoutCoords).length > 0) {
+            const updatedWithCoords = await updateCoords(listingsWithoutCoords);
+            if (updatedWithCoords) {
+                finalListings = { ...listingsWithIds, ...updatedWithCoords };
+            }
+        } else {
+            sendSlackNotification(
+                ':saluting_face: No listings found with missing coordinates',
+                ':round_pushpin: Update Coords',
+                'info'
+            );
+        }
+
+        // Upload the final state with both ID and coordinate updates
+        await uploadListings(finalListings);
 
         // Return success response
         return NextResponse.json({
             success: true,
-            message: "Coords-update job completed successfully"
+            message: "Coords-update and ID-update job completed successfully"
         });
 
     } catch (error) {

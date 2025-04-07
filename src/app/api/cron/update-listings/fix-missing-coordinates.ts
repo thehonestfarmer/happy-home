@@ -960,43 +960,36 @@ export async function fixMissingCoordinates(listingData: Record<string, Property
     // Launch a browser instance with chromium-min for serverless
     let browser;
     
-    if (process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL) {
-      // Running on AWS Lambda, Vercel, or similar serverless environment
-      console.log('Running in serverless environment, using chromium-min');
-      chromium.setHeadlessMode = true;
-      chromium.setGraphicsMode = false;
-      
-      browser = await puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-      });
-    } else {
-      // Local development environment - need to specify Chrome executable path
-      console.log('Running in local environment, using system Chrome');
-      
-      // Determine the Chrome executable path based on the OS
-      let executablePath = '';
-      
-      if (process.platform === 'win32') {
-        // Windows path
-        executablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-      } else if (process.platform === 'darwin') {
-        // macOS path
-        executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    try {
+      // Running in serverless environment
+      if (process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.VERCEL) {
+        console.log('Running in serverless environment');
+        browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process'
+          ]
+        });
       } else {
-        // Linux path
-        executablePath = '/usr/bin/google-chrome';
+        // Local development environment
+        console.log('Running in local environment');
+        browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage'
+          ]
+        });
       }
-      
-      console.log(`Using Chrome at: ${executablePath}`);
-      
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        executablePath
-      });
+    } catch (error) {
+      console.error('Error launching browser:', error);
+      throw error;
     }
 
     // Track the number of successful updates
