@@ -660,9 +660,6 @@ export function MapDisplay({
 
   // Handle marker click with optional callback for mobile
   const handleMarkerClick = (listing: Listing) => {
-    // Check if property is already selected
-    const isAlreadySelected = selectedProperty === listing.id;
-
     // Always mark listing as viewed when clicked regardless of other actions
     if (listing.id) {
       markListingAsViewed(listing.id);
@@ -670,58 +667,18 @@ export function MapDisplay({
 
     // Check if we're on the listings page
     const isListingsPage = currentRoute === '/listings';
-
-    // Use the passed isMobileView prop directly (already set in parent component)
     const isDesktopView = !isMobileView;
 
-    // Set the internal selected property regardless of view mode
-    // This ensures the property is marked as selected in the map
+    // Set the internal selected property
     setInternalSelectedProperty(listing.id || null);
 
-    // For desktop view on listings page, explicitly show the popup
-    // and call onPinSelect to trigger the desktop handler
-    if (isDesktopView) {
-      // Reset internal popup visibility if we're managing it ourselves
-      if (!onPropertyPopupToggle) {
-        setInternalPopupVisible(true);
-      }
-
-      // Show property popup if toggle function is available
-      if (onPropertyPopupToggle) {
-        onPropertyPopupToggle(true);
-      }
-
-      // Call onPinSelect to trigger the property detail drawer
-      if (onPinSelect) {
-        onPinSelect(listing);
-      }
-
-      return;
-    }
-
-    // Mobile view on listings page - only call onPinSelect for drawer
-    if (isListingsPage && isMobileView) {
-      if (onPinSelect) {
-        onPinSelect(listing);
-      }
-      return;
-    }
-
-    // For all other pages (non-listings pages), always ensure the popup is visible when marker is clicked
-    // This fixes the issue where popup doesn't reappear after closing
+    // Always show popup when marker is clicked
     if (onPropertyPopupToggle) {
       onPropertyPopupToggle(true);
-    } else {
-      setInternalPopupVisible(true);
     }
+    setInternalPopupVisible(true);
 
-    // Update internal selection state if needed
-    if (selectedPropertyId === undefined) {
-      setInternalSelectedProperty(listing.id || null);
-    }
-
-    // If onPinSelect callback is provided, call it
-    // This typically opens the property detail drawer in the parent component
+    // Call onPinSelect if provided
     if (onPinSelect) {
       onPinSelect(listing);
     }
@@ -1280,10 +1237,13 @@ export function MapDisplay({
         })}
 
         {/* Property Popup */}
-        {selectedProperty && effectiveShowPropertyPopup && !hidePopup && showPropertyPopup && (
-          // For both listings page and non-listings pages, always show popup in desktop mode
-          // Only hide on mobile for listings page
-          isListingsPage ? !isMobileView : true
+        {selectedProperty && !hidePopup && (
+          // Check if popup should be visible based on view mode and internal state
+          (isListingsPage && !isMobileView) ? 
+            // For desktop listings view, use internal popup visibility state
+            (internalPopupVisible || (onPropertyPopupToggle && showPropertyPopup)) : 
+            // For other views, always show
+            true
         ) && (() => {
           const listing = filteredListings.find(l => l.id === selectedProperty);
           if (!listing || !listing.coordinates?.lat || !listing.coordinates?.long) return null;
@@ -1335,11 +1295,16 @@ export function MapDisplay({
                   // In single property mode, inform parent that popup should be closed
                   onPropertyPopupToggle(false);
                 } else if (!singlePropertyMode) {
-                  
-                  // For ALL desktop views (both listings and non-listings pages), 
-                  // just hide the popup but maintain property selection
-                  // For mobile views on non-listings pages, clear the selected property
-                  setInternalSelectedProperty(null);
+                  // Only update popup visibility state but maintain selection for desktop listings view
+                  if (isListingsPage && isDesktopView) {
+                    if (onPropertyPopupToggle) {
+                      onPropertyPopupToggle(false);
+                    }
+                    setInternalPopupVisible(false);
+                  } else {
+                    // For mobile views or non-listings pages, clear the selected property
+                    setInternalSelectedProperty(null);
+                  }
                 }
               }}
               className="map-popup property-info-popup"
