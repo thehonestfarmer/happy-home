@@ -151,7 +151,7 @@ export default function AboutPage() {
           <div className="flex flex-col md:flex-row items-center gap-6 mb-4">
             <div className="relative w-full md:w-1/4 h-48">
               <Image
-                src={partnerCompany.imageUrl}
+                src="/images/ShiawaseHomeLogo.png"
                 alt={partnerCompany.name}
                 fill
                 className="object-contain"
